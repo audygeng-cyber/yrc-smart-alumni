@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Data files (do not commit member PII)
+*.xlsx
+*.xls
+*.csv
+!**/fixtures/*.csv
+
+# Supabase local (if used)
+.branches/
+.temp/
