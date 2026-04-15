@@ -6,6 +6,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 8
+    # ไม่เปิด PR อัปเดต major อัตโนมัติ (มักทำให้ build/lint พัง เช่น Tailwind 3→4)
+    # ถ้าจะขึ้น major ค่อยทำเป็นงานแยกและทดสอบเอง
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
