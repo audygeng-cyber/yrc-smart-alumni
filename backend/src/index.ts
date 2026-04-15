@@ -11,9 +11,23 @@ import { pushRouter } from './routes/push.js'
 const app = express()
 const port = Number(process.env.PORT) || 4000
 
+/** Cloud Run / reverse proxy */
+app.set('trust proxy', 1)
+
+function parseCorsOrigins(): string[] {
+  const raw = process.env.FRONTEND_ORIGINS?.trim()
+  if (!raw) {
+    return ['http://localhost:5173', 'http://127.0.0.1:5173']
+  }
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: parseCorsOrigins(),
     credentials: true,
   }),
 )

@@ -103,3 +103,32 @@ npx web-push generate-vapid-keys
 5. หลังมี `POST /api/members/register-request` สำเร็จ ระบบจะพยายามส่ง push ไปยัง subscription ที่บันทึกไว้
 
 หมายเหตุ: โดเมนจริงต้องเป็น **HTTPS** (localhost ยกเว้นได้ในการทดสอบ)
+
+## Deploy (แนวทางย่อ)
+
+### Frontend — Vercel
+
+1. เชื่อม GitHub repo กับ [Vercel](https://vercel.com)  
+2. ตั้ง **Root Directory** = `frontend` (หรือใช้คำสั่ง build จากรากตามที่ Vercel แนะนำ)  
+3. **Environment Variables**: `VITE_API_URL` = URL ของ API ที่ deploy แล้ว (เช่น `https://xxx.run.app`)  
+4. ตั้งค่า **LINE Callback URL** + `VITE_LINE_REDIRECT_URI` + `LINE_REDIRECT_URIS` ให้ตรงกับ URL ที่ Vercel ให้ (HTTPS)  
+5. ไฟล์ `frontend/vercel.json` มี rewrite สำหรับ SPA แล้ว
+
+### Backend — Cloud Run (Docker)
+
+1. ไฟล์ `Dockerfile` ที่รากโปรเจกต์ build เฉพาะ backend  
+2. Build & push:
+
+```bash
+docker build -t gcr.io/PROJECT_ID/yrc-api:latest .
+```
+
+3. Deploy ไป Cloud Run (ตั้ง `PORT` จาก platform โดยปกติเป็น 8080)  
+4. **Secrets / env**: ค่าเดียวกับ `backend/.env` (Supabase, LINE, VAPID, keys, `FRONTEND_ORIGINS`)  
+5. **`FRONTEND_ORIGINS`**: ใส่ URL ของ Vercel แบบเต็ม `https://your-app.vercel.app` (คั่นหลายค่าด้วย comma) — ถ้าไม่ตั้ง จะใช้แค่ localhost ใน CORS
+
+### หลัง deploy
+
+- อัปเดต `VITE_API_URL` บน Vercel  
+- อัปเดต `FRONTEND_ORIGINS` บน Cloud Run  
+- ตรวจ LINE / LINE Login callback ให้ตรงโดเมนใหม่
