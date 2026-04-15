@@ -41,3 +41,18 @@ curl -X DELETE http://localhost:4000/api/admin/members/all ^
 ```
 
 ไฟล์ `.xlsx` / `.csv` ที่มีข้อมูลส่วนบุคคล **ไม่ควร commit** — มีใน `.gitignore` แล้ว
+
+## API สมาชิก (ไม่ต้องใช้ x-admin-key)
+
+**ผูก Line UID** — ต้องมีแถวใน `members` ที่ `รุ่น` + `ชื่อ` + `นามสกุล` ตรงกันหนึ่งแถวเท่านั้น
+
+`POST /api/members/verify-link`  
+Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name": "…" }`
+
+**สมัครใหม่ (คำร้อง)** — เมื่อ verify ไม่พบในทะเบียน
+
+`POST /api/members/register-request`  
+Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name": "…", … }`  
+สร้างแถวใน `member_update_requests` (สถานะ `pending_president`)
+
+หน้าเว็บแท็บ **ผูกบัญชี** / **Admin** ใช้ทดสอบ flow เหล่านี้ได้จาก UI
