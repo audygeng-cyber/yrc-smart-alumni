@@ -35,6 +35,18 @@ npm run dev
 
 [Dependabot](https://docs.github.com/en/code-security/dependabot) (ไฟล์ `.github/dependabot.yml`) จะเปิด PR อัปเดตแพ็กเกจ npm และ GitHub Actions เป็นระยะหลัง repo อยู่บน GitHub
 
+### แรกครั้ง: เชื่อม GitHub แล้ว push
+
+1. สร้าง repository เปล่าบน GitHub (ไม่ต้องสร้าง README จากเทมเพลตถ้าจะ push โค้ดนี้ทับ)
+2. ในโฟลเดอร์รากของโปรเจกต์:
+
+```bash
+git remote add origin https://github.com/YOUR_USER/YOUR_REPO.git
+git push -u origin master
+```
+
+(ถ้าต้องการใช้ชื่อ branch `main` แทน: `git branch -M main` แล้ว `git push -u origin main` และตั้ง default branch บน GitHub ให้ตรง)
+
 ## นำเข้าสมาชิก (Admin)
 
 ```bash
