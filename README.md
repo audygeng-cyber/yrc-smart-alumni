@@ -130,11 +130,16 @@ npx web-push generate-vapid-keys
 
 ### Frontend — Vercel
 
+Monorepo ใช้ `package-lock.json` เดียวที่ **รากโปรเจกต์** — ตั้ง Vercel ให้ build จากราก (ไม่ใช้โฟลเดอร์ `frontend` เป็น root อย่างเดียว):
+
 1. เชื่อม GitHub repo กับ [Vercel](https://vercel.com)  
-2. ตั้ง **Root Directory** = `frontend` (หรือใช้คำสั่ง build จากรากตามที่ Vercel แนะนำ)  
-3. **Environment Variables**: `VITE_API_URL` = URL ของ API ที่ deploy แล้ว (เช่น `https://xxx.run.app`)  
-4. ตั้งค่า **LINE Callback URL** + `VITE_LINE_REDIRECT_URI` + `LINE_REDIRECT_URIS` ให้ตรงกับ URL ที่ Vercel ให้ (HTTPS)  
-5. ไฟล์ `frontend/vercel.json` มี rewrite สำหรับ SPA แล้ว
+2. **Root Directory** = ราก repo (เว้นว่าง / `.`) — **ไม่**ใช่แค่ `frontend`  
+3. **Install Command**: `npm ci`  
+4. **Build Command**: `npm run build -w frontend`  
+5. **Output Directory**: `frontend/dist`  
+6. **Environment Variables**: `VITE_API_URL` = URL ของ API ที่ deploy แล้ว (เช่น `https://xxx.run.app`) และค่า `VITE_*` อื่นตาม `frontend/.env.example`  
+7. ตั้งค่า **LINE Callback URL** + `VITE_LINE_REDIRECT_URI` + `LINE_REDIRECT_URIS` ให้ตรงกับ URL ที่ Vercel ให้ (HTTPS)  
+8. ไฟล์ `vercel.json` ที่รากมี rewrite สำหรับ SPA แล้ว
 
 ### Backend — Cloud Run (Docker)
 
