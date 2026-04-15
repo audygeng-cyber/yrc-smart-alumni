@@ -29,7 +29,8 @@ app.get('/', (_req, res) => {
       membersVerify: 'POST /api/members/verify-link',
       membersRegister: 'POST /api/members/register-request',
       adminImport: 'POST /api/admin/members/import (ต้องใช้ x-admin-key)',
-      memberRequests: 'GET /api/admin/member-requests (x-admin-key)',
+      memberRequests:
+        'GET /api/admin/member-requests (x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
     },
   })
 })
@@ -39,7 +40,7 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/api/auth/line', lineAuthRouter)
-app.use('/api/admin/member-requests', adminAuth, memberRequestsAdminRouter)
+app.use('/api/admin/member-requests', memberRequestsAdminRouter)
 app.use('/api/admin/members', adminAuth, importMembersRouter)
 app.use('/api/members', membersRouter)
 

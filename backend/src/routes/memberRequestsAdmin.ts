@@ -1,11 +1,13 @@
 import { Router } from 'express'
+import { adminAuth } from '../middleware/adminAuth.js'
+import { presidentAuth } from '../middleware/presidentAuth.js'
 import { getServiceSupabase } from '../lib/supabase.js'
 import { normalizeWhitespace } from '../util/normalize.js'
 import { memberInsertFromRequestedData } from '../util/memberFromRequestedData.js'
 
 export const memberRequestsAdminRouter = Router()
 
-memberRequestsAdminRouter.get('/', async (req, res) => {
+memberRequestsAdminRouter.get('/', adminAuth, async (req, res) => {
   try {
     const status = typeof req.query.status === 'string' ? req.query.status.trim() : ''
     const supabase = getServiceSupabase()
@@ -31,7 +33,7 @@ memberRequestsAdminRouter.get('/', async (req, res) => {
   }
 })
 
-memberRequestsAdminRouter.post('/:id/president-approve', async (req, res) => {
+memberRequestsAdminRouter.post('/:id/president-approve', presidentAuth, async (req, res) => {
   try {
     const id = req.params.id
     const approvedBy =
@@ -77,7 +79,7 @@ memberRequestsAdminRouter.post('/:id/president-approve', async (req, res) => {
   }
 })
 
-memberRequestsAdminRouter.post('/:id/admin-approve', async (req, res) => {
+memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res) => {
   try {
     const id = req.params.id
     const approvedBy =
@@ -180,7 +182,7 @@ memberRequestsAdminRouter.post('/:id/admin-approve', async (req, res) => {
   }
 })
 
-memberRequestsAdminRouter.post('/:id/reject', async (req, res) => {
+memberRequestsAdminRouter.post('/:id/reject', presidentAuth, async (req, res) => {
   try {
     const id = req.params.id
     const rejectedBy =

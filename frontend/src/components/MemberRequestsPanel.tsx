@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
-const STORAGE_KEY = 'yrc_admin_upload_key'
+const STORAGE_ADMIN = 'yrc_admin_upload_key'
+const STORAGE_PRESIDENT = 'yrc_president_upload_key'
 
 type RequestRow = {
   id: string
@@ -19,22 +20,28 @@ type Props = { apiBase: string }
 
 export function MemberRequestsPanel({ apiBase }: Props) {
   const [adminKey, setAdminKey] = useState('')
+  const [presidentKey, setPresidentKey] = useState('')
   const [rows, setRows] = useState<RequestRow[]>([])
   const [filter, setFilter] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
+    setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
+    setPresidentKey(sessionStorage.getItem(STORAGE_PRESIDENT) ?? '')
   }, [])
 
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY, adminKey)
+    sessionStorage.setItem(STORAGE_ADMIN, adminKey)
   }, [adminKey])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_PRESIDENT, presidentKey)
+  }, [presidentKey])
 
   const load = useCallback(async () => {
     if (!adminKey.trim()) {
-      setMsg('ใส่ x-admin-key ก่อน')
+      setMsg('ใส่ x-admin-key ก่อน (เฉพาะ Admin ดูรายการได้)')
       return
     }
     setLoading(true)
@@ -57,12 +64,36 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     }
   }, [apiBase, adminKey, filter])
 
+  function headersAdminOnly(): Record<string, string> | null {
+    if (!adminKey.trim()) return null
+    return {
+      'Content-Type': 'application/json',
+      'x-admin-key': adminKey.trim(),
+    }
+  }
+
+  /** อนุมัติประธานรุ่น / ปฏิเสธ — ส่ง x-admin-key หรือ x-president-key อย่างใดอย่างหนึ่ง (หรือทั้งคู่) */
+  function headersPresidentOrAdmin(): Record<string, string> | null {
+    const h: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (adminKey.trim()) h['x-admin-key'] = adminKey.trim()
+    if (presidentKey.trim()) h['x-president-key'] = presidentKey.trim()
+    if (!adminKey.trim() && !presidentKey.trim()) return null
+    return h
+  }
+
   async function callAction(
     path: string,
     body: Record<string, string | undefined>,
+    auth: 'admin-only' | 'president-or-admin',
   ) {
-    if (!adminKey.trim()) {
-      setMsg('ใส่ x-admin-key')
+    const headers =
+      auth === 'admin-only' ? headersAdminOnly() : headersPresidentOrAdmin()
+    if (!headers) {
+      setMsg(
+        auth === 'admin-only'
+          ? 'ใส่ x-admin-key'
+          : 'ใส่ x-admin-key หรือ x-president-key (ต้องตรงกับ backend)',
+      )
       return
     }
     setLoading(true)
@@ -70,10 +101,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${apiBase}/api/admin/member-requests${path}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-key': adminKey.trim(),
-        },
+        headers,
         body: JSON.stringify(body),
       })
       const j = await r.json().catch(() => ({}))
@@ -92,17 +120,29 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         คำร้องสมาชิก (ประธานรุ่น → Admin)
       </h2>
       <p className="mt-2 text-xs text-slate-500">
-        ใช้คีย์เดียวกับแท็บ Admin นำเข้า — ลำดับ: อนุมัติประธานรุ่น → อนุมัติ Admin (สมัครใหม่จะสร้างแถวใน members)
+        Admin ดูรายการด้วย x-admin-key — ประธานรุ่นอนุมัติขั้นแรกได้ด้วย x-president-key (ตั้ง PRESIDENT_UPLOAD_KEY
+        ใน backend) หรือให้ Admin ใช้ x-admin-key แทนได้
       </p>
 
       <label className="mt-4 block text-sm text-slate-300">
-        x-admin-key
+        x-admin-key (ดูรายการ + อนุมัติ Admin)
         <input
           type="password"
           autoComplete="off"
           value={adminKey}
           onChange={(e) => setAdminKey(e.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-violet-600"
+        />
+      </label>
+
+      <label className="mt-4 block text-sm text-slate-300">
+        x-president-key (อนุมัติประธานรุ่น / ปฏิเสธ — ไม่บังคับถ้าใช้ admin แทน)
+        <input
+          type="password"
+          autoComplete="off"
+          value={presidentKey}
+          onChange={(e) => setPresidentKey(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-amber-700"
         />
       </label>
 
@@ -160,7 +200,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     type="button"
                     disabled={loading}
                     onClick={() =>
-                      void callAction(`/${r.id}/president-approve`, { approved_by: 'ประธานรุ่น' })
+                      void callAction(`/${r.id}/president-approve`, { approved_by: 'ประธานรุ่น' }, 'president-or-admin')
                     }
                     className="rounded bg-amber-800 px-3 py-1.5 text-xs text-white hover:bg-amber-700"
                   >
@@ -170,7 +210,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     type="button"
                     disabled={loading}
                     onClick={() =>
-                      void callAction(`/${r.id}/reject`, { rejected_by: 'ประธานรุ่น', reason: 'ปฏิเสธ' })
+                      void callAction(
+                        `/${r.id}/reject`,
+                        { rejected_by: 'ประธานรุ่น', reason: 'ปฏิเสธ' },
+                        'president-or-admin',
+                      )
                     }
                     className="rounded border border-red-800 px-3 py-1.5 text-xs text-red-300"
                   >
@@ -183,7 +227,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() => void callAction(`/${r.id}/admin-approve`, { approved_by: 'Admin' })}
+                    onClick={() =>
+                      void callAction(`/${r.id}/admin-approve`, { approved_by: 'Admin' }, 'admin-only')
+                    }
                     className="rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700"
                   >
                     อนุมัติ (Admin)
@@ -192,7 +238,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     type="button"
                     disabled={loading}
                     onClick={() =>
-                      void callAction(`/${r.id}/reject`, { rejected_by: 'Admin', reason: 'ปฏิเสธ' })
+                      void callAction(
+                        `/${r.id}/reject`,
+                        { rejected_by: 'Admin', reason: 'ปฏิเสธ' },
+                        'president-or-admin',
+                      )
                     }
                     className="rounded border border-red-800 px-3 py-1.5 text-xs text-red-300"
                   >
