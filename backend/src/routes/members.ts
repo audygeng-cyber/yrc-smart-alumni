@@ -12,7 +12,7 @@ membersRouter.get('/', (_req, res) => {
 
 /**
  * ผูก Line UID กับสมาชิกที่มีอยู่แล้ว (กฎ: รุ่น + ชื่อ + นามสกุล ตรงกันหนึ่งแถวเท่านั้น)
- * TODO: ตรวจ id_token จาก LINE ฝั่ง server แทนการรับ line_uid จาก client โดยตรง
+ * แนะนำให้ได้ line_uid จาก POST /api/auth/line/token (ตรวจ id_token กับ LINE แล้ว)
  */
 membersRouter.post('/verify-link', async (req, res) => {
   try {

@@ -56,3 +56,17 @@ Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name
 สร้างแถวใน `member_update_requests` (สถานะ `pending_president`)
 
 หน้าเว็บแท็บ **ผูกบัญชี** / **Admin** ใช้ทดสอบ flow เหล่านี้ได้จาก UI
+
+## LINE Login (OAuth 2.1)
+
+1. [LINE Developers](https://developers.line.biz/) สร้าง **Provider** และ **LINE Login channel**
+2. ใน channel: เปิด **OpenID Connect** — scope ใช้ `openid profile`
+3. **Callback URL** ให้ตรงกับ `VITE_LINE_REDIRECT_URI` (และต้องอยู่ใน `LINE_REDIRECT_URIS` ฝั่ง backend) เช่น `http://localhost:5173/`
+4. ใส่ **Channel ID** → `VITE_LINE_CHANNEL_ID` (frontend) และ `LINE_CHANNEL_ID` (backend)  
+5. ใส่ **Channel secret** → `LINE_CHANNEL_SECRET` (backend เท่านั้น)
+
+แลก code → ตรวจ token:
+
+`POST /api/auth/line/token`  
+Body: `{ "code": "…", "redirect_uri": "http://localhost:5173/" }`  
+Response: `{ "line_uid": "…", "name": …, "picture": … }`

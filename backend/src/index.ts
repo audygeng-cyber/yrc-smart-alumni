@@ -3,6 +3,7 @@ import cors from 'cors'
 import express from 'express'
 import { adminAuth } from './middleware/adminAuth.js'
 import { importMembersRouter } from './routes/importMembers.js'
+import { lineAuthRouter } from './routes/lineAuth.js'
 import { membersRouter } from './routes/members.js'
 
 const app = express()
@@ -20,6 +21,7 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'yrc-smart-alumni-api' })
 })
 
+app.use('/api/auth/line', lineAuthRouter)
 app.use('/api/admin/members', adminAuth, importMembersRouter)
 app.use('/api/members', membersRouter)
 
