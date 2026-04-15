@@ -70,3 +70,12 @@ Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name
 `POST /api/auth/line/token`  
 Body: `{ "code": "…", "redirect_uri": "http://localhost:5173/" }`  
 Response: `{ "line_uid": "…", "name": …, "picture": … }`
+
+## คำร้องสมาชิก (อนุมัติ 2 ชั้น) — ต้องใช้ `x-admin-key`
+
+- `GET /api/admin/member-requests` — query `?status=pending_president` หรือ `pending_admin` (optional)
+- `POST /api/admin/member-requests/:id/president-approve` — body `{ "approved_by": "ชื่อ" }` (optional)
+- `POST /api/admin/member-requests/:id/admin-approve` — สำหรับ `new_registration` จะ **insert** เข้า `members`
+- `POST /api/admin/member-requests/:id/reject` — body `{ "rejected_by", "reason" }`
+
+หน้าเว็บแท็บ **คำร้อง** ใช้ทดสอบ flow นี้ได้

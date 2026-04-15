@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AdminImportPanel } from './components/AdminImportPanel'
 import { MemberLinkPanel } from './components/MemberLinkPanel'
+import { MemberRequestsPanel } from './components/MemberRequestsPanel'
 import {
   clearLineSession,
   readLineFromOAuth,
@@ -14,7 +15,7 @@ const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
 const lineChannelId = import.meta.env.VITE_LINE_CHANNEL_ID ?? ''
 const lineRedirectUri = import.meta.env.VITE_LINE_REDIRECT_URI ?? ''
 
-type Tab = 'home' | 'link' | 'admin'
+type Tab = 'home' | 'link' | 'requests' | 'admin'
 
 export default function App() {
   const [health, setHealth] = useState<string>('…')
@@ -109,6 +110,7 @@ export default function App() {
             [
               ['home', 'หน้าหลัก'],
               ['link', 'ผูกบัญชี'],
+              ['requests', 'คำร้อง'],
               ['admin', 'Admin'],
             ] as const
           ).map(([id, label]) => (
@@ -142,6 +144,8 @@ export default function App() {
             </p>
           </section>
         )}
+
+        {tab === 'requests' && <MemberRequestsPanel apiBase={apiBase} />}
 
         {tab === 'link' && (
           <MemberLinkPanel
