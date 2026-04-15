@@ -6,6 +6,7 @@ import { importMembersRouter } from './routes/importMembers.js'
 import { lineAuthRouter } from './routes/lineAuth.js'
 import { memberRequestsAdminRouter } from './routes/memberRequestsAdmin.js'
 import { membersRouter } from './routes/members.js'
+import { pushRouter } from './routes/push.js'
 
 const app = express()
 const port = Number(process.env.PORT) || 4000
@@ -31,6 +32,7 @@ app.get('/', (_req, res) => {
       adminImport: 'POST /api/admin/members/import (ต้องใช้ x-admin-key)',
       memberRequests:
         'GET /api/admin/member-requests (x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
+      push: 'GET /api/push/vapid-public, POST /api/push/subscribe',
     },
   })
 })
@@ -40,6 +42,7 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/api/auth/line', lineAuthRouter)
+app.use('/api/push', pushRouter)
 app.use('/api/admin/member-requests', memberRequestsAdminRouter)
 app.use('/api/admin/members', adminAuth, importMembersRouter)
 app.use('/api/members', membersRouter)

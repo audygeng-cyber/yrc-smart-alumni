@@ -88,3 +88,18 @@ Response: `{ "line_uid": "…", "name": …, "picture": … }`
 - ประธานรุ่น 0507 ส่ง `x-president-key: key-a` ได้เฉพาะคำร้องที่ `requested_data.batch` เป็น `0507` (หลัง trim/normalize)  
 - Admin ยังใช้ `x-admin-key` ได้ทุกรุ่น  
 - ถ้าไม่ตั้ง JSON แต่ตั้ง `PRESIDENT_UPLOAD_KEY` อย่างเดียว = คีย์เดียวใช้ได้ทุกรุ่น (จนกว่าจะเปลี่ยนเป็น JSON)
+
+## Web Push (แจ้งเตือนคำร้องสมาชิกใหม่)
+
+1. รัน migration `supabase/migrations/20260415140000_push_subscriptions.sql` ใน Supabase  
+2. สร้างคู่คีย์ VAPID (ในเครื่องที่มี Node):
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+3. ใส่ใน `backend/.env`: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT=mailto:อีเมลของคุณ`  
+4. รีสตาร์ท backend — หน้าแรกของแอปมีปุ่ม **เปิดการแจ้งเตือนในเบราว์เซอร์นี้**  
+5. หลังมี `POST /api/members/register-request` สำเร็จ ระบบจะพยายามส่ง push ไปยัง subscription ที่บันทึกไว้
+
+หมายเหตุ: โดเมนจริงต้องเป็น **HTTPS** (localhost ยกเว้นได้ในการทดสอบ)

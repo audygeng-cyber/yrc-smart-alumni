@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { getServiceSupabase } from '../lib/supabase.js'
+import { notifyNewMemberRequest } from '../lib/webPush.js'
 import { normalizeWhitespace } from '../util/normalize.js'
 
 export const membersRouter = Router()
@@ -164,6 +165,8 @@ membersRouter.post('/register-request', async (req, res) => {
       res.status(500).json({ error: 'Failed to create request', details: insErr })
       return
     }
+
+    void notifyNewMemberRequest(row.id as string)
 
     res.status(201).json({ ok: true, requestId: row.id })
   } catch (e) {

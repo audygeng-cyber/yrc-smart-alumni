@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AdminImportPanel } from './components/AdminImportPanel'
 import { MemberLinkPanel } from './components/MemberLinkPanel'
 import { MemberRequestsPanel } from './components/MemberRequestsPanel'
+import { PushOptIn } from './components/PushOptIn'
 import {
   clearLineSession,
   readLineFromOAuth,
@@ -142,6 +143,7 @@ export default function App() {
               <code className="text-slate-300">frontend/.env</code> และค่า LINE ใน{' '}
               <code className="text-slate-300">VITE_LINE_*</code> / backend <code className="text-slate-300">LINE_*</code>
             </p>
+            <PushOptIn apiBase={apiBase} />
           </section>
         )}
 
