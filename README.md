@@ -78,3 +78,13 @@ Response: `{ "line_uid": "…", "name": …, "picture": … }`
 - `POST .../admin-approve` — **เฉพาะ** `x-admin-key` — สำหรับ `new_registration` จะ **insert** เข้า `members`
 
 หน้าเว็บแท็บ **คำร้อง** มีช่องใส่ทั้ง admin key และ president key
+
+### ประธานรุ่นแยกตามรุ่น (`PRESIDENT_KEYS_JSON`)
+
+ตั้งใน `backend/.env` เป็น JSON แมป **รุ่น → คีย์ลับ** (ต้องตรงกับ `batch` ในคำร้อง) ตัวอย่าง:
+
+`PRESIDENT_KEYS_JSON={"0507":"key-a","1002":"key-b"}`
+
+- ประธานรุ่น 0507 ส่ง `x-president-key: key-a` ได้เฉพาะคำร้องที่ `requested_data.batch` เป็น `0507` (หลัง trim/normalize)  
+- Admin ยังใช้ `x-admin-key` ได้ทุกรุ่น  
+- ถ้าไม่ตั้ง JSON แต่ตั้ง `PRESIDENT_UPLOAD_KEY` อย่างเดียว = คีย์เดียวใช้ได้ทุกรุ่น (จนกว่าจะเปลี่ยนเป็น JSON)

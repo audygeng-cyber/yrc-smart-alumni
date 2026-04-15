@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { adminAuth } from '../middleware/adminAuth.js'
 import { presidentAuth } from '../middleware/presidentAuth.js'
 import { getServiceSupabase } from '../lib/supabase.js'
+import { assertPresidentForRequestBatch } from '../util/presidentKeys.js'
 import { normalizeWhitespace } from '../util/normalize.js'
 import { memberInsertFromRequestedData } from '../util/memberFromRequestedData.js'
 
@@ -57,6 +58,8 @@ memberRequestsAdminRouter.post('/:id/president-approve', presidentAuth, async (r
       res.status(400).json({ error: 'Invalid status for president approval', current: row.status })
       return
     }
+
+    if (!assertPresidentForRequestBatch(req, row, res)) return
 
     const { error: upErr } = await supabase
       .from('member_update_requests')
@@ -193,21 +196,23 @@ memberRequestsAdminRouter.post('/:id/reject', presidentAuth, async (req, res) =>
       typeof req.body?.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : null
 
     const supabase = getServiceSupabase()
-    const { data: row, error: fetchErr } = await supabase
+    const { data: fullRow, error: fetchErr } = await supabase
       .from('member_update_requests')
-      .select('status')
+      .select('*')
       .eq('id', id)
       .maybeSingle()
 
-    if (fetchErr || !row) {
+    if (fetchErr || !fullRow) {
       res.status(fetchErr ? 500 : 404).json({ error: fetchErr ? 'Fetch failed' : 'Not found' })
       return
     }
 
-    if (row.status !== 'pending_president' && row.status !== 'pending_admin') {
-      res.status(400).json({ error: 'Cannot reject in current status', current: row.status })
+    if (fullRow.status !== 'pending_president' && fullRow.status !== 'pending_admin') {
+      res.status(400).json({ error: 'Cannot reject in current status', current: fullRow.status })
       return
     }
+
+    if (!assertPresidentForRequestBatch(req, fullRow, res)) return
 
     const { error: upErr } = await supabase
       .from('member_update_requests')
