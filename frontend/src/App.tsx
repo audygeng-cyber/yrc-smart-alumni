@@ -31,6 +31,7 @@ export default function App() {
       .catch(() => setHealth('ไม่สามารถเชื่อม API (ตรวจว่า backend รันอยู่)'))
   }, [])
 
+  // LINE OAuth return: Vite env is stable; run once on mount when URL has ?code=&state=
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
@@ -74,7 +75,7 @@ export default function App() {
         window.history.replaceState({}, '', window.location.pathname + window.location.hash)
       }
     })()
-  }, [lineRedirectUri])
+  }, [])
 
   function startLineLogin() {
     if (!lineChannelId || !lineRedirectUri) return

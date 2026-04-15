@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 self.addEventListener('push', (event) => {
   let data = { title: 'YRC Smart Alumni', body: '' }
   try {

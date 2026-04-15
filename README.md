@@ -9,21 +9,31 @@ Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 
 ## ตั้งค่า
 
-1. ใน Supabase: SQL Editor หรือ CLI รันไฟล์ `supabase/migrations/20260415120000_initial_members.sql`
-2. คัดลอก `backend/.env.example` เป็น `backend/.env` แล้วใส่ `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_UPLOAD_KEY`
+1. ใน Supabase: SQL Editor หรือ CLI **รัน migration ตามลำดับ** (อย่าข้ามข้อใดข้อหนึ่งถ้าต้องการฟีเจอร์ครบ):
+   - `supabase/migrations/20260415120000_initial_members.sql` — ตารางสมาชิกและคำร้อง
+   - `supabase/migrations/20260415140000_push_subscriptions.sql` — ตาราง Web Push (จำเป็นถ้าใช้แจ้งเตือนในบราว์เซอร์)
+2. คัดลอก `backend/.env.example` เป็น `backend/.env` แล้วใส่ `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_UPLOAD_KEY` (และค่าอื่นตามส่วน LINE / VAPID ด้านล่างถ้าใช้)
 3. คัดลอก `frontend/.env.example` เป็น `frontend/.env` (ค่าเริ่มต้น `VITE_API_URL=http://localhost:4000`)
+4. จากโฟลเดอร์รากรัน `npm install` ให้ครบ workspaces ก่อน `npm run dev`
 
 ## รันพัฒนา
 
-จากโฟลเดอร์ราก:
+จากโฟลเดอร์ราก (หลัง `npm install` แล้ว):
 
 ```bash
-npm install
 npm run dev
 ```
 
 - Frontend: http://localhost:5173  
 - API: http://localhost:4000/health  
+
+## CI (GitHub)
+
+หลัง push ไป `main`/`master` หรือเปิด PR จะรัน `npm ci`, `npm run build`, `npm run lint` แล้วตามด้วย **`docker build`** (ยืนยัน image สำหรับ Cloud Run) ตาม `.github/workflows/ci.yml` — ต้องมี `package-lock.json` ที่รากและ push ขึ้น remote แล้ว workflow จึงทำงาน
+
+บนเครื่องตรวจก่อน push ได้ด้วย `npm run ci` (เทียบเท่า build + lint หลัง `npm install`; ไม่รวม `docker build`)
+
+[Dependabot](https://docs.github.com/en/code-security/dependabot) (ไฟล์ `.github/dependabot.yml`) จะเปิด PR อัปเดตแพ็กเกจ npm และ GitHub Actions เป็นระยะหลัง repo อยู่บน GitHub
 
 ## นำเข้าสมาชิก (Admin)
 
