@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+# ให้ action ที่ยังใช้สคริปต์บน Node 20 ย้ายไป Node 24 (ตามประกาศ GitHub Actions)
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-and-lint:
     runs-on: ubuntu-latest
