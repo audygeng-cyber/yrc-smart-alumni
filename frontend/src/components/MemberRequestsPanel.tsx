@@ -6,6 +6,7 @@ const STORAGE_AUTO_REFRESH = 'yrc_member_requests_auto_refresh'
 const STORAGE_AUTO_REFRESH_MS = 'yrc_member_requests_auto_refresh_ms'
 const STORAGE_LAST_PENDING = 'yrc_member_requests_last_pending'
 const STORAGE_LAST_REQUEST_IDS = 'yrc_member_requests_last_ids'
+const STORAGE_VIEW_PRESET = 'yrc_member_requests_view_preset'
 
 type RequestRow = {
   id: string
@@ -22,6 +23,7 @@ type RequestRow = {
 
 type QuickView = 'all' | 'new' | 'pending'
 type SortMode = 'newest' | 'oldest' | 'pending_first'
+type ViewPreset = 'manual' | 'pending_work' | 'new_only' | 'approved_review'
 
 type Props = { apiBase: string }
 
@@ -40,6 +42,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [quickView, setQuickView] = useState<QuickView>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('newest')
+  const [viewPreset, setViewPreset] = useState<ViewPreset>('manual')
 
   const summary = useMemo(() => {
     const counts = {
@@ -112,6 +115,15 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
     setPresidentKey(sessionStorage.getItem(STORAGE_PRESIDENT) ?? '')
     setAutoRefresh(sessionStorage.getItem(STORAGE_AUTO_REFRESH) === 'true')
+    const savedPreset = sessionStorage.getItem(STORAGE_VIEW_PRESET)
+    if (
+      savedPreset === 'manual' ||
+      savedPreset === 'pending_work' ||
+      savedPreset === 'new_only' ||
+      savedPreset === 'approved_review'
+    ) {
+      setViewPreset(savedPreset)
+    }
 
     const savedMs = Number(sessionStorage.getItem(STORAGE_AUTO_REFRESH_MS) ?? '30000')
     if (Number.isFinite(savedMs) && savedMs >= 5000) {
@@ -134,6 +146,10 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_AUTO_REFRESH_MS, String(autoRefreshMs))
   }, [autoRefreshMs])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_VIEW_PRESET, viewPreset)
+  }, [viewPreset])
 
   useEffect(() => {
     const savedPending = Number(sessionStorage.getItem(STORAGE_LAST_PENDING) ?? '0')
@@ -256,6 +272,44 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setNewRowIds([])
     setPendingIncrease(0)
     setMsg('ทำเครื่องหมายคำร้องปัจจุบันทั้งหมดว่าเห็นแล้ว')
+  }
+
+  function applyPreset(preset: ViewPreset) {
+    setViewPreset(preset)
+
+    if (preset === 'pending_work') {
+      setQuickView('pending')
+      setFilter('')
+      setSearchQuery('')
+      setSortMode('pending_first')
+      setMsg('เปลี่ยนเป็น preset: pending work')
+      return
+    }
+
+    if (preset === 'new_only') {
+      setQuickView('new')
+      setFilter('')
+      setSearchQuery('')
+      setSortMode('newest')
+      setMsg('เปลี่ยนเป็น preset: new only')
+      return
+    }
+
+    if (preset === 'approved_review') {
+      setQuickView('all')
+      setFilter('approved')
+      setSearchQuery('')
+      setSortMode('newest')
+      setMsg('เปลี่ยนเป็น preset: approved review')
+      return
+    }
+
+    setMsg('เปลี่ยนเป็น preset: manual')
+  }
+
+  function saveCurrentAsManualPreset() {
+    setViewPreset('manual')
+    setMsg('บันทึกมุมมองปัจจุบันเป็น manual preset แล้ว')
   }
 
   return (
@@ -398,6 +452,38 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         <SummaryCard label="อนุมัติแล้ว" value={summary.approved} tone="emerald" />
         <SummaryCard label="ถูกปฏิเสธ" value={summary.rejected} tone="red" />
         {summary.other > 0 ? <SummaryCard label="สถานะอื่น" value={summary.other} tone="slate" /> : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="rounded bg-slate-900 px-2 py-1 text-xs text-slate-300">preset: {viewPreset}</span>
+        <button
+          type="button"
+          onClick={() => applyPreset('pending_work')}
+          className="rounded border border-amber-800 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-950/30"
+        >
+          pending work
+        </button>
+        <button
+          type="button"
+          onClick={() => applyPreset('new_only')}
+          className="rounded border border-emerald-800 px-3 py-1.5 text-xs text-emerald-200 hover:bg-emerald-950/30"
+        >
+          new only
+        </button>
+        <button
+          type="button"
+          onClick={() => applyPreset('approved_review')}
+          className="rounded border border-violet-800 px-3 py-1.5 text-xs text-violet-200 hover:bg-violet-950/30"
+        >
+          approved review
+        </button>
+        <button
+          type="button"
+          onClick={saveCurrentAsManualPreset}
+          className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+        >
+          save current
+        </button>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
