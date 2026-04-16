@@ -43,6 +43,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('newest')
   const [viewPreset, setViewPreset] = useState<ViewPreset>('manual')
+  const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null)
 
   const summary = useMemo(() => {
     const counts = {
@@ -652,6 +653,13 @@ export function MemberRequestsPanel({ apiBase }: Props) {
               {JSON.stringify(r.requested_data, null, 2)}
             </pre>
             <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedRequest(r)}
+                className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800"
+              >
+                ดูรายละเอียด
+              </button>
               {r.status === 'pending_president' && (
                 <>
                   <button
@@ -721,6 +729,57 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         </p>
       )}
 
+      {selectedRequest ? (
+        <section className="mt-6 rounded-xl border border-sky-900/40 bg-sky-950/20 p-5 text-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-sky-200/80">Request Detail</p>
+              <p className="mt-1 font-mono text-xs text-slate-400">{selectedRequest.id}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedRequest(null)}
+              className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+            >
+              ปิดรายละเอียด
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <DetailField label="สถานะ" value={selectedRequest.status} />
+            <DetailField label="ประเภทคำร้อง" value={selectedRequest.request_type} />
+            <DetailField label="Line UID" value={selectedRequest.line_uid ?? '-'} />
+            <DetailField label="ส่งเมื่อ" value={formatDateTime(selectedRequest.created_at)} />
+            <DetailField
+              label="อนุมัติประธานรุ่น"
+              value={selectedRequest.president_approved_at ? formatDateTime(selectedRequest.president_approved_at) : '-'}
+            />
+            <DetailField
+              label="อนุมัติ Admin"
+              value={selectedRequest.admin_approved_at ? formatDateTime(selectedRequest.admin_approved_at) : '-'}
+            />
+          </div>
+
+          <div className="mt-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Requested Data</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {getRequestedDataEntries(selectedRequest).map(([key, value]) => (
+                <DetailField key={key} label={key} value={value} />
+              ))}
+            </div>
+          </div>
+
+          <details className="mt-5 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+            <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-300">
+              JSON ดิบ
+            </summary>
+            <pre className="mt-3 max-h-64 overflow-auto rounded bg-slate-900/80 p-3 text-xs text-slate-400">
+              {JSON.stringify(selectedRequest.requested_data, null, 2)}
+            </pre>
+          </details>
+        </section>
+      ) : null}
+
       {msg && (
         <pre className="mt-4 max-h-40 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-slate-300">
           {msg}
@@ -764,6 +823,34 @@ function pickRequestedText(requested: Record<string, unknown>, key: string): str
 
 function csvCell(value: string): string {
   return `"${value.replaceAll('"', '""')}"`
+}
+
+function getRequestedDataEntries(row: RequestRow): Array<[string, string]> {
+  return Object.entries(row.requested_data ?? {})
+    .map(([key, value]) => [key, formatUnknownValue(value)] as [string, string])
+    .sort(([a], [b]) => a.localeCompare(b))
+}
+
+function formatUnknownValue(value: unknown): string {
+  if (value == null) return '-'
+  if (typeof value === 'string') return value || '-'
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return JSON.stringify(value)
+}
+
+function formatDateTime(value: string): string {
+  const time = Date.parse(value)
+  if (!Number.isFinite(time)) return value
+  return new Date(time).toLocaleString()
+}
+
+function DetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm text-slate-100">{value}</p>
+    </div>
+  )
 }
 
 function SummaryCard({
