@@ -48,6 +48,8 @@ type ActivityFilter = 'all' | ActionHistoryEntry['action']
 type ActivityPreset = 'manual' | 'rejected_recent' | 'pending_approvals' | 'today'
 type ActivitySeverityFilter = 'all' | 'critical' | 'warning' | 'info'
 type ReviewIntent = 'approve' | 'reject'
+type ToastTone = 'success' | 'warning' | 'error' | 'info'
+type ToastState = { message: string; tone: ToastTone }
 
 type RequestActivityRow = ActionHistoryEntry & {
   requestId: string
@@ -70,7 +72,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [presidentKey, setPresidentKey] = useState('')
   const [rows, setRows] = useState<RequestRow[]>([])
   const [filter, setFilter] = useState('')
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastState | null>(null)
   const [debugDetails, setDebugDetails] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(false)
@@ -358,6 +360,10 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     }
   }, [toast])
 
+  function showToast(message: string, tone: ToastTone = 'info') {
+    setToast({ message, tone })
+  }
+
   useEffect(() => {
     const savedPending = Number(sessionStorage.getItem(STORAGE_LAST_PENDING) ?? '0')
     if (!Number.isFinite(savedPending) || savedPending < 0) return
@@ -382,7 +388,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setSelectedRequest(null)
       setReviewIntent(null)
       setPendingReviewDraft(null)
-      setToast((current) => current ?? `คำร้อง ${match.id} ถูกอัปเดตเป็น ${match.status} แล้ว ปิด detail ให้อัตโนมัติ`)
+      setToast((current) =>
+        current ?? { message: `คำร้อง ${match.id} ถูกอัปเดตเป็น ${match.status} แล้ว ปิด detail ให้อัตโนมัติ`, tone: 'success' },
+      )
       return
     }
 
@@ -410,7 +418,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
   const load = useCallback(async () => {
     if (!adminKey.trim()) {
-      setToast('ใส่ x-admin-key ก่อน (เฉพาะ Admin ดูรายการได้)')
+      showToast('ใส่ x-admin-key ก่อน (เฉพาะ Admin ดูรายการได้)', 'warning')
       return
     }
     setLoading(true)
@@ -422,7 +430,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       })
       const j = (await r.json().catch(() => ({}))) as { requests?: RequestRow[]; error?: string }
       if (!r.ok) {
-        setToast(j.error?.trim() || 'โหลดรายการไม่สำเร็จ')
+        showToast(j.error?.trim() || 'โหลดรายการไม่สำเร็จ', 'error')
         setDebugDetails(JSON.stringify(j, null, 2))
         return
       }
@@ -430,7 +438,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setLastLoadedAt(new Date().toISOString())
       setDebugDetails(null)
     } catch {
-      setToast('โหลดไม่สำเร็จ')
+      showToast('โหลดไม่สำเร็จ', 'error')
     } finally {
       setLoading(false)
     }
@@ -473,10 +481,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     const headers =
       auth === 'admin-only' ? headersAdminOnly() : headersPresidentOrAdmin()
     if (!headers) {
-      setToast(
+      showToast(
         auth === 'admin-only'
           ? 'ใส่ x-admin-key'
           : 'ใส่ x-admin-key หรือ x-president-key (ต้องตรงกับ backend)',
+        'warning',
       )
       return
     }
@@ -490,11 +499,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       })
       const j = (await r.json().catch(() => ({}))) as Record<string, unknown>
       const feedback = buildActionFeedbackMessage(path, body, r.ok, j)
-      setToast(feedback.summary)
+      setToast({ message: feedback.summary, tone: feedback.tone })
       setDebugDetails(feedback.details)
       if (r.ok) await load()
     } catch {
-      setToast('เรียก API ไม่สำเร็จ')
+      showToast('เรียก API ไม่สำเร็จ', 'error')
     } finally {
       setLoading(false)
     }
@@ -506,7 +515,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     sessionStorage.setItem(STORAGE_LAST_PENDING, String(pendingTotal))
     setNewRowIds([])
     setPendingIncrease(0)
-    setToast('ทำเครื่องหมายคำร้องปัจจุบันทั้งหมดว่าเห็นแล้ว')
+    showToast('ทำเครื่องหมายคำร้องปัจจุบันทั้งหมดว่าเห็นแล้ว', 'success')
   }
 
   function applyRejectReasonTemplate(reason: string) {
@@ -521,7 +530,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setActivitySeverityFilter('critical')
       setActivitySearch('')
       setActivityLimit(20)
-      setToast('เปลี่ยนเป็น activity preset: rejected recent')
+      showToast('เปลี่ยนเป็น activity preset: rejected recent', 'info')
       return
     }
 
@@ -530,7 +539,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setActivitySeverityFilter('warning')
       setActivitySearch('pending_')
       setActivityLimit(50)
-      setToast('เปลี่ยนเป็น activity preset: pending approvals')
+      showToast('เปลี่ยนเป็น activity preset: pending approvals', 'info')
       return
     }
 
@@ -539,28 +548,28 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setActivitySeverityFilter('all')
       setActivitySearch('')
       setActivityLimit(50)
-      setToast('เปลี่ยนเป็น activity preset: today')
+      showToast('เปลี่ยนเป็น activity preset: today', 'info')
       return
     }
 
-    setToast('เปลี่ยนเป็น activity preset: manual')
+    showToast('เปลี่ยนเป็น activity preset: manual', 'info')
   }
 
   function saveCurrentAsManualActivityPreset() {
     setActivityPreset('manual')
-    setToast('บันทึก activity view ปัจจุบันเป็น manual preset แล้ว')
+    showToast('บันทึก activity view ปัจจุบันเป็น manual preset แล้ว', 'success')
   }
 
   function openRequestDetailFromActivity(requestId: string, intent?: ReviewIntent) {
     const match = rows.find((row) => row.id === requestId)
     if (!match) {
-      setToast(`ไม่พบคำร้อง ${requestId} ในรายการปัจจุบัน`)
+      showToast(`ไม่พบคำร้อง ${requestId} ในรายการปัจจุบัน`, 'error')
       return
     }
 
     if (intent) {
       if (!isPendingRequestStatus(match.status)) {
-        setToast(`คำร้อง ${requestId} ไม่ได้อยู่ในสถานะรอตรวจแล้ว`)
+        showToast(`คำร้อง ${requestId} ไม่ได้อยู่ในสถานะรอตรวจแล้ว`, 'warning')
         return
       }
 
@@ -569,7 +578,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         intent,
         comment: buildSuggestedReviewComment(match, intent),
       })
-      setToast(`เปิด review mode สำหรับ ${requestId}: ${intent === 'approve' ? 'approve' : 'reject'}`)
+      showToast(`เปิด review mode สำหรับ ${requestId}: ${intent === 'approve' ? 'approve' : 'reject'}`, 'info')
     } else {
       setPendingReviewDraft(null)
     }
@@ -590,7 +599,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setFilter('')
       setSearchQuery('')
       setSortMode('pending_first')
-      setToast('เปลี่ยนเป็น preset: pending work')
+      showToast('เปลี่ยนเป็น preset: pending work', 'info')
       return
     }
 
@@ -599,7 +608,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setFilter('')
       setSearchQuery('')
       setSortMode('newest')
-      setToast('เปลี่ยนเป็น preset: new only')
+      showToast('เปลี่ยนเป็น preset: new only', 'info')
       return
     }
 
@@ -608,21 +617,21 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setFilter('approved')
       setSearchQuery('')
       setSortMode('newest')
-      setToast('เปลี่ยนเป็น preset: approved review')
+      showToast('เปลี่ยนเป็น preset: approved review', 'info')
       return
     }
 
-    setToast('เปลี่ยนเป็น preset: manual')
+    showToast('เปลี่ยนเป็น preset: manual', 'info')
   }
 
   function saveCurrentAsManualPreset() {
     setViewPreset('manual')
-    setToast('บันทึกมุมมองปัจจุบันเป็น manual preset แล้ว')
+    showToast('บันทึกมุมมองปัจจุบันเป็น manual preset แล้ว', 'success')
   }
 
   function exportCurrentViewCsv() {
     if (sortedRows.length === 0) {
-      setToast('ยังไม่มีรายการในมุมมองปัจจุบันให้ export')
+      showToast('ยังไม่มีรายการในมุมมองปัจจุบันให้ export', 'warning')
       return
     }
 
@@ -664,12 +673,12 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    setToast(`exported ${sortedRows.length} rows from current view`)
+    showToast(`exported ${sortedRows.length} rows from current view`, 'success')
   }
 
   function exportActivityCsv() {
     if (activityRows.length === 0) {
-      setToast('ยังไม่มี activity ในมุมมองปัจจุบันให้ export')
+      showToast('ยังไม่มี activity ในมุมมองปัจจุบันให้ export', 'warning')
       return
     }
 
@@ -715,7 +724,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    setToast(`exported ${activityRows.length} activity rows`)
+    showToast(`exported ${activityRows.length} activity rows`, 'success')
   }
 
   async function copyRequestSummary() {
@@ -723,9 +732,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     const text = buildRequestSummaryText(selectedRequest)
     try {
       await navigator.clipboard.writeText(text)
-      setToast('คัดลอกสรุปคำร้องแล้ว')
+      showToast('คัดลอกสรุปคำร้องแล้ว', 'success')
     } catch {
-      setToast('คัดลอกสรุปคำร้องไม่สำเร็จ')
+      showToast('คัดลอกสรุปคำร้องไม่สำเร็จ', 'error')
     }
   }
 
@@ -734,9 +743,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     const text = buildRequestDetailText(selectedRequest)
     try {
       await navigator.clipboard.writeText(text)
-      setToast('คัดลอกรายละเอียดคำร้องแล้ว')
+      showToast('คัดลอกรายละเอียดคำร้องแล้ว', 'success')
     } catch {
-      setToast('คัดลอกรายละเอียดคำร้องไม่สำเร็จ')
+      showToast('คัดลอกรายละเอียดคำร้องไม่สำเร็จ', 'error')
     }
   }
 
@@ -752,15 +761,15 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
     try {
       await navigator.clipboard.writeText(text)
-      setToast('คัดลอกสรุป activity log แล้ว')
+      showToast('คัดลอกสรุป activity log แล้ว', 'success')
     } catch {
-      setToast('คัดลอกสรุป activity log ไม่สำเร็จ')
+      showToast('คัดลอกสรุป activity log ไม่สำเร็จ', 'error')
     }
   }
 
   async function copyActivityRows() {
     if (activityRows.length === 0) {
-      setToast('ยังไม่มี activity rows ให้คัดลอก')
+      showToast('ยังไม่มี activity rows ให้คัดลอก', 'warning')
       return
     }
 
@@ -768,32 +777,32 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
     try {
       await navigator.clipboard.writeText(text)
-      setToast(`คัดลอก activity ${activityRows.length} แถวแล้ว`)
+      showToast(`คัดลอก activity ${activityRows.length} แถวแล้ว`, 'success')
     } catch {
-      setToast('คัดลอก activity rows ไม่สำเร็จ')
+      showToast('คัดลอก activity rows ไม่สำเร็จ', 'error')
     }
   }
 
   async function copyActivityValue(label: string, value: string) {
     if (!value.trim()) {
-      setToast(`ไม่มี ${label} ให้คัดลอก`)
+      showToast(`ไม่มี ${label} ให้คัดลอก`, 'warning')
       return
     }
 
     try {
       await navigator.clipboard.writeText(value)
-      setToast(`คัดลอก ${label} แล้ว`)
+      showToast(`คัดลอก ${label} แล้ว`, 'success')
     } catch {
-      setToast(`คัดลอก ${label} ไม่สำเร็จ`)
+      showToast(`คัดลอก ${label} ไม่สำเร็จ`, 'error')
     }
   }
 
   async function copyActivityRowSummary(entry: RequestActivityRow) {
     try {
       await navigator.clipboard.writeText(buildActivityRowText(entry))
-      setToast('คัดลอกสรุป activity row แล้ว')
+      showToast('คัดลอกสรุป activity row แล้ว', 'success')
     } catch {
-      setToast('คัดลอกสรุป activity row ไม่สำเร็จ')
+      showToast('คัดลอกสรุป activity row ไม่สำเร็จ', 'error')
     }
   }
 
@@ -801,9 +810,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     const text = buildActivityIdentityText(entry)
     try {
       await navigator.clipboard.writeText(text)
-      setToast('คัดลอกข้อมูลสมาชิกจาก activity แล้ว')
+      showToast('คัดลอกข้อมูลสมาชิกจาก activity แล้ว', 'success')
     } catch {
-      setToast('คัดลอกข้อมูลสมาชิกจาก activity ไม่สำเร็จ')
+      showToast('คัดลอกข้อมูลสมาชิกจาก activity ไม่สำเร็จ', 'error')
     }
   }
 
@@ -813,7 +822,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setFilter('')
     setSortMode('newest')
     setViewPreset('manual')
-    setToast(`กรองรายการหลักเป็น request ${requestId}`)
+    showToast(`กรองรายการหลักเป็น request ${requestId}`, 'info')
   }
 
   function runSelectedRequestAction(intent: ReviewIntent) {
@@ -854,7 +863,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       return
     }
 
-    setToast(`คำร้อง ${selectedRequest.id} ไม่อยู่ในสถานะที่ทำ ${intent} ได้`)
+    showToast(`คำร้อง ${selectedRequest.id} ไม่อยู่ในสถานะที่ทำ ${intent} ได้`, 'warning')
   }
 
   return (
@@ -1701,8 +1710,19 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       ) : null}
 
       {toast ? (
-        <div className="mt-4 rounded-lg border border-cyan-900/40 bg-cyan-950/30 p-3 text-sm text-cyan-100">
-          {toast}
+        <div className={`mt-4 rounded-lg border p-3 text-sm ${
+          toast.tone === 'success'
+            ? 'border-emerald-900/40 bg-emerald-950/30 text-emerald-100'
+            : toast.tone === 'warning'
+              ? 'border-amber-900/40 bg-amber-950/30 text-amber-100'
+              : toast.tone === 'error'
+                ? 'border-red-900/40 bg-red-950/30 text-red-100'
+                : 'border-cyan-900/40 bg-cyan-950/30 text-cyan-100'
+        }`}>
+          <span className="mr-2 rounded border border-current/30 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide">
+            {toast.tone}
+          </span>
+          {toast.message}
         </div>
       ) : null}
       {debugDetails ? (
@@ -2000,7 +2020,7 @@ function buildActionFeedbackMessage(
   body: Record<string, string | undefined>,
   ok: boolean,
   response: Record<string, unknown>,
-): { summary: string; details: string | null } {
+): { summary: string; details: string | null; tone: ToastTone } {
   const requestId = extractRequestIdFromActionPath(path)
   const actionLabel = getActionLabelFromPath(path)
   const actor = body.approved_by || body.rejected_by || 'system'
@@ -2028,6 +2048,7 @@ function buildActionFeedbackMessage(
   return {
     summary: lines.join('\n'),
     details: details && details !== '{}' ? details : null,
+    tone: ok ? 'success' : 'error',
   }
 }
 
