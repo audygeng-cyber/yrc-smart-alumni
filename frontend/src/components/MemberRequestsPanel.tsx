@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const STORAGE_ADMIN = 'yrc_admin_upload_key'
 const STORAGE_PRESIDENT = 'yrc_president_upload_key'
@@ -86,6 +86,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [activityLimit, setActivityLimit] = useState(20)
   const [activityPreset, setActivityPreset] = useState<ActivityPreset>('manual')
   const [activitySeverityFilter, setActivitySeverityFilter] = useState<ActivitySeverityFilter>('all')
+  const detailSectionRef = useRef<HTMLElement | null>(null)
 
   const summary = useMemo(() => {
     const counts = {
@@ -472,6 +473,19 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   function saveCurrentAsManualActivityPreset() {
     setActivityPreset('manual')
     setMsg('บันทึก activity view ปัจจุบันเป็น manual preset แล้ว')
+  }
+
+  function openRequestDetailFromActivity(requestId: string) {
+    const match = rows.find((row) => row.id === requestId)
+    if (!match) {
+      setMsg(`ไม่พบคำร้อง ${requestId} ในรายการปัจจุบัน`)
+      return
+    }
+
+    setSelectedRequest(match)
+    window.setTimeout(() => {
+      detailSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
   }
 
   function applyPreset(preset: ViewPreset) {
@@ -1053,13 +1067,22 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           {activityRows.map((entry, index) => (
             <div
               key={`${entry.requestId}-${entry.action}-${entry.at}-${index}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => openRequestDetailFromActivity(entry.requestId)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  openRequestDetailFromActivity(entry.requestId)
+                }
+              }}
               className={`rounded-lg border p-3 ${
                 entry.severity === 'critical'
                   ? 'border-red-700/60 bg-red-950/20 shadow-[0_0_0_1px_rgba(239,68,68,0.16)]'
                   : entry.severity === 'warning'
                     ? 'border-amber-700/50 bg-amber-950/15 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]'
                     : 'border-slate-800 bg-slate-950/50'
-              }`}
+              } cursor-pointer outline-none transition hover:border-cyan-700/60 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-700/40`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1225,7 +1248,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       )}
 
       {selectedRequest ? (
-        <section className="mt-6 rounded-xl border border-sky-900/40 bg-sky-950/20 p-5 text-sm">
+        <section ref={detailSectionRef} className="mt-6 rounded-xl border border-sky-900/40 bg-sky-950/20 p-5 text-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-sky-200/80">Request Detail</p>
