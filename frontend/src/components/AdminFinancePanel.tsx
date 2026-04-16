@@ -197,6 +197,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [batchSortDir, setBatchSortDir] = useState<SortDirection>('desc')
   const [entitySortKey, setEntitySortKey] = useState<EntitySortKey>('totalAmount')
   const [entitySortDir, setEntitySortDir] = useState<SortDirection>('desc')
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false)
+  const [autoRefreshSeconds, setAutoRefreshSeconds] = useState<30 | 60>(30)
+  const [lastAutoRefreshAt, setLastAutoRefreshAt] = useState<string | null>(null)
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -366,6 +369,67 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setBatchPage(1)
     setEntityPage(1)
   }, [reportKeywordNorm])
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) return
+    if (!adminKey.trim()) return
+
+    let cancelled = false
+    const run = async () => {
+      try {
+        const q = buildReportQueryStringFromValues(reportEntity, reportFrom, reportTo)
+        const [plResp, donationsResp] = await Promise.all([
+          fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
+            headers: { 'x-admin-key': adminKey.trim() },
+          }),
+          fetch(`${base}/api/admin/finance/reports/donations${q}`, {
+            headers: { 'x-admin-key': adminKey.trim() },
+          }),
+        ])
+        const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])
+        if (cancelled) return
+        if (!pl.ok || !donations.ok) {
+          const errors: string[] = []
+          if (!pl.ok) errors.push(formatFetchError('Auto refresh P/L', pl.status, pl.payload, pl.rawText))
+          if (!donations.ok) {
+            errors.push(
+              formatFetchError(
+                'Auto refresh donations',
+                donations.status,
+                donations.payload,
+                donations.rawText,
+              ),
+            )
+          }
+          setMsg(errors.join('\n\n------------------------------\n\n'))
+          return
+        }
+        setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
+        setDonationsReport((donations.payload ?? null) as DonationsReportPayload | null)
+        setLastAutoRefreshAt(new Date().toLocaleTimeString())
+      } catch {
+        if (!cancelled) setMsg('Auto refresh เรียก API ไม่สำเร็จ')
+      }
+    }
+
+    void run()
+    const timer = window.setInterval(() => {
+      void run()
+    }, autoRefreshSeconds * 1000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [
+    adminKey,
+    autoRefreshEnabled,
+    autoRefreshSeconds,
+    base,
+    reportEntity,
+    reportFrom,
+    reportTo,
+  ])
 
   function togglePlSort(nextKey: PlSortKey) {
     if (plSortKey === nextKey) {
@@ -935,6 +999,29 @@ export function AdminFinancePanel({ apiBase }: Props) {
         >
           Export Meeting Sessions CSV
         </button>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={autoRefreshEnabled}
+            onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+          />
+          Auto refresh รายงาน
+        </label>
+        <select
+          value={autoRefreshSeconds}
+          onChange={(e) => setAutoRefreshSeconds(Number(e.target.value) as 30 | 60)}
+          className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs"
+          disabled={!autoRefreshEnabled}
+        >
+          <option value={30}>ทุก 30 วินาที</option>
+          <option value={60}>ทุก 60 วินาที</option>
+        </select>
+        <span>
+          ล่าสุด: {lastAutoRefreshAt ? lastAutoRefreshAt : '-'}
+        </span>
       </div>
 
       <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-5">
