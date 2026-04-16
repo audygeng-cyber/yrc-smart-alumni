@@ -14,7 +14,7 @@ description: >-
 - **Frontend:** `frontend/` — Vite 7, React, Tailwind (`npm run dev -w frontend`)
 - **Backend:** `backend/` — Express, Supabase service role (`npm run dev -w backend`)
 - **DB:** Supabase PostgreSQL — SQL ใน `supabase/migrations/` (รันตามลำดับใน README)
-- **CI:** ราก repo — `npm ci`, `npm run build`, `npm run lint -w frontend`, Docker image
+- **CI:** ราก repo — `npm ci`, `npm run build`, `npm run lint` (frontend + backend), `npm run test`, Docker image
 
 ## รากโปรเจกต์
 

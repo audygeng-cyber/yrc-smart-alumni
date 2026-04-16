@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev -w frontend\" \"npm run dev -w backend\"",
     "build": "npm run build -w frontend && npm run build -w backend",
-    "lint": "npm run lint -w frontend",
+    "lint": "npm run lint -w frontend && npm run lint -w backend",
     "test": "npm run test -w backend",
     "ci": "npm run build && npm run lint && npm run test",
     "verify:deploy": "node scripts/verify-deployment.mjs"
