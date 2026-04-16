@@ -2,6 +2,7 @@ import { Router } from 'express'
 import multer from 'multer'
 import readXlsxFile from 'read-excel-file/node'
 import { getServiceSupabase } from '../lib/supabase.js'
+import { buildPostImportSummary } from '../util/postImportSummary.js'
 import { HEADER_TO_DB, mapExcelRow } from '../util/memberImportMap.js'
 import { sheetRowsToObjects } from '../util/readExcelRows.js'
 
@@ -10,6 +11,43 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 
 const REQUIRED_THAI_HEADERS = ['รุ่น', 'ชื่อ', 'นามสกุล'] as const
 
 export const importMembersRouter = Router()
+
+type SummaryRow = {
+  batch: string | null
+  first_name: string | null
+  last_name: string | null
+  line_uid: string | null
+  membership_status: string | null
+}
+
+async function fetchSummaryRows(importBatchId?: string): Promise<SummaryRow[]> {
+  const supabase = getServiceSupabase()
+  const pageSize = 1000
+  const rows: SummaryRow[] = []
+
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1
+    let query = supabase
+      .from('members')
+      .select('batch,first_name,last_name,line_uid,membership_status')
+      .order('created_at', { ascending: true })
+      .range(from, to)
+
+    if (importBatchId) {
+      query = query.eq('import_batch_id', importBatchId)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    const page = (data ?? []) as SummaryRow[]
+    rows.push(...page)
+
+    if (page.length < pageSize) break
+  }
+
+  return rows
+}
 
 importMembersRouter.post('/import', upload.single('file'), async (req, res) => {
   try {
@@ -92,6 +130,25 @@ importMembersRouter.post('/import', upload.single('file'), async (req, res) => {
       ok: true,
       importBatchId,
       inserted: mapped.length,
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+importMembersRouter.get('/summary', async (req, res) => {
+  try {
+    const importBatchIdRaw = typeof req.query.importBatchId === 'string' ? req.query.importBatchId : ''
+    const importBatchId = importBatchIdRaw.trim() || undefined
+
+    const rows = await fetchSummaryRows(importBatchId)
+    const summary = buildPostImportSummary(rows)
+
+    res.json({
+      ok: true,
+      importBatchId: importBatchId ?? null,
+      summary,
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error'

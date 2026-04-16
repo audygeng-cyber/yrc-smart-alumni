@@ -7,6 +7,7 @@ type Props = { apiBase: string }
 export function AdminImportPanel({ apiBase }: Props) {
   const [adminKey, setAdminKey] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [lastImportBatchId, setLastImportBatchId] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -38,6 +39,7 @@ export function AdminImportPanel({ apiBase }: Props) {
         setMsg(JSON.stringify(j, null, 2))
         return
       }
+      setLastImportBatchId(typeof j.importBatchId === 'string' ? j.importBatchId : null)
       setMsg(`สำเร็จ: importBatchId=${j.importBatchId} จำนวน ${j.inserted} แถว`)
       setFile(null)
     } catch {
@@ -62,6 +64,37 @@ export function AdminImportPanel({ apiBase }: Props) {
       })
       const j = await r.json().catch(() => ({}))
       setMsg(r.ok ? 'ลบสมาชิกทั้งหมดแล้ว' : JSON.stringify(j, null, 2))
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function summarizeImport() {
+    if (!adminKey.trim()) {
+      setMsg('ใส่ Admin key')
+      return
+    }
+
+    setLoading(true)
+    setMsg(null)
+    try {
+      const q = new URLSearchParams()
+      if (lastImportBatchId) {
+        q.set('importBatchId', lastImportBatchId)
+      }
+      const url = `${apiBase}/api/admin/members/summary${q.toString() ? `?${q.toString()}` : ''}`
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const j = await r.json().catch(() => ({}))
+      setMsg(
+        r.ok
+          ? JSON.stringify(j, null, 2)
+          : `ตรวจสอบหลังนำเข้าไม่สำเร็จ\n${JSON.stringify(j, null, 2)}`,
+      )
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
     } finally {
@@ -130,6 +163,14 @@ export function AdminImportPanel({ apiBase }: Props) {
           className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-amber-500 disabled:opacity-50"
         >
           อัปโหลดนำเข้า
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={summarizeImport}
+          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-600 disabled:opacity-50"
+        >
+          ตรวจสอบหลังนำเข้า
         </button>
         <button
           type="button"

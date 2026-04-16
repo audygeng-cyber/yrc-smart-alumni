@@ -54,6 +54,8 @@ export function createApp(): express.Express {
         importTemplates:
           'GET /api/admin/members/import-template.csv | import-template.xlsx (ไม่ต้องมี key)',
         adminImport: 'POST /api/admin/members/import (ต้องใช้ x-admin-key)',
+        adminImportSummary:
+          'GET /api/admin/members/summary?importBatchId=... (ต้องใช้ x-admin-key)',
         memberRequests:
           'GET /api/admin/member-requests (x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
         push: 'GET /api/push/vapid-public, POST /api/push/subscribe',

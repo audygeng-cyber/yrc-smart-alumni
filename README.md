@@ -59,6 +59,13 @@ git push -u origin master
 
 ไม่ต้องใช้ `x-admin-key` สำหรับดาวน์โหลดเทมเพลต
 
+**ตรวจสอบหลังนำเข้าอัตโนมัติ** (ต้องมี `x-admin-key`):
+
+- `GET /api/admin/members/summary` — สรุปภาพรวมทั้งหมด
+- `GET /api/admin/members/summary?importBatchId=<id>` — สรุปเฉพาะรอบที่นำเข้า
+
+ในหน้าเว็บแท็บ Admin มีปุ่ม **ตรวจสอบหลังนำเข้า** ให้เรียก endpoint นี้อัตโนมัติ
+
 ```bash
 curl -X POST http://localhost:4000/api/admin/members/import ^
   -H "x-admin-key: YOUR_ADMIN_UPLOAD_KEY" ^
