@@ -161,4 +161,5 @@ docker build -t gcr.io/PROJECT_ID/yrc-api:latest .
 
 - อัปเดต `VITE_API_URL` บน Vercel  
 - อัปเดต `FRONTEND_ORIGINS` บน Cloud Run  
-- ตรวจ LINE / LINE Login callback ให้ตรงโดเมนใหม่
+- ตรวจ LINE / LINE Login callback ให้ตรงโดเมนใหม่  
+- **เช็คลิสต์ทีละขั้น (Cloud Run + Vercel + Supabase + LINE + Push):** [`docs/DEPLOY_VERIFY.md`](docs/DEPLOY_VERIFY.md)
