@@ -83,6 +83,7 @@ type ActivityItem = {
   level: 'info' | 'warn' | 'error'
   message: string
 }
+type ActivityFilter = 'all' | 'info' | 'warn' | 'error'
 type AutoRefreshSettings = {
   enabled: boolean
   seconds: 30 | 60
@@ -230,6 +231,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [alertOnPause, setAlertOnPause] = useState(true)
   const [soundOnPause, setSoundOnPause] = useState(true)
   const [activityLog, setActivityLog] = useState<ActivityItem[]>([])
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all')
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -275,6 +277,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     const rawPresets = sessionStorage.getItem(REPORT_PRESETS_KEY)
     const rawActivity = sessionStorage.getItem(ACTIVITY_LOG_KEY)
     const rawAutoRefresh = sessionStorage.getItem(AUTO_REFRESH_SETTINGS_KEY)
+    const rawActivityFilter = sessionStorage.getItem('yrc_finance_activity_filter_v1')
     if (rawPresets) {
       try {
         const parsed = JSON.parse(rawPresets) as ReportPreset[]
@@ -325,6 +328,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
     } catch {
       // ignore broken session storage payload
     }
+    if (
+      rawActivityFilter === 'all' ||
+      rawActivityFilter === 'info' ||
+      rawActivityFilter === 'warn' ||
+      rawActivityFilter === 'error'
+    ) {
+      setActivityFilter(rawActivityFilter)
+    }
   }, [])
 
   useEffect(() => {
@@ -334,6 +345,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(activityLog))
   }, [activityLog])
+
+  useEffect(() => {
+    sessionStorage.setItem('yrc_finance_activity_filter_v1', activityFilter)
+  }, [activityFilter])
 
   useEffect(() => {
     const value: AutoRefreshSettings = {
@@ -361,6 +376,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
     () => accounts.find((a) => a.id === paymentBankAccountId) ?? null,
     [accounts, paymentBankAccountId],
   )
+  const filteredActivityLog = useMemo(() => {
+    if (activityFilter === 'all') return activityLog
+    return activityLog.filter((item) => item.level === activityFilter)
+  }, [activityFilter, activityLog])
   const reportKeywordNorm = useMemo(() => reportKeyword.trim().toLowerCase(), [reportKeyword])
   const sortArrow = (active: boolean, dir: SortDirection) => (active ? (dir === 'asc' ? ' ↑' : ' ↓') : '')
 
@@ -853,18 +872,18 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   function exportActivityLogCsv() {
-    if (!activityLog.length) {
+    if (!filteredActivityLog.length) {
       setMsg('ยังไม่มี activity log สำหรับ export')
       return
     }
-    const rows = activityLog.map((it) => ({
+    const rows = filteredActivityLog.map((it) => ({
       timestamp: it.at,
       display_time: it.atLabel,
       level: it.level,
       message: it.message,
     }))
     downloadCurrentViewCsv('finance-activity-log.csv', rows)
-    addActivity('info', 'Export Activity Log CSV')
+    addActivity('info', `Export Activity Log CSV (${activityFilter})`)
   }
 
   async function loadOverviewAndAccounts() {
@@ -1326,7 +1345,19 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
       <div className="mt-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
         <div className="mb-2 flex items-center justify-between">
-          <p className="font-medium text-slate-200">Activity Log (ล่าสุด 20)</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-slate-200">Activity Log (ล่าสุด 20)</p>
+            <select
+              value={activityFilter}
+              onChange={(e) => setActivityFilter(e.target.value as ActivityFilter)}
+              className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200"
+            >
+              <option value="all">all</option>
+              <option value="info">info</option>
+              <option value="warn">warn</option>
+              <option value="error">error</option>
+            </select>
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1344,11 +1375,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
             </button>
           </div>
         </div>
-        {activityLog.length === 0 ? (
+        {filteredActivityLog.length === 0 ? (
           <p className="text-[11px] text-slate-500">ยังไม่มีเหตุการณ์</p>
         ) : (
           <div className="max-h-36 space-y-1 overflow-auto">
-            {activityLog.map((it) => (
+            {filteredActivityLog.map((it) => (
               <div key={it.id} className="flex items-start gap-2 text-[11px]">
                 <span
                   className={`mt-0.5 inline-block h-2 w-2 rounded-full ${
