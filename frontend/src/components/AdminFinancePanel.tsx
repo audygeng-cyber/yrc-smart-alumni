@@ -92,6 +92,12 @@ type AutoRefreshSettings = {
   alertOnPause: boolean
   soundOnPause: boolean
 }
+const ACTIVITY_SHORTCUTS = [
+  { label: 'Auto refresh', keyword: 'Auto refresh' },
+  { label: 'Preset', keyword: 'preset' },
+  { label: 'Reports', keyword: 'โหลดรายงาน' },
+  { label: 'Export', keyword: 'Export' },
+] as const
 
 function normalizeApiBase(base: string): string {
   return base.trim().replace(/\/+$/, '')
@@ -404,6 +410,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }),
     [activityLog],
   )
+  const activitySearchTrimmed = useMemo(() => activitySearch.trim(), [activitySearch])
   const reportKeywordNorm = useMemo(() => reportKeyword.trim().toLowerCase(), [reportKeyword])
   const sortArrow = (active: boolean, dir: SortDirection) => (active ? (dir === 'asc' ? ' ↑' : ' ↓') : '')
 
@@ -907,7 +914,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       message: it.message,
     }))
     downloadCurrentViewCsv('finance-activity-log.csv', rows)
-    addActivity('info', `Export Activity Log CSV (${activityFilter}${activitySearch.trim() ? `, q=${activitySearch.trim()}` : ''})`)
+    addActivity('info', `Export Activity Log CSV (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''})`)
   }
 
   async function loadOverviewAndAccounts() {
@@ -1395,6 +1402,32 @@ export function AdminFinancePanel({ apiBase }: Props) {
               Clear
             </button>
           </div>
+        </div>
+        <div className="mb-2 flex flex-wrap gap-2">
+          {ACTIVITY_SHORTCUTS.map((shortcut) => {
+            const active = activitySearchTrimmed.toLowerCase() === shortcut.keyword.toLowerCase()
+            return (
+              <button
+                key={shortcut.label}
+                type="button"
+                onClick={() => setActivitySearch(shortcut.keyword)}
+                className={`rounded px-2 py-1 text-[11px] ${
+                  active
+                    ? 'bg-cyan-900/70 text-cyan-200 ring-1 ring-white/30'
+                    : 'bg-slate-800 text-slate-200'
+                }`}
+              >
+                {shortcut.label}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setActivitySearch('')}
+            className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200"
+          >
+            Clear Search
+          </button>
         </div>
         <div className="mb-2 flex flex-wrap gap-2">
           {([
