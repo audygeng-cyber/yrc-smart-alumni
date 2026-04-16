@@ -339,5 +339,53 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
     }
   }
 
+  const { data: cramRooms, error: cramRoomErr } = await supabase
+    .from('cram_classrooms')
+    .select('id, display_name, room_code')
+    .eq('active', true)
+    .order('sort_order', { ascending: true })
+
+  if (!cramRoomErr && cramRooms && cramRooms.length > 0) {
+    const { data: cramStuds, error: cramStudErr } = await supabase
+      .from('cram_students')
+      .select('classroom_id, current_avg_score')
+
+    const byRoom = new Map<string, { n: number; sum: number }>()
+    let totalN = 0
+    let totalSum = 0
+    if (!cramStudErr && cramStuds) {
+      for (const row of cramStuds as { classroom_id: string; current_avg_score?: number | null }[]) {
+        const v = Number(row.current_avg_score ?? 0)
+        if (!Number.isFinite(v)) continue
+        const cid = String(row.classroom_id)
+        const cur = byRoom.get(cid) ?? { n: 0, sum: 0 }
+        cur.n += 1
+        cur.sum += v
+        byRoom.set(cid, cur)
+        totalN += 1
+        totalSum += v
+      }
+    }
+
+    base.classes = cramRooms.map((r: { id: string; display_name: string; room_code: string }) => {
+      const agg = byRoom.get(String(r.id)) ?? { n: 0, sum: 0 }
+      const avg = agg.n > 0 ? Math.round((agg.sum / agg.n) * 10) / 10 : 0
+      return {
+        room: r.display_name || r.room_code,
+        students: agg.n,
+        avgScore: avg,
+      }
+    })
+
+    if (totalN > 0) {
+      const overall = Math.round((totalSum / totalN) * 10) / 10
+      base.metricCards[3] = {
+        ...base.metricCards[3],
+        value: String(overall),
+        hint: 'ค่าเฉลี่ยจากนักเรียนในระบบ (cram_students)',
+      }
+    }
+  }
+
   return base
 }
