@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MEMBER_REGISTER_EXTRA_HEADERS } from '../memberImportMap'
 
 type Props = {
@@ -14,6 +14,16 @@ type Props = {
 }
 
 type MemberRow = Record<string, unknown>
+type RequestStatusRow = {
+  id?: string
+  request_type?: string
+  status?: string
+  created_at?: string
+  president_approved_at?: string | null
+  admin_approved_at?: string | null
+  rejected_at?: string | null
+  rejection_reason?: string | null
+}
 
 export function MemberLinkPanel({
   apiBase,
@@ -32,10 +42,69 @@ export function MemberLinkPanel({
   const [loading, setLoading] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
   const [showManualUid, setShowManualUid] = useState(!lineLoginAvailable)
+  const [requestStatus, setRequestStatus] = useState<RequestStatusRow | null>(null)
+  const [requestStatusLoading, setRequestStatusLoading] = useState(false)
 
   const [registerExtra, setRegisterExtra] = useState<Record<string, string>>(() =>
     Object.fromEntries(MEMBER_REGISTER_EXTRA_HEADERS.map((h) => [h, ''])),
   )
+
+  useEffect(() => {
+    if (!lineUid.trim()) {
+      setRequestStatus(null)
+      setRequestStatusLoading(false)
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      setRequestStatusLoading(true)
+      try {
+        const r = await fetch(`${apiBase}/api/members/request-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ line_uid: lineUid.trim() }),
+        })
+        const j = (await r.json().catch(() => ({}))) as { request?: RequestStatusRow }
+        if (cancelled) return
+        setRequestStatus(r.ok && j.request ? j.request : null)
+      } catch {
+        if (!cancelled) setRequestStatus(null)
+      } finally {
+        if (!cancelled) setRequestStatusLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [apiBase, lineUid])
+
+  const requestStatusLabel = useMemo(() => {
+    switch (requestStatus?.status) {
+      case 'pending_president':
+        return 'รอประธานรุ่นอนุมัติ'
+      case 'pending_admin':
+        return 'รอ Admin อนุมัติ'
+      case 'approved':
+        return 'อนุมัติแล้ว'
+      case 'rejected':
+        return 'ถูกปฏิเสธ'
+      default:
+        return ''
+    }
+  }, [requestStatus])
+
+  const requestStatusTone = useMemo(() => {
+    switch (requestStatus?.status) {
+      case 'approved':
+        return 'border-emerald-900/40 bg-emerald-950/20 text-emerald-100'
+      case 'rejected':
+        return 'border-rose-900/40 bg-rose-950/20 text-rose-100'
+      default:
+        return 'border-amber-900/40 bg-amber-950/20 text-amber-100'
+    }
+  }, [requestStatus])
 
   async function verifyLink() {
     setLoading(true)
@@ -164,6 +233,40 @@ export function MemberLinkPanel({
       <p className="mt-4 text-xs text-slate-500">
         ตรวจสอบว่ามีในทะเบียนหรือไม่ — ต้องตรงกับข้อมูลที่ Admin นำเข้า (รุ่น · ชื่อ · นามสกุล)
       </p>
+
+      {lineUid.trim() ? (
+        <section className={`mt-4 rounded-lg border p-4 text-sm ${requestStatusTone}`}>
+          <p className="text-xs font-medium uppercase tracking-wide opacity-80">Registration Request Status</p>
+          {requestStatusLoading ? (
+            <p className="mt-2">กำลังตรวจสอบสถานะคำร้องล่าสุดของ LINE UID นี้...</p>
+          ) : requestStatus ? (
+            <>
+              <p className="mt-2 font-medium">
+                {requestStatusLabel || `สถานะ ${requestStatus.status ?? '-'}`}
+              </p>
+              <p className="mt-1 text-xs opacity-80">
+                requestId: {requestStatus.id ?? '-'} · type: {requestStatus.request_type ?? '-'}
+              </p>
+              <p className="mt-1 text-xs opacity-80">
+                ส่งคำร้องเมื่อ: {requestStatus.created_at ? new Date(requestStatus.created_at).toLocaleString() : '-'}
+              </p>
+              {requestStatus.status === 'approved' ? (
+                <p className="mt-2 text-xs opacity-90">
+                  คำร้องนี้ได้รับอนุมัติแล้ว ถ้ายังไม่เห็นข้อมูลสมาชิก ให้กด &quot;ตรวจสอบและผูก&quot; อีกครั้ง
+                </p>
+              ) : null}
+              {requestStatus.status === 'rejected' ? (
+                <p className="mt-2 text-xs opacity-90">
+                  เหตุผล: {requestStatus.rejection_reason?.trim() || 'ไม่มีเหตุผลที่ระบุไว้'}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="mt-2 text-xs opacity-80">ยังไม่พบคำร้องสมัครใหม่ของ LINE UID นี้</p>
+          )}
+        </section>
+      ) : null}
+
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Field label="รุ่น" value={batch} onChange={setBatch} />
         <Field label="ชื่อ" value={firstName} onChange={setFirstName} />

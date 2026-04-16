@@ -50,6 +50,40 @@ membersRouter.post('/session-member', async (req, res) => {
   }
 })
 
+/** ตรวจสอบคำร้องล่าสุดของ LINE UID นี้ */
+membersRouter.post('/request-status', async (req, res) => {
+  try {
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
+    if (!line_uid) {
+      res.status(400).json({ error: 'line_uid is required' })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: row, error } = await supabase
+      .from('member_update_requests')
+      .select('id,request_type,status,created_at,president_approved_at,admin_approved_at,rejected_at,rejection_reason')
+      .eq('line_uid', line_uid)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      res.status(500).json({ error: 'Lookup failed', details: error })
+      return
+    }
+    if (!row) {
+      res.status(404).json({ code: 'REQUEST_NOT_FOUND', error: 'ยังไม่พบคำร้องของ Line UID นี้' })
+      return
+    }
+
+    res.json({ ok: true, request: row })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
 /**
  * ผูก Line UID กับสมาชิกที่มีอยู่แล้ว (กฎ: รุ่น + ชื่อ + นามสกุล ตรงกันหนึ่งแถวเท่านั้น)
  * แนะนำให้ได้ line_uid จาก POST /api/auth/line/token (ตรวจ id_token กับ LINE แล้ว)
