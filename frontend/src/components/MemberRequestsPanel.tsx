@@ -355,6 +355,30 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   }, [pendingTotal])
 
   useEffect(() => {
+    if (!selectedRequest) return
+
+    const match = rows.find((row) => row.id === selectedRequest.id)
+    if (!match) {
+      setSelectedRequest(null)
+      setReviewIntent(null)
+      setPendingReviewDraft(null)
+      return
+    }
+
+    if (!isPendingRequestStatus(match.status) && isPendingRequestStatus(selectedRequest.status)) {
+      setSelectedRequest(null)
+      setReviewIntent(null)
+      setPendingReviewDraft(null)
+      setMsg((current) => current ?? `คำร้อง ${match.id} ถูกอัปเดตเป็น ${match.status} แล้ว ปิด detail ให้อัตโนมัติ`)
+      return
+    }
+
+    if (match !== selectedRequest) {
+      setSelectedRequest(match)
+    }
+  }, [rows, selectedRequest])
+
+  useEffect(() => {
     const savedRaw = sessionStorage.getItem(STORAGE_LAST_REQUEST_IDS)
     const savedIds = savedRaw ? savedRaw.split(',').map((v) => v.trim()).filter(Boolean) : []
     const currentIds = rows.map((row) => row.id)
