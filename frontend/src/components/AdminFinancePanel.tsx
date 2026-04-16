@@ -939,6 +939,29 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
   }
 
+  async function copyVisibleActivityRows() {
+    if (!filteredActivityLog.length) {
+      setMsg('ไม่มี activity log ที่มองเห็นอยู่สำหรับคัดลอก')
+      return
+    }
+
+    const lines = [
+      'YRC Finance Activity Log Rows',
+      `filter=${activityFilter} | keyword=${activitySearchTrimmed || '-'} | visible=${filteredActivityLog.length}`,
+      ...filteredActivityLog.map((it) => `[${it.atLabel}] [${it.level}] ${it.message}`),
+    ]
+    const text = lines.join('\n')
+
+    try {
+      await navigator.clipboard.writeText(text)
+      setMsg('คัดลอก visible activity rows แล้ว')
+      addActivity('info', `Copy Visible Activity Rows (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''})`)
+    } catch {
+      setMsg(`คัดลอกไม่สำเร็จ\n${text}`)
+      addActivity('warn', 'Copy Visible Activity Rows ไม่สำเร็จ')
+    }
+  }
+
   async function loadOverviewAndAccounts() {
     if (!adminKey.trim()) {
       setMsg('ใส่ x-admin-key ก่อน')
@@ -1444,6 +1467,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
               className="rounded bg-cyan-700 px-2 py-1 text-[11px] text-white hover:bg-cyan-600"
             >
               Copy Summary
+            </button>
+            <button
+              type="button"
+              onClick={copyVisibleActivityRows}
+              className="rounded bg-sky-700 px-2 py-1 text-[11px] text-white hover:bg-sky-600"
+            >
+              Copy Rows
             </button>
             <button
               type="button"
