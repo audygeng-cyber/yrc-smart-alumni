@@ -1539,6 +1539,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
             </button>
           </div>
         </div>
+        <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">filter: {activityFilter}</span>
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
+            q: {activitySearchTrimmed || '-'}
+          </span>
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">limit: {String(activityLimit)}</span>
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
+            visible: {visibleActivityLog.length}
+          </span>
+        </div>
         <div className="mb-2 flex flex-wrap gap-2">
           <button
             type="button"
