@@ -113,6 +113,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [reportEntity, setReportEntity] = useState<ReportFilterEntity>('')
   const [reportFrom, setReportFrom] = useState('')
   const [reportTo, setReportTo] = useState('')
+  const [reportKeyword, setReportKeyword] = useState('')
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -152,24 +153,46 @@ export function AdminFinancePanel({ apiBase }: Props) {
     () => accounts.find((a) => a.id === paymentBankAccountId) ?? null,
     [accounts, paymentBankAccountId],
   )
+  const reportKeywordNorm = useMemo(() => reportKeyword.trim().toLowerCase(), [reportKeyword])
 
-  const plRows = useMemo(
-    () =>
-      (plSummary?.accountSummaries ?? [])
-        .slice()
-        .sort((a, b) => Math.abs(b.net) - Math.abs(a.net) || a.accountCode.localeCompare(b.accountCode)),
-    [plSummary?.accountSummaries],
-  )
+  const plRows = useMemo(() => {
+    const rows = (plSummary?.accountSummaries ?? [])
+      .slice()
+      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net) || a.accountCode.localeCompare(b.accountCode))
+    if (!reportKeywordNorm) return rows
+    return rows.filter((r) =>
+      `${r.accountCode} ${r.accountName} ${r.accountType}`.toLowerCase().includes(reportKeywordNorm),
+    )
+  }, [plSummary?.accountSummaries, reportKeywordNorm])
   const plPaged = useMemo(() => paginateRows(plRows, plPage, PAGE_SIZE), [plRows, plPage])
 
-  const donorRows = useMemo(() => (donationsReport?.byDonor ?? []).slice(), [donationsReport?.byDonor])
+  const donorRows = useMemo(() => {
+    const rows = (donationsReport?.byDonor ?? []).slice()
+    if (!reportKeywordNorm) return rows
+    return rows.filter((r) => r.donorLabel.toLowerCase().includes(reportKeywordNorm))
+  }, [donationsReport?.byDonor, reportKeywordNorm])
   const donorPaged = useMemo(() => paginateRows(donorRows, donorPage, PAGE_SIZE), [donorRows, donorPage])
 
-  const batchRows = useMemo(() => (donationsReport?.byBatch ?? []).slice(), [donationsReport?.byBatch])
+  const batchRows = useMemo(() => {
+    const rows = (donationsReport?.byBatch ?? []).slice()
+    if (!reportKeywordNorm) return rows
+    return rows.filter((r) => r.batch.toLowerCase().includes(reportKeywordNorm))
+  }, [donationsReport?.byBatch, reportKeywordNorm])
   const batchPaged = useMemo(() => paginateRows(batchRows, batchPage, PAGE_SIZE), [batchRows, batchPage])
 
-  const entityRows = useMemo(() => (donationsReport?.byEntity ?? []).slice(), [donationsReport?.byEntity])
+  const entityRows = useMemo(() => {
+    const rows = (donationsReport?.byEntity ?? []).slice()
+    if (!reportKeywordNorm) return rows
+    return rows.filter((r) => r.legalEntityCode.toLowerCase().includes(reportKeywordNorm))
+  }, [donationsReport?.byEntity, reportKeywordNorm])
   const entityPaged = useMemo(() => paginateRows(entityRows, entityPage, PAGE_SIZE), [entityRows, entityPage])
+
+  useEffect(() => {
+    setPlPage(1)
+    setDonorPage(1)
+    setBatchPage(1)
+    setEntityPage(1)
+  }, [reportKeywordNorm])
 
   function buildReportQueryString() {
     const q = new URLSearchParams()
@@ -523,7 +546,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         </button>
       </div>
 
-      <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-4">
+      <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-5">
         <select
           value={reportEntity}
           onChange={(e) => setReportEntity(e.target.value as ReportFilterEntity)}
@@ -547,6 +570,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
           className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
           placeholder="to"
         />
+        <input
+          type="text"
+          value={reportKeyword}
+          onChange={(e) => setReportKeyword(e.target.value)}
+          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          placeholder="ค้นหา donor / batch / account"
+        />
         <button
           type="button"
           disabled={loading}
@@ -554,6 +584,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
             setReportEntity('')
             setReportFrom('')
             setReportTo('')
+            setReportKeyword('')
           }}
           className="rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50"
         >
