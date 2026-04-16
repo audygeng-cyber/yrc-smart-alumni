@@ -86,6 +86,14 @@ describe.sequential('createApp', () => {
     expect(res.body.error).toBe('Unauthorized')
   })
 
+  it('GET /api/admin/cram/classrooms requires admin key', async () => {
+    vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
+    const app = createApp()
+    const res = await request(app).get('/api/admin/cram/classrooms')
+    expect(res.status).toBe(401)
+    expect(res.body.error).toBe('Unauthorized')
+  })
+
   it('CORS reflects FRONTEND_ORIGINS when set', async () => {
     vi.stubEnv('FRONTEND_ORIGINS', 'https://app.example.com')
     const app = createApp()

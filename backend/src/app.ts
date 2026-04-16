@@ -3,6 +3,7 @@ import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { adminAuth } from './middleware/adminAuth.js'
+import { cramAdminRouter } from './routes/cramAdmin.js'
 import { financeAdminRouter } from './routes/financeAdmin.js'
 import { importMembersRouter } from './routes/importMembers.js'
 import { importTemplateRouter } from './routes/importTemplate.js'
@@ -68,6 +69,8 @@ export function createApp(): express.Express {
         push: 'GET /api/push/vapid-public, POST /api/push/subscribe',
         portal:
           'GET /api/portal/member | /api/portal/committee | /api/portal/academy — snapshot สำหรับ dashboard พอร์ทัล',
+        cramSchool:
+          'GET/POST/PATCH /api/admin/cram/classrooms, GET/POST/PATCH/DELETE /api/admin/cram/students (x-admin-key) — ห้อง/นักเรียนกวดวิชา',
       },
     })
   })
@@ -95,6 +98,7 @@ export function createApp(): express.Express {
   app.use('/api/push', pushRouter)
   app.use('/api/admin/member-requests', memberRequestsAdminRouter)
   app.use('/api/admin/finance', adminAuth, financeAdminRouter)
+  app.use('/api/admin/cram', adminAuth, cramAdminRouter)
   app.use('/api/admin/members', importTemplateRouter)
   app.use('/api/admin/members', adminAuth, importMembersRouter)
   app.use('/api/members', membersPublicLimit, membersRouter)
