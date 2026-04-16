@@ -360,6 +360,28 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setMsg(`exported ${sortedRows.length} rows from current view`)
   }
 
+  async function copyRequestSummary() {
+    if (!selectedRequest) return
+    const text = buildRequestSummaryText(selectedRequest)
+    try {
+      await navigator.clipboard.writeText(text)
+      setMsg('คัดลอกสรุปคำร้องแล้ว')
+    } catch {
+      setMsg('คัดลอกสรุปคำร้องไม่สำเร็จ')
+    }
+  }
+
+  async function copyRequestDetails() {
+    if (!selectedRequest) return
+    const text = buildRequestDetailText(selectedRequest)
+    try {
+      await navigator.clipboard.writeText(text)
+      setMsg('คัดลอกรายละเอียดคำร้องแล้ว')
+    } catch {
+      setMsg('คัดลอกรายละเอียดคำร้องไม่สำเร็จ')
+    }
+  }
+
   return (
     <section className="rounded-xl border border-violet-900/40 bg-violet-950/20 p-6">
       <h2 className="text-sm font-medium uppercase tracking-wide text-violet-200/90">
@@ -736,13 +758,29 @@ export function MemberRequestsPanel({ apiBase }: Props) {
               <p className="text-xs font-medium uppercase tracking-wide text-sky-200/80">Request Detail</p>
               <p className="mt-1 font-mono text-xs text-slate-400">{selectedRequest.id}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setSelectedRequest(null)}
-              className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
-            >
-              ปิดรายละเอียด
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void copyRequestSummary()}
+                className="rounded border border-sky-800 px-3 py-1.5 text-xs text-sky-200 hover:bg-sky-950/30"
+              >
+                copy summary
+              </button>
+              <button
+                type="button"
+                onClick={() => void copyRequestDetails()}
+                className="rounded border border-violet-800 px-3 py-1.5 text-xs text-violet-200 hover:bg-violet-950/30"
+              >
+                copy request details
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRequest(null)}
+                className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              >
+                ปิดรายละเอียด
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -829,6 +867,31 @@ function getRequestedDataEntries(row: RequestRow): Array<[string, string]> {
   return Object.entries(row.requested_data ?? {})
     .map(([key, value]) => [key, formatUnknownValue(value)] as [string, string])
     .sort(([a], [b]) => a.localeCompare(b))
+}
+
+function buildRequestSummaryText(row: RequestRow): string {
+  return [
+    `requestId: ${row.id}`,
+    `status: ${row.status}`,
+    `type: ${row.request_type}`,
+    `line_uid: ${row.line_uid ?? '-'}`,
+    `batch: ${pickRequestedText(row.requested_data, 'batch') || '-'}`,
+    `name: ${[pickRequestedText(row.requested_data, 'first_name'), pickRequestedText(row.requested_data, 'last_name')].filter(Boolean).join(' ') || '-'}`,
+    `created_at: ${formatDateTime(row.created_at)}`,
+  ].join('\n')
+}
+
+function buildRequestDetailText(row: RequestRow): string {
+  const detailLines = [
+    buildRequestSummaryText(row),
+    `president_approved_at: ${row.president_approved_at ? formatDateTime(row.president_approved_at) : '-'}`,
+    `admin_approved_at: ${row.admin_approved_at ? formatDateTime(row.admin_approved_at) : '-'}`,
+    '',
+    'requested_data:',
+    ...getRequestedDataEntries(row).map(([key, value]) => `- ${key}: ${value}`),
+  ]
+
+  return detailLines.join('\n')
 }
 
 function formatUnknownValue(value: unknown): string {
