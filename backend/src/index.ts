@@ -2,6 +2,7 @@ import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 import { adminAuth } from './middleware/adminAuth.js'
 import { importMembersRouter } from './routes/importMembers.js'
 import { lineAuthRouter } from './routes/lineAuth.js'
@@ -62,11 +63,26 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'yrc-smart-alumni-api' })
 })
 
-app.use('/api/auth/line', lineAuthRouter)
+/** จำกัดความถี่ endpoint สาธารณะ (ต่อ IP หลัง trust proxy) */
+const membersPublicLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+const lineOAuthLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+app.use('/api/auth/line', lineOAuthLimit, lineAuthRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/admin/member-requests', memberRequestsAdminRouter)
 app.use('/api/admin/members', adminAuth, importMembersRouter)
-app.use('/api/members', membersRouter)
+app.use('/api/members', membersPublicLimit, membersRouter)
 
 app.listen(port, () => {
   console.log(`API listening on http://localhost:${port}`)

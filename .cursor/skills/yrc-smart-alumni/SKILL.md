@@ -32,6 +32,7 @@ npm run ci               # ก่อน push
 ## ความลับ / env
 
 - **ห้าม** commit `backend/.env`, `frontend/.env` — อยู่ใน `.gitignore`
+- API มี **Helmet** + **rate limit** ที่ `/api/members` และ `/api/auth/line` — ดู `SECURITY.md`
 - Production: Cloud Run + Vercel Environment Variables (หรือ Secret Manager)
 - ทีมที่ต้องการไฟล์เข้ารหัสใน repo: ใช้ **git-secret** ตาม `SECURITY.md`
 

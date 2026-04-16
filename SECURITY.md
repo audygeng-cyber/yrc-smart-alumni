@@ -56,6 +56,13 @@ git secret reveal   # ต้องมี private GPG key ที่ถูก tell
 
 Backend ใช้ [Helmet](https://helmetjs.github.io/) เพื่อ header พื้นฐาน; คู่กับ CORS ตั้ง `crossOriginResourcePolicy` ให้เข้ากับ `credentials`
 
+## Rate limiting
+
+- **`/api/members`** — จำกัดประมาณ 120 คำขอ / 15 นาที ต่อ IP  
+- **`/api/auth/line`** — จำกัดประมาณ 40 คำขอ / 15 นาที ต่อ IP  
+
+ปรับค่าใน `backend/src/index.ts` ได้ถ้าผู้ใช้จริงมาก
+
 ## อัปเดต dependency
 
 - ดู PR จาก Dependabot; major bumps อาจทำให้ CI พัง — ทดสอบใน branch ก่อน merge
