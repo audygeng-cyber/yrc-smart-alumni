@@ -360,6 +360,19 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     }
   }, [toast])
 
+  useEffect(() => {
+    if (!debugDetails || loading) return
+    if (toast?.tone !== 'success') return
+
+    const timer = window.setTimeout(() => {
+      setDebugDetails((current) => (current === debugDetails ? null : current))
+    }, 8000)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [debugDetails, loading, toast])
+
   function showToast(message: string, tone: ToastTone = 'info') {
     setToast({ message, tone })
   }
@@ -1727,9 +1740,18 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       ) : null}
       {debugDetails ? (
         <details className="mt-4 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
-          <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-300">
-            Debug details
-          </summary>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-300">
+              Debug details
+            </summary>
+            <button
+              type="button"
+              onClick={() => setDebugDetails(null)}
+              className="rounded border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-800"
+            >
+              clear debug
+            </button>
+          </div>
           <pre className="mt-3 max-h-40 overflow-auto rounded bg-slate-900/80 p-3 text-left text-xs text-slate-300">
             {debugDetails}
           </pre>
