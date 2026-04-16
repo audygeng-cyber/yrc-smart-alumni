@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 const STORAGE_KEY = 'yrc_admin_upload_key'
 const PAGE_SIZE = 20
 const REPORT_PRESETS_KEY = 'yrc_finance_report_presets_v1'
+const AUTO_REFRESH_MAX_FAILURES = 3
 
 type Props = { apiBase: string }
 
@@ -202,6 +203,8 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [lastAutoRefreshAt, setLastAutoRefreshAt] = useState<string | null>(null)
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false)
   const [lastAutoRefreshError, setLastAutoRefreshError] = useState<string | null>(null)
+  const [autoRefreshFailureCount, setAutoRefreshFailureCount] = useState(0)
+  const [autoRefreshPausedByError, setAutoRefreshPausedByError] = useState(false)
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -377,6 +380,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setIsAutoRefreshing(false)
       return
     }
+    if (autoRefreshPausedByError) {
+      setIsAutoRefreshing(false)
+      return
+    }
     if (!adminKey.trim()) return
 
     let cancelled = false
@@ -407,15 +414,44 @@ export function AdminFinancePanel({ apiBase }: Props) {
               ),
             )
           }
-          setLastAutoRefreshError(errors.join('\n\n------------------------------\n\n'))
+          setAutoRefreshFailureCount((prev) => {
+            const next = prev + 1
+            if (next >= AUTO_REFRESH_MAX_FAILURES) {
+              setAutoRefreshPausedByError(true)
+              setLastAutoRefreshError(
+                `${errors.join('\n\n------------------------------\n\n')}\n\nAuto refresh หยุดชั่วคราว (error ต่อเนื่อง ${next} ครั้ง)`,
+              )
+            } else {
+              setLastAutoRefreshError(
+                `${errors.join('\n\n------------------------------\n\n')}\n\nAuto refresh ผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
+              )
+            }
+            return next
+          })
           return
         }
         setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
         setDonationsReport((donations.payload ?? null) as DonationsReportPayload | null)
         setLastAutoRefreshAt(new Date().toLocaleTimeString())
         setLastAutoRefreshError(null)
+        setAutoRefreshFailureCount(0)
       } catch {
-        if (!cancelled) setLastAutoRefreshError('Auto refresh เรียก API ไม่สำเร็จ')
+        if (!cancelled) {
+          setAutoRefreshFailureCount((prev) => {
+            const next = prev + 1
+            if (next >= AUTO_REFRESH_MAX_FAILURES) {
+              setAutoRefreshPausedByError(true)
+              setLastAutoRefreshError(
+                `Auto refresh เรียก API ไม่สำเร็จ\n\nAuto refresh หยุดชั่วคราว (error ต่อเนื่อง ${next} ครั้ง)`,
+              )
+            } else {
+              setLastAutoRefreshError(
+                `Auto refresh เรียก API ไม่สำเร็จ\n\nAuto refresh ผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
+              )
+            }
+            return next
+          })
+        }
       } finally {
         if (!cancelled) setIsAutoRefreshing(false)
       }
@@ -433,12 +469,33 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }, [
     adminKey,
     autoRefreshEnabled,
+    autoRefreshPausedByError,
     autoRefreshSeconds,
     base,
     reportEntity,
     reportFrom,
     reportTo,
   ])
+
+  function toggleAutoRefresh(enabled: boolean) {
+    setAutoRefreshEnabled(enabled)
+    if (!enabled) {
+      setAutoRefreshPausedByError(false)
+      setAutoRefreshFailureCount(0)
+      setLastAutoRefreshError(null)
+      setIsAutoRefreshing(false)
+      return
+    }
+    setAutoRefreshPausedByError(false)
+    setAutoRefreshFailureCount(0)
+    setLastAutoRefreshError(null)
+  }
+
+  function resumeAutoRefresh() {
+    setAutoRefreshPausedByError(false)
+    setAutoRefreshFailureCount(0)
+    setLastAutoRefreshError(null)
+  }
 
   function togglePlSort(nextKey: PlSortKey) {
     if (plSortKey === nextKey) {
@@ -1015,7 +1072,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <input
             type="checkbox"
             checked={autoRefreshEnabled}
-            onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+            onChange={(e) => toggleAutoRefresh(e.target.checked)}
           />
           Auto refresh รายงาน
         </label>
@@ -1035,13 +1092,35 @@ export function AdminFinancePanel({ apiBase }: Props) {
           className={`rounded px-2 py-1 text-[11px] ${
             !autoRefreshEnabled
               ? 'bg-slate-800 text-slate-300'
+              : autoRefreshPausedByError
+                ? 'bg-rose-900/70 text-rose-200'
               : isAutoRefreshing
                 ? 'bg-amber-900/70 text-amber-200'
                 : 'bg-emerald-900/70 text-emerald-200'
           }`}
         >
-          {!autoRefreshEnabled ? 'ปิด' : isAutoRefreshing ? 'กำลังรีเฟรช...' : 'เปิด'}
+          {!autoRefreshEnabled
+            ? 'ปิด'
+            : autoRefreshPausedByError
+              ? 'หยุดชั่วคราว'
+              : isAutoRefreshing
+                ? 'กำลังรีเฟรช...'
+                : 'เปิด'}
         </span>
+        {autoRefreshFailureCount > 0 ? (
+          <span className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200">
+            fail {autoRefreshFailureCount}/{AUTO_REFRESH_MAX_FAILURES}
+          </span>
+        ) : null}
+        {autoRefreshPausedByError ? (
+          <button
+            type="button"
+            onClick={resumeAutoRefresh}
+            className="rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600"
+          >
+            Resume Auto Refresh
+          </button>
+        ) : null}
         {lastAutoRefreshError ? (
           <span className="w-full text-[11px] text-rose-300">{lastAutoRefreshError}</span>
         ) : null}
