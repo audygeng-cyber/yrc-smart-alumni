@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 const STORAGE_KEY = 'yrc_admin_upload_key'
 const PAGE_SIZE = 20
+const REPORT_PRESETS_KEY = 'yrc_finance_report_presets_v1'
 
 type Props = { apiBase: string }
 
@@ -64,6 +65,14 @@ type PlSortKey = 'absNet' | 'accountCode' | 'accountName' | 'accountType' | 'net
 type DonorSortKey = 'donorLabel' | 'count' | 'totalAmount'
 type BatchSortKey = 'batch' | 'totalAmount'
 type EntitySortKey = 'legalEntityCode' | 'totalAmount'
+type ReportPreset = {
+  id: string
+  name: string
+  legalEntityCode: ReportFilterEntity
+  from: string
+  to: string
+  keyword: string
+}
 
 function normalizeApiBase(base: string): string {
   return base.trim().replace(/\/+$/, '')
@@ -122,6 +131,48 @@ function rowsToCsvText(rows: Record<string, unknown>[]): string {
   return `\uFEFF${lines.join('\n')}\n`
 }
 
+function formatDateInputValue(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function buildBuiltinReportPresets(): ReportPreset[] {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const today = formatDateInputValue(now)
+  const monthStart = formatDateInputValue(new Date(year, month, 1))
+  const yearStart = formatDateInputValue(new Date(year, 0, 1))
+  return [
+    {
+      id: 'builtin:association_month',
+      name: 'สมาคม เดือนนี้',
+      legalEntityCode: 'association',
+      from: monthStart,
+      to: today,
+      keyword: '',
+    },
+    {
+      id: 'builtin:cram_month',
+      name: 'กวดวิชา เดือนนี้',
+      legalEntityCode: 'cram_school',
+      from: monthStart,
+      to: today,
+      keyword: '',
+    },
+    {
+      id: 'builtin:all_year',
+      name: 'ทั้งหมด ปีนี้',
+      legalEntityCode: '',
+      from: yearStart,
+      to: today,
+      keyword: '',
+    },
+  ]
+}
+
 export function AdminFinancePanel({ apiBase }: Props) {
   const base = normalizeApiBase(apiBase)
   const [adminKey, setAdminKey] = useState('')
@@ -135,6 +186,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [reportFrom, setReportFrom] = useState('')
   const [reportTo, setReportTo] = useState('')
   const [reportKeyword, setReportKeyword] = useState('')
+  const [customPresets, setCustomPresets] = useState<ReportPreset[]>([])
+  const [selectedPresetId, setSelectedPresetId] = useState('builtin:association_month')
+  const [presetName, setPresetName] = useState('')
   const [plSortKey, setPlSortKey] = useState<PlSortKey>('absNet')
   const [plSortDir, setPlSortDir] = useState<SortDirection>('desc')
   const [donorSortKey, setDonorSortKey] = useState<DonorSortKey>('totalAmount')
@@ -167,10 +221,30 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [approveSignerId, setApproveSignerId] = useState('')
   const [approveRoleCode, setApproveRoleCode] = useState<'bank_signer_3of5' | 'committee'>('bank_signer_3of5')
   const [approveDecision, setApproveDecision] = useState<'approve' | 'reject'>('approve')
+  const builtinPresets = useMemo(() => buildBuiltinReportPresets(), [])
+  const allPresets = useMemo(() => [...builtinPresets, ...customPresets], [builtinPresets, customPresets])
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
+    const raw = sessionStorage.getItem(REPORT_PRESETS_KEY)
+    if (!raw) return
+    try {
+      const parsed = JSON.parse(raw) as ReportPreset[]
+      if (Array.isArray(parsed)) setCustomPresets(parsed)
+    } catch {
+      // ignore broken session storage payload
+    }
   }, [])
+
+  useEffect(() => {
+    sessionStorage.setItem(REPORT_PRESETS_KEY, JSON.stringify(customPresets))
+  }, [customPresets])
+
+  useEffect(() => {
+    if (!allPresets.some((p) => p.id === selectedPresetId)) {
+      setSelectedPresetId(builtinPresets[0]?.id ?? '')
+    }
+  }, [allPresets, builtinPresets, selectedPresetId])
 
   const filteredAccounts = useMemo(() => {
     const ent = overview?.entities.find((e) => e.code === paymentEntity)
@@ -362,6 +436,63 @@ export function AdminFinancePanel({ apiBase }: Props) {
         </button>
       </div>
     )
+  }
+
+  function applyPreset(preset: ReportPreset) {
+    setReportEntity(preset.legalEntityCode)
+    setReportFrom(preset.from)
+    setReportTo(preset.to)
+    setReportKeyword(preset.keyword)
+    setPlPage(1)
+    setDonorPage(1)
+    setBatchPage(1)
+    setEntityPage(1)
+    setMsg(`ใช้ preset แล้ว: ${preset.name}`)
+  }
+
+  function applySelectedPreset() {
+    const preset = allPresets.find((p) => p.id === selectedPresetId)
+    if (!preset) {
+      setMsg('ไม่พบ preset ที่เลือก')
+      return
+    }
+    applyPreset(preset)
+  }
+
+  function saveCurrentPreset() {
+    const name = presetName.trim()
+    if (!name) {
+      setMsg('กรอกชื่อ preset ก่อนบันทึก')
+      return
+    }
+    const id = `custom:${Date.now()}`
+    const nextPreset: ReportPreset = {
+      id,
+      name,
+      legalEntityCode: reportEntity,
+      from: reportFrom,
+      to: reportTo,
+      keyword: reportKeyword,
+    }
+    setCustomPresets((cur) => [nextPreset, ...cur])
+    setSelectedPresetId(id)
+    setPresetName('')
+    setMsg(`บันทึก preset แล้ว: ${name}`)
+  }
+
+  function deleteSelectedPreset() {
+    if (!selectedPresetId.startsWith('custom:')) {
+      setMsg('ลบได้เฉพาะ preset ที่บันทึกเอง')
+      return
+    }
+    const target = customPresets.find((p) => p.id === selectedPresetId)
+    if (!target) {
+      setMsg('ไม่พบ preset ที่เลือก')
+      return
+    }
+    setCustomPresets((cur) => cur.filter((p) => p.id !== selectedPresetId))
+    setSelectedPresetId(builtinPresets[0]?.id ?? '')
+    setMsg(`ลบ preset แล้ว: ${target.name}`)
   }
 
   function downloadCurrentViewCsv(filename: string, rows: Record<string, unknown>[]) {
@@ -742,6 +873,51 @@ export function AdminFinancePanel({ apiBase }: Props) {
           className="rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50"
         >
           ล้างตัวกรองรายงาน
+        </button>
+      </div>
+
+      <div className="mt-2 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-5">
+        <select
+          value={selectedPresetId}
+          onChange={(e) => setSelectedPresetId(e.target.value)}
+          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+        >
+          {allPresets.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.id.startsWith('custom:') ? `[custom] ${p.name}` : `[builtin] ${p.name}`}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={applySelectedPreset}
+          className="rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50"
+        >
+          ใช้ preset
+        </button>
+        <input
+          type="text"
+          value={presetName}
+          onChange={(e) => setPresetName(e.target.value)}
+          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          placeholder="ชื่อ preset ใหม่"
+        />
+        <button
+          type="button"
+          disabled={loading}
+          onClick={saveCurrentPreset}
+          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50"
+        >
+          บันทึก preset ปัจจุบัน
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={deleteSelectedPreset}
+          className="rounded bg-rose-700 px-3 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-50"
+        >
+          ลบ preset ที่เลือก
         </button>
       </div>
 
