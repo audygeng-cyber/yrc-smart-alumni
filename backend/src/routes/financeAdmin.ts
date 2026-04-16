@@ -1,8 +1,30 @@
 import { Router } from 'express'
 import { getServiceSupabase } from '../lib/supabase.js'
 import { resolveFinanceApprovalPolicy } from '../util/financePolicy.js'
+import { majorityRequired, quorumRequired } from '../util/meetingRules.js'
 
 export const financeAdminRouter = Router()
+
+type SupabaseClient = ReturnType<typeof getServiceSupabase>
+
+async function getLegalEntity(supabase: SupabaseClient, code: string) {
+  const { data, error } = await supabase
+    .from('legal_entities')
+    .select('id,code,name_th')
+    .eq('code', code)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+async function countMeetingAttendance(supabase: SupabaseClient, meetingSessionId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('meeting_attendance')
+    .select('id')
+    .eq('meeting_session_id', meetingSessionId)
+  if (error) throw error
+  return (data ?? []).length
+}
 
 financeAdminRouter.get('/overview', async (_req, res) => {
   try {
@@ -63,6 +85,14 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
       typeof req.body?.requested_by === 'string' && req.body.requested_by.trim()
         ? req.body.requested_by.trim()
         : 'finance-admin'
+    const bank_account_id =
+      typeof req.body?.bank_account_id === 'string' && req.body.bank_account_id.trim()
+        ? req.body.bank_account_id.trim()
+        : null
+    const meeting_session_id =
+      typeof req.body?.meeting_session_id === 'string' && req.body.meeting_session_id.trim()
+        ? req.body.meeting_session_id.trim()
+        : null
 
     if (!legal_entity_code || !purpose || !Number.isFinite(amount) || amount <= 0) {
       res.status(400).json({ error: 'legal_entity_code, purpose, amount > 0 are required' })
@@ -70,21 +100,52 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
     }
 
     const supabase = getServiceSupabase()
-    const { data: entity, error: eErr } = await supabase
-      .from('legal_entities')
-      .select('id,code')
-      .eq('code', legal_entity_code)
-      .maybeSingle()
-    if (eErr || !entity) {
-      res.status(400).json({ error: 'Unknown legal_entity_code', details: eErr })
+    const entity = await getLegalEntity(supabase, legal_entity_code)
+    if (!entity) {
+      res.status(400).json({ error: 'Unknown legal_entity_code' })
       return
     }
 
     const policy = resolveFinanceApprovalPolicy(amount)
+
+    if (policy.rule === 'committee_35_over_20000' && !meeting_session_id) {
+      res.status(400).json({
+        error: 'meeting_session_id is required for payment > 20,000 (ประชุม + มติ)',
+      })
+      return
+    }
+
+    if (policy.rule === 'committee_3of5_upto_20000') {
+      if (!bank_account_id) {
+        res.status(400).json({
+          error: 'bank_account_id is required for <= 20,000 (อนุมัติผู้ลงนาม 3 ใน 5)',
+        })
+        return
+      }
+      const { data: signers, error: sErr } = await supabase
+        .from('bank_account_signers')
+        .select('id')
+        .eq('bank_account_id', bank_account_id)
+        .eq('active', true)
+        .eq('in_kbiz', true)
+      if (sErr) {
+        res.status(500).json({ error: 'Load bank account signers failed', details: sErr })
+        return
+      }
+      if ((signers ?? []).length < 5) {
+        res.status(400).json({
+          error: 'ต้องมีผู้ลงนามที่ active และมีชื่อใน KBiz อย่างน้อย 5 คนต่อบัญชี',
+        })
+        return
+      }
+    }
+
     const { data: row, error: insErr } = await supabase
       .from('payment_requests')
       .insert({
         legal_entity_id: entity.id,
+        bank_account_id,
+        meeting_session_id,
         purpose,
         amount,
         requested_by,
@@ -145,6 +206,71 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       return
     }
 
+    if (reqRow.approval_rule === 'committee_3of5_upto_20000') {
+      if (!reqRow.bank_account_id) {
+        res.status(400).json({ error: 'Request missing bank_account_id' })
+        return
+      }
+      const { data: signer, error: sigErr } = await supabase
+        .from('bank_account_signers')
+        .select('id')
+        .eq('bank_account_id', reqRow.bank_account_id)
+        .eq('signer_name', approver_name)
+        .eq('active', true)
+        .eq('in_kbiz', true)
+        .maybeSingle()
+      if (sigErr) {
+        res.status(500).json({ error: 'Signer lookup failed', details: sigErr })
+        return
+      }
+      if (!signer) {
+        res.status(403).json({
+          error: 'approver_name is not an active KBiz signer for this bank account',
+        })
+        return
+      }
+    }
+
+    let dynamicRequired: number | null = null
+    let attendeeCount: number | null = null
+    let quorumNeed: number | null = null
+    if (reqRow.approval_rule === 'committee_35_over_20000') {
+      const meetingSessionId =
+        typeof reqRow.meeting_session_id === 'string' ? reqRow.meeting_session_id : ''
+      if (!meetingSessionId) {
+        res.status(400).json({
+          error: 'meeting_session_id is required for this approval rule',
+        })
+        return
+      }
+      const { data: session, error: sessErr } = await supabase
+        .from('meeting_sessions')
+        .select('id,expected_participants')
+        .eq('id', meetingSessionId)
+        .maybeSingle()
+      if (sessErr || !session) {
+        res.status(sessErr ? 500 : 404).json({
+          error: sessErr ? 'Load meeting session failed' : 'Meeting session not found',
+          details: sessErr,
+        })
+        return
+      }
+
+      attendeeCount = await countMeetingAttendance(supabase, meetingSessionId)
+      const expected = Number(session.expected_participants ?? 0)
+      quorumNeed = quorumRequired(expected)
+      if (attendeeCount < quorumNeed) {
+        res.status(400).json({
+          error: 'องค์ประชุมไม่ครบ',
+          attendees: attendeeCount,
+          quorumRequired: quorumNeed,
+          expectedParticipants: expected,
+        })
+        return
+      }
+      dynamicRequired = majorityRequired(attendeeCount)
+    }
+
     const { error: appErr } = await supabase.from('payment_request_approvals').insert({
       payment_request_id: id,
       approver_name,
@@ -182,7 +308,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
     }
 
     const approveCount = (rows ?? []).length
-    const required = Number(reqRow.required_approvals ?? 0)
+    const required = dynamicRequired ?? Number(reqRow.required_approvals ?? 0)
     const approved = approveCount >= required
 
     if (approved) {
@@ -201,6 +327,135 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       status: approved ? 'approved' : 'pending',
       approvals: approveCount,
       requiredApprovals: required,
+      attendees: attendeeCount,
+      quorumRequired: quorumNeed,
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+financeAdminRouter.post('/meeting-sessions', async (req, res) => {
+  try {
+    const legal_entity_code =
+      typeof req.body?.legal_entity_code === 'string' ? req.body.legal_entity_code.trim() : ''
+    const title = typeof req.body?.title === 'string' ? req.body.title.trim() : ''
+    const expectedParticipants = Number(req.body?.expected_participants ?? 35)
+    const created_by =
+      typeof req.body?.created_by === 'string' && req.body.created_by.trim()
+        ? req.body.created_by.trim()
+        : 'admin'
+
+    if (!legal_entity_code || !title || !Number.isFinite(expectedParticipants) || expectedParticipants <= 0) {
+      res.status(400).json({
+        error: 'legal_entity_code, title, expected_participants > 0 are required',
+      })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const entity = await getLegalEntity(supabase, legal_entity_code)
+    if (!entity) {
+      res.status(400).json({ error: 'Unknown legal_entity_code' })
+      return
+    }
+
+    const { data: row, error } = await supabase
+      .from('meeting_sessions')
+      .insert({
+        legal_entity_id: entity.id,
+        title,
+        expected_participants: expectedParticipants,
+        created_by,
+      })
+      .select('*')
+      .single()
+    if (error || !row) {
+      res.status(500).json({ error: 'Create meeting session failed', details: error })
+      return
+    }
+
+    res.status(201).json({
+      ok: true,
+      meetingSession: row,
+      quorumRequired: quorumRequired(expectedParticipants),
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+financeAdminRouter.post('/meeting-sessions/:id/sign-attendance', async (req, res) => {
+  try {
+    const id = req.params.id
+    const attendee_name = typeof req.body?.attendee_name === 'string' ? req.body.attendee_name.trim() : ''
+    const attendee_role_code =
+      typeof req.body?.attendee_role_code === 'string' ? req.body.attendee_role_code.trim() : ''
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : null
+
+    if (!id || !attendee_name || !attendee_role_code) {
+      res.status(400).json({ error: 'id, attendee_name, attendee_role_code are required' })
+      return
+    }
+    if (!['committee', 'cram_executive'].includes(attendee_role_code)) {
+      res.status(400).json({
+        error: 'attendee_role_code must be committee or cram_executive',
+      })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: row, error } = await supabase
+      .from('meeting_attendance')
+      .insert({
+        meeting_session_id: id,
+        attendee_name,
+        attendee_role_code,
+        line_uid,
+        signed_via: line_uid ? 'line' : 'manual',
+      })
+      .select('*')
+      .single()
+
+    if (error || !row) {
+      res.status(500).json({ error: 'Sign attendance failed', details: error })
+      return
+    }
+
+    res.status(201).json({ ok: true, attendance: row })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+financeAdminRouter.get('/meeting-sessions/:id/summary', async (req, res) => {
+  try {
+    const id = req.params.id
+    const supabase = getServiceSupabase()
+    const { data: session, error } = await supabase
+      .from('meeting_sessions')
+      .select('id,title,expected_participants')
+      .eq('id', id)
+      .maybeSingle()
+    if (error || !session) {
+      res.status(error ? 500 : 404).json({ error: error ? 'Load meeting failed' : 'Meeting not found', details: error })
+      return
+    }
+
+    const attendees = await countMeetingAttendance(supabase, id)
+    const quorumNeed = quorumRequired(Number(session.expected_participants ?? 0))
+    const majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
+
+    res.json({
+      ok: true,
+      meetingSession: session,
+      attendees,
+      quorumRequired: quorumNeed,
+      quorumMet: attendees >= quorumNeed,
+      majorityRequired: majorityNeed,
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error'
