@@ -1,9 +1,16 @@
 import { Router } from 'express'
 import { getServiceSupabase } from '../lib/supabase.js'
 import { notifyNewMemberRequest } from '../lib/webPush.js'
+import { parseMemberSelfUpdates } from '../util/memberSelfUpdate.js'
 import { normalizeWhitespace } from '../util/normalize.js'
 
 export const membersRouter = Router()
+
+async function fetchMemberRowById(supabase: ReturnType<typeof getServiceSupabase>, id: string) {
+  const { data, error } = await supabase.from('members').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data
+}
 
 membersRouter.get('/', (_req, res) => {
   res.json({
@@ -93,7 +100,8 @@ membersRouter.post('/verify-link', async (req, res) => {
     }
 
     if (member.line_uid === line_uid) {
-      res.json({ ok: true, memberId: member.id, alreadyLinked: true })
+      const full = await fetchMemberRowById(supabase, member.id as string)
+      res.json({ ok: true, memberId: member.id, alreadyLinked: true, member: full })
       return
     }
 
@@ -107,7 +115,67 @@ membersRouter.post('/verify-link', async (req, res) => {
       return
     }
 
-    res.json({ ok: true, memberId: member.id, linked: true })
+    const full = await fetchMemberRowById(supabase, member.id as string)
+    res.json({ ok: true, memberId: member.id, linked: true, member: full })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+/**
+ * สมาชิกที่ผูก line_uid แล้ว — อัปเดตฟิลด์รอง (ไม่แก้ รุ่น/ชื่อ/นามสกุล จากฟอร์มนี้)
+ * Body: { line_uid, updates: { "เบอร์โทรศัพท์": "...", ... } } หรือใช้ชื่อคอลัมน์ DB
+ */
+membersRouter.post('/update-self', async (req, res) => {
+  try {
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
+    const rawUpdates = req.body?.updates
+    if (!line_uid) {
+      res.status(400).json({ error: 'line_uid is required' })
+      return
+    }
+    if (!rawUpdates || typeof rawUpdates !== 'object' || Array.isArray(rawUpdates)) {
+      res.status(400).json({ error: 'updates object is required' })
+      return
+    }
+
+    const updates = parseMemberSelfUpdates(rawUpdates as Record<string, unknown>)
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: 'ไม่มีฟิลด์ที่อนุญาตให้แก้ หรือค่าว่างทั้งหมด' })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: row, error: qErr } = await supabase
+      .from('members')
+      .select('id, line_uid')
+      .eq('line_uid', line_uid)
+      .maybeSingle()
+
+    if (qErr) {
+      res.status(500).json({ error: 'Lookup failed', details: qErr })
+      return
+    }
+    if (!row) {
+      res.status(403).json({
+        error: 'ยังไม่พบสมาชิกที่ผูก Line UID นี้ — ใช้ "ตรวจสอบและผูก" ก่อน',
+      })
+      return
+    }
+
+    const { error: upErr } = await supabase
+      .from('members')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', row.id)
+
+    if (upErr) {
+      res.status(500).json({ error: 'Update failed', details: upErr })
+      return
+    }
+
+    const full = await fetchMemberRowById(supabase, row.id as string)
+    res.json({ ok: true, memberId: row.id, member: full })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error'
     res.status(500).json({ error: message })

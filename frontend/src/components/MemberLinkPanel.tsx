@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HEADER_TO_MEMBER_KEY, MEMBER_REGISTER_EXTRA_HEADERS, MEMBER_SELF_EDIT_HEADERS } from '../memberImportMap'
 
 type Props = {
   apiBase: string
@@ -9,6 +10,8 @@ type Props = {
   lineLoginAvailable: boolean
   onStartLineLogin: () => void
 }
+
+type MemberRow = Record<string, unknown>
 
 export function MemberLinkPanel({
   apiBase,
@@ -27,13 +30,29 @@ export function MemberLinkPanel({
   const [showRegister, setShowRegister] = useState(false)
   const [showManualUid, setShowManualUid] = useState(!lineLoginAvailable)
 
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
+  const [linkedMember, setLinkedMember] = useState<MemberRow | null>(null)
+  const [selfEdit, setSelfEdit] = useState<Record<string, string>>({})
+
+  const [registerExtra, setRegisterExtra] = useState<Record<string, string>>(() =>
+    Object.fromEntries(MEMBER_REGISTER_EXTRA_HEADERS.map((h) => [h, ''])),
+  )
+
+  function fillSelfEditFromMember(m: MemberRow) {
+    const next: Record<string, string> = {}
+    for (const h of MEMBER_SELF_EDIT_HEADERS) {
+      const k = HEADER_TO_MEMBER_KEY[h]
+      if (!k) continue
+      const v = m[k]
+      next[h] = v == null || v === '' ? '' : String(v)
+    }
+    setSelfEdit(next)
+  }
 
   async function verifyLink() {
     setLoading(true)
     setMsg(null)
     setShowRegister(false)
+    setLinkedMember(null)
     try {
       const r = await fetch(`${apiBase}/api/members/verify-link`, {
         method: 'POST',
@@ -45,8 +64,12 @@ export function MemberLinkPanel({
           last_name: lastName.trim(),
         }),
       })
-      const j = await r.json().catch(() => ({}))
-      if (r.status === 404 && (j as { code?: string }).code === 'NOT_IN_REGISTRY') {
+      const j = (await r.json().catch(() => ({}))) as {
+        code?: string
+        member?: MemberRow
+        error?: string
+      }
+      if (r.status === 404 && j.code === 'NOT_IN_REGISTRY') {
         setMsg('ไม่พบในทะเบียน — กรอกแบบฟอร์มสมัครใหม่ด้านล่าง')
         setShowRegister(true)
         return
@@ -56,6 +79,43 @@ export function MemberLinkPanel({
         return
       }
       setMsg(JSON.stringify(j, null, 2))
+      if (j.member && typeof j.member === 'object') {
+        setLinkedMember(j.member)
+        fillSelfEditFromMember(j.member)
+      }
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function submitSelfUpdate() {
+    setLoading(true)
+    setMsg(null)
+    try {
+      const updates: Record<string, string> = {}
+      for (const [h, v] of Object.entries(selfEdit)) {
+        if (v.trim() !== '') updates[h] = v.trim()
+      }
+      const r = await fetch(`${apiBase}/api/members/update-self`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          line_uid: lineUid.trim(),
+          updates,
+        }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setMsg(JSON.stringify(j, null, 2))
+        return
+      }
+      setMsg(JSON.stringify(j, null, 2))
+      if ((j as { member?: MemberRow }).member) {
+        setLinkedMember((j as { member: MemberRow }).member)
+        fillSelfEditFromMember((j as { member: MemberRow }).member)
+      }
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
     } finally {
@@ -67,17 +127,20 @@ export function MemberLinkPanel({
     setLoading(true)
     setMsg(null)
     try {
+      const body: Record<string, string> = {
+        line_uid: lineUid.trim(),
+        batch: batch.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+      }
+      for (const h of MEMBER_REGISTER_EXTRA_HEADERS) {
+        const v = registerExtra[h]?.trim()
+        if (v) body[h] = v
+      }
       const r = await fetch(`${apiBase}/api/members/register-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          line_uid: lineUid.trim(),
-          batch: batch.trim(),
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          phone: phone.trim() || undefined,
-          email: email.trim() || undefined,
-        }),
+        body: JSON.stringify(body),
       })
       const j = await r.json().catch(() => ({}))
       setMsg(r.ok ? `ส่งคำร้องแล้ว requestId=${(j as { requestId?: string }).requestId}` : JSON.stringify(j, null, 2))
@@ -142,6 +205,9 @@ export function MemberLinkPanel({
         </label>
       )}
 
+      <p className="mt-4 text-xs text-slate-500">
+        ตรวจสอบว่ามีในทะเบียนหรือไม่ — ต้องตรงกับข้อมูลที่ Admin นำเข้า (รุ่น · ชื่อ · นามสกุล)
+      </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Field label="รุ่น" value={batch} onChange={setBatch} />
         <Field label="ชื่อ" value={firstName} onChange={setFirstName} />
@@ -156,12 +222,48 @@ export function MemberLinkPanel({
         ตรวจสอบและผูก
       </button>
 
+      {linkedMember ? (
+        <div className="mt-8 border-t border-slate-800 pt-6">
+          <h3 className="text-sm font-medium text-slate-300">แก้ไขข้อมูลเพิ่มเติม (ตามหัวตารางนำเข้า)</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            รุ่น · ชื่อ · นามสกุล แก้ได้เฉพาะผ่านผู้ดูแล — ช่องด้านล่างสำหรับข้อมูลอื่น
+          </p>
+          <div className="mt-4 grid max-h-[28rem] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+            {MEMBER_SELF_EDIT_HEADERS.map((h) => (
+              <Field
+                key={h}
+                label={h}
+                value={selfEdit[h] ?? ''}
+                onChange={(v) => setSelfEdit((prev) => ({ ...prev, [h]: v }))}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={loading || !lineUid.trim()}
+            onClick={submitSelfUpdate}
+            className="mt-4 rounded-lg bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            บันทึกข้อมูลเพิ่มเติม
+          </button>
+        </div>
+      ) : null}
+
       {showRegister && (
         <div className="mt-8 border-t border-slate-800 pt-6">
           <h3 className="text-sm font-medium text-slate-300">สมัครสมาชิกใหม่ (คำร้อง)</h3>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <Field label="เบอร์โทร (ถ้ามี)" value={phone} onChange={setPhone} />
-            <Field label="อีเมล (ถ้ามี)" value={email} onChange={setEmail} />
+          <p className="mt-1 text-xs text-slate-500">
+            กรอกรุ่น · ชื่อ · นามสกุล และรายละเอียดอื่นตามที่มี — ส่งแล้วรอประธานรุ่น / Admin อนุมัติ
+          </p>
+          <div className="mt-4 grid max-h-[28rem] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+            {MEMBER_REGISTER_EXTRA_HEADERS.map((h) => (
+              <Field
+                key={h}
+                label={h}
+                value={registerExtra[h] ?? ''}
+                onChange={(v) => setRegisterExtra((prev) => ({ ...prev, [h]: v }))}
+              />
+            ))}
           </div>
           <button
             type="button"

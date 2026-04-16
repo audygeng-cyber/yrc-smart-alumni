@@ -86,13 +86,21 @@ curl -X DELETE http://localhost:4000/api/admin/members/all ^
 **ผูก Line UID** — ต้องมีแถวใน `members` ที่ `รุ่น` + `ชื่อ` + `นามสกุล` ตรงกันหนึ่งแถวเท่านั้น
 
 `POST /api/members/verify-link`  
-Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name": "…" }`
+Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name": "…" }`  
+ตอบ `member` (แถวจาก `members`) เมื่อผูกสำเร็จ — ใช้เติมฟอร์มแก้ไขข้อมูลเพิ่มเติม
+
+**อัปเดตข้อมูลรองหลังผูกแล้ว** — ไม่แก้ รุ่น/ชื่อ/นามสกุล จากฟอร์มนี้
+
+`POST /api/members/update-self`  
+Body JSON: `{ "line_uid": "…", "updates": { "เบอร์โทรศัพท์": "…", "อีเมล์": "…", … } }` (หัวภาษาไทยตามเทมเพลตนำเข้า)
 
 **สมัครใหม่ (คำร้อง)** — เมื่อ verify ไม่พบในทะเบียน
 
 `POST /api/members/register-request`  
 Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name": "…", … }`  
 สร้างแถวใน `member_update_requests` (สถานะ `pending_president`)
+
+รายละเอียด flow และการนำเข้ารายชื่อชุดใหม่: [`docs/MEMBER_FLOW.md`](docs/MEMBER_FLOW.md)
 
 หน้าเว็บแท็บ **ผูกบัญชี** / **Admin** ใช้ทดสอบ flow เหล่านี้ได้จาก UI
 

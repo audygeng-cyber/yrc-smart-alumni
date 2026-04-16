@@ -50,6 +50,7 @@ export function createApp(): express.Express {
         health: '/health',
         lineToken: 'POST /api/auth/line/token',
         membersVerify: 'POST /api/members/verify-link',
+        membersUpdateSelf: 'POST /api/members/update-self (line_uid + updates — หลังผูกแล้ว)',
         membersRegister: 'POST /api/members/register-request',
         importTemplates:
           'GET /api/admin/members/import-template.csv | import-template.xlsx (ไม่ต้องมี key)',
