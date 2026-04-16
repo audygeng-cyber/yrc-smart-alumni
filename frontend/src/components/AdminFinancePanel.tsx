@@ -79,6 +79,7 @@ type ReportPreset = {
 type ActivityItem = {
   id: string
   at: string
+  atLabel: string
   level: 'info' | 'warn' | 'error'
   message: string
 }
@@ -151,6 +152,13 @@ function formatDateInputValue(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+function formatActivityTimestamp(d: Date): { at: string; atLabel: string } {
+  return {
+    at: d.toISOString(),
+    atLabel: d.toLocaleString(),
+  }
 }
 
 function buildBuiltinReportPresets(): ReportPreset[] {
@@ -251,9 +259,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const pauseAlertSentRef = useRef(false)
 
   function addActivity(level: ActivityItem['level'], message: string) {
+    const stamp = formatActivityTimestamp(new Date())
     const next: ActivityItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      at: new Date().toLocaleTimeString(),
+      at: stamp.at,
+      atLabel: stamp.atLabel,
       level,
       message,
     }
@@ -275,18 +285,30 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
     try {
       if (!rawActivity) return
-      const parsed = JSON.parse(rawActivity) as ActivityItem[]
+      const parsed = JSON.parse(rawActivity) as Partial<ActivityItem>[]
       if (Array.isArray(parsed)) {
         setActivityLog(
           parsed
-            .filter(
-              (item): item is ActivityItem =>
-                !!item &&
-                typeof item.id === 'string' &&
-                typeof item.at === 'string' &&
-                (item.level === 'info' || item.level === 'warn' || item.level === 'error') &&
-                typeof item.message === 'string',
-            )
+            .flatMap((item) => {
+              if (
+                !item ||
+                typeof item.id !== 'string' ||
+                typeof item.at !== 'string' ||
+                (item.level !== 'info' && item.level !== 'warn' && item.level !== 'error') ||
+                typeof item.message !== 'string'
+              ) {
+                return []
+              }
+              return [
+                {
+                  id: item.id,
+                  at: item.at,
+                  atLabel: typeof item.atLabel === 'string' ? item.atLabel : item.at,
+                  level: item.level,
+                  message: item.message,
+                } satisfies ActivityItem,
+              ]
+            })
             .slice(0, 20),
         )
       }
@@ -836,7 +858,8 @@ export function AdminFinancePanel({ apiBase }: Props) {
       return
     }
     const rows = activityLog.map((it) => ({
-      time: it.at,
+      timestamp: it.at,
+      display_time: it.atLabel,
       level: it.level,
       message: it.message,
     }))
@@ -1336,7 +1359,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
                         : 'bg-emerald-400'
                   }`}
                 />
-                <span className="w-16 shrink-0 text-slate-500">{it.at}</span>
+                <span className="w-40 shrink-0 text-slate-500">{it.atLabel}</span>
                 <span className="text-slate-200">{it.message}</span>
               </div>
             ))}
