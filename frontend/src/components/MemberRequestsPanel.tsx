@@ -87,6 +87,8 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [activityPreset, setActivityPreset] = useState<ActivityPreset>('manual')
   const [activitySeverityFilter, setActivitySeverityFilter] = useState<ActivitySeverityFilter>('all')
   const detailSectionRef = useRef<HTMLElement | null>(null)
+  const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(null)
+  const requestRowRefs = useRef<Record<string, HTMLLIElement | null>>({})
 
   const summary = useMemo(() => {
     const counts = {
@@ -311,6 +313,18 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   }, [selectedRequest?.id])
 
   useEffect(() => {
+    if (!highlightedRequestId) return
+
+    const timer = window.setTimeout(() => {
+      setHighlightedRequestId((current) => (current === highlightedRequestId ? null : current))
+    }, 4000)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [highlightedRequestId])
+
+  useEffect(() => {
     const savedPending = Number(sessionStorage.getItem(STORAGE_LAST_PENDING) ?? '0')
     if (!Number.isFinite(savedPending) || savedPending < 0) return
     if (savedPending > 0 && pendingTotal > savedPending) {
@@ -483,6 +497,8 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     }
 
     setSelectedRequest(match)
+    setHighlightedRequestId(requestId)
+    requestRowRefs.current[requestId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     window.setTimeout(() => {
       detailSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 0)
@@ -1122,8 +1138,13 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         {sortedRows.map((r) => (
           <li
             key={r.id}
+            ref={(node) => {
+              requestRowRefs.current[r.id] = node
+            }}
             className={`rounded-lg border p-4 text-left text-sm ${
-              newRowIdSet.has(r.id)
+              highlightedRequestId === r.id
+                ? 'border-cyan-500/70 bg-cyan-950/25 shadow-[0_0_0_1px_rgba(34,211,238,0.22)]'
+                : newRowIdSet.has(r.id)
                 ? 'border-emerald-700/60 bg-emerald-950/20 shadow-[0_0_0_1px_rgba(16,185,129,0.18)]'
                 : 'border-slate-800 bg-slate-950/60'
             }`}
@@ -1131,6 +1152,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-xs text-slate-500">{r.id}</span>
+                {highlightedRequestId === r.id ? (
+                  <span className="rounded bg-cyan-900/50 px-2 py-0.5 text-xs text-cyan-200">เลือกจาก activity</span>
+                ) : null}
                 {newRowIdSet.has(r.id) ? (
                   <span className="rounded bg-emerald-900/50 px-2 py-0.5 text-xs text-emerald-200">ใหม่</span>
                 ) : null}
