@@ -5,6 +5,7 @@ const STORAGE_PRESIDENT = 'yrc_president_upload_key'
 const STORAGE_AUTO_REFRESH = 'yrc_member_requests_auto_refresh'
 const STORAGE_AUTO_REFRESH_MS = 'yrc_member_requests_auto_refresh_ms'
 const STORAGE_LAST_PENDING = 'yrc_member_requests_last_pending'
+const STORAGE_LAST_REQUEST_IDS = 'yrc_member_requests_last_ids'
 
 type RequestRow = {
   id: string
@@ -32,6 +33,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [autoRefreshMs, setAutoRefreshMs] = useState(30000)
   const [lastLoadedAt, setLastLoadedAt] = useState<string | null>(null)
   const [pendingIncrease, setPendingIncrease] = useState(0)
+  const [newRowIds, setNewRowIds] = useState<string[]>([])
 
   const summary = useMemo(() => {
     const counts = {
@@ -103,6 +105,23 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     }
     sessionStorage.setItem(STORAGE_LAST_PENDING, String(pendingTotal))
   }, [pendingTotal])
+
+  useEffect(() => {
+    const savedRaw = sessionStorage.getItem(STORAGE_LAST_REQUEST_IDS)
+    const savedIds = savedRaw ? savedRaw.split(',').map((v) => v.trim()).filter(Boolean) : []
+    const currentIds = rows.map((row) => row.id)
+
+    if (savedIds.length === 0) {
+      setNewRowIds([])
+      if (currentIds.length > 0) sessionStorage.setItem(STORAGE_LAST_REQUEST_IDS, currentIds.join(','))
+      return
+    }
+
+    const savedSet = new Set(savedIds)
+    const incoming = currentIds.filter((id) => !savedSet.has(id))
+    setNewRowIds(incoming)
+    sessionStorage.setItem(STORAGE_LAST_REQUEST_IDS, currentIds.join(','))
+  }, [rows])
 
   const load = useCallback(async () => {
     if (!adminKey.trim()) {
@@ -344,10 +363,19 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         {rows.map((r) => (
           <li
             key={r.id}
-            className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 text-left text-sm"
+            className={`rounded-lg border p-4 text-left text-sm ${
+              newRowIds.includes(r.id)
+                ? 'border-emerald-700/60 bg-emerald-950/20 shadow-[0_0_0_1px_rgba(16,185,129,0.18)]'
+                : 'border-slate-800 bg-slate-950/60'
+            }`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-mono text-xs text-slate-500">{r.id}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs text-slate-500">{r.id}</span>
+                {newRowIds.includes(r.id) ? (
+                  <span className="rounded bg-emerald-900/50 px-2 py-0.5 text-xs text-emerald-200">ใหม่</span>
+                ) : null}
+              </div>
               <span
                 className={`rounded px-2 py-0.5 text-xs ${
                   r.status === 'approved'
