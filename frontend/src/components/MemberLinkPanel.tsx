@@ -123,7 +123,7 @@ export function MemberLinkPanel({
     }
   }, [requestStatus])
 
-  async function verifyLink() {
+  async function verifyLinkWithValues(nextBatch: string, nextFirstName: string, nextLastName: string) {
     setLoading(true)
     setMsg(null)
     setShowRegister(false)
@@ -133,9 +133,9 @@ export function MemberLinkPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           line_uid: lineUid.trim(),
-          batch: batch.trim(),
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
+          batch: nextBatch.trim(),
+          first_name: nextFirstName.trim(),
+          last_name: nextLastName.trim(),
         }),
       })
       const j = (await r.json().catch(() => ({}))) as {
@@ -163,6 +163,10 @@ export function MemberLinkPanel({
     } finally {
       setLoading(false)
     }
+  }
+
+  async function verifyLink() {
+    await verifyLinkWithValues(batch, firstName, lastName)
   }
 
   async function submitRegister() {
@@ -209,6 +213,18 @@ export function MemberLinkPanel({
     setFirstName(approvedRequestedNames.firstName)
     setLastName(approvedRequestedNames.lastName)
     setMsg('เติมข้อมูลจากคำร้องล่าสุดแล้ว กด "ตรวจสอบและผูก" เพื่อเข้าหน้าสมาชิก')
+  }
+
+  async function autoLinkFromApprovedRequest() {
+    if (!approvedRequestedNames) return
+    setBatch(approvedRequestedNames.batch)
+    setFirstName(approvedRequestedNames.firstName)
+    setLastName(approvedRequestedNames.lastName)
+    await verifyLinkWithValues(
+      approvedRequestedNames.batch,
+      approvedRequestedNames.firstName,
+      approvedRequestedNames.lastName,
+    )
   }
 
   return (
@@ -297,6 +313,14 @@ export function MemberLinkPanel({
                         className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
                       >
                         ใช้ข้อมูลจากคำร้องล่าสุด
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={autoLinkFromApprovedRequest}
+                        className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                      >
+                        ผูกอัตโนมัติ
                       </button>
                       <span className="self-center text-xs opacity-80">
                         {approvedRequestedNames.batch} · {approvedRequestedNames.firstName} {approvedRequestedNames.lastName}
