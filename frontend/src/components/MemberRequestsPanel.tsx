@@ -473,8 +473,8 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         headers,
         body: JSON.stringify(body),
       })
-      const j = await r.json().catch(() => ({}))
-      setMsg(JSON.stringify(j, null, 2))
+      const j = (await r.json().catch(() => ({}))) as Record<string, unknown>
+      setMsg(buildActionFeedbackMessage(path, body, r.ok, j))
       if (r.ok) await load()
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
@@ -1966,6 +1966,55 @@ function buildRequestIdentityLabel(row: RequestRow): string {
     .join(' ')
 
   return [fullName, batch ? `รุ่น ${batch}` : ''].filter(Boolean).join(' | ')
+}
+
+function buildActionFeedbackMessage(
+  path: string,
+  body: Record<string, string | undefined>,
+  ok: boolean,
+  response: Record<string, unknown>,
+): string {
+  const requestId = extractRequestIdFromActionPath(path)
+  const actionLabel = getActionLabelFromPath(path)
+  const actor = body.approved_by || body.rejected_by || 'system'
+  const reason = body.reason || body.comment || ''
+  const errorText = typeof response.error === 'string' ? response.error.trim() : ''
+  const details = JSON.stringify(response, null, 2)
+
+  const summaryParts = [
+    ok ? 'สำเร็จ' : 'ไม่สำเร็จ',
+    actionLabel,
+    requestId ? `คำร้อง ${requestId}` : '',
+    actor ? `โดย ${actor}` : '',
+  ].filter(Boolean)
+
+  const lines = [summaryParts.join(' ')]
+
+  if (reason.trim()) {
+    lines.push(`หมายเหตุ: ${reason.trim()}`)
+  }
+
+  if (!ok && errorText) {
+    lines.push(`สาเหตุ: ${errorText}`)
+  }
+
+  if (details && details !== '{}') {
+    lines.push('', details)
+  }
+
+  return lines.join('\n')
+}
+
+function extractRequestIdFromActionPath(path: string): string {
+  const match = path.match(/^\/([^/]+)\//)
+  return match?.[1] ?? ''
+}
+
+function getActionLabelFromPath(path: string): string {
+  if (path.endsWith('/president-approve')) return 'อนุมัติขั้นประธานรุ่น'
+  if (path.endsWith('/admin-approve')) return 'อนุมัติขั้น Admin'
+  if (path.endsWith('/reject')) return 'ปฏิเสธคำร้อง'
+  return 'ดำเนินการคำร้อง'
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
