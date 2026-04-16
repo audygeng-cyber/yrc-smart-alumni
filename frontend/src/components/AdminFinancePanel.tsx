@@ -5,6 +5,8 @@ const PAGE_SIZE = 20
 const REPORT_PRESETS_KEY = 'yrc_finance_report_presets_v1'
 const ACTIVITY_LOG_KEY = 'yrc_finance_activity_log_v1'
 const AUTO_REFRESH_SETTINGS_KEY = 'yrc_finance_auto_refresh_settings_v1'
+const ACTIVITY_FILTER_KEY = 'yrc_finance_activity_filter_v1'
+const ACTIVITY_SEARCH_KEY = 'yrc_finance_activity_search_v1'
 const AUTO_REFRESH_MAX_FAILURES = 3
 
 type Props = { apiBase: string }
@@ -232,6 +234,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [soundOnPause, setSoundOnPause] = useState(true)
   const [activityLog, setActivityLog] = useState<ActivityItem[]>([])
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all')
+  const [activitySearch, setActivitySearch] = useState('')
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -277,7 +280,8 @@ export function AdminFinancePanel({ apiBase }: Props) {
     const rawPresets = sessionStorage.getItem(REPORT_PRESETS_KEY)
     const rawActivity = sessionStorage.getItem(ACTIVITY_LOG_KEY)
     const rawAutoRefresh = sessionStorage.getItem(AUTO_REFRESH_SETTINGS_KEY)
-    const rawActivityFilter = sessionStorage.getItem('yrc_finance_activity_filter_v1')
+    const rawActivityFilter = sessionStorage.getItem(ACTIVITY_FILTER_KEY)
+    const rawActivitySearch = sessionStorage.getItem(ACTIVITY_SEARCH_KEY)
     if (rawPresets) {
       try {
         const parsed = JSON.parse(rawPresets) as ReportPreset[]
@@ -336,6 +340,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
     ) {
       setActivityFilter(rawActivityFilter)
     }
+    if (typeof rawActivitySearch === 'string') {
+      setActivitySearch(rawActivitySearch)
+    }
   }, [])
 
   useEffect(() => {
@@ -347,8 +354,12 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }, [activityLog])
 
   useEffect(() => {
-    sessionStorage.setItem('yrc_finance_activity_filter_v1', activityFilter)
+    sessionStorage.setItem(ACTIVITY_FILTER_KEY, activityFilter)
   }, [activityFilter])
+
+  useEffect(() => {
+    sessionStorage.setItem(ACTIVITY_SEARCH_KEY, activitySearch)
+  }, [activitySearch])
 
   useEffect(() => {
     const value: AutoRefreshSettings = {
@@ -377,9 +388,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     [accounts, paymentBankAccountId],
   )
   const filteredActivityLog = useMemo(() => {
-    if (activityFilter === 'all') return activityLog
-    return activityLog.filter((item) => item.level === activityFilter)
-  }, [activityFilter, activityLog])
+    const keyword = activitySearch.trim().toLowerCase()
+    return activityLog.filter((item) => {
+      if (activityFilter !== 'all' && item.level !== activityFilter) return false
+      if (!keyword) return true
+      return `${item.at} ${item.atLabel} ${item.level} ${item.message}`.toLowerCase().includes(keyword)
+    })
+  }, [activityFilter, activityLog, activitySearch])
   const reportKeywordNorm = useMemo(() => reportKeyword.trim().toLowerCase(), [reportKeyword])
   const sortArrow = (active: boolean, dir: SortDirection) => (active ? (dir === 'asc' ? ' ↑' : ' ↓') : '')
 
@@ -883,7 +898,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       message: it.message,
     }))
     downloadCurrentViewCsv('finance-activity-log.csv', rows)
-    addActivity('info', `Export Activity Log CSV (${activityFilter})`)
+    addActivity('info', `Export Activity Log CSV (${activityFilter}${activitySearch.trim() ? `, q=${activitySearch.trim()}` : ''})`)
   }
 
   async function loadOverviewAndAccounts() {
@@ -1357,6 +1372,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
               <option value="warn">warn</option>
               <option value="error">error</option>
             </select>
+            <input
+              type="text"
+              value={activitySearch}
+              onChange={(e) => setActivitySearch(e.target.value)}
+              className="w-48 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200"
+              placeholder="ค้นหา log..."
+            />
           </div>
           <div className="flex items-center gap-2">
             <button
