@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AdminImportPanel } from './components/AdminImportPanel'
+import { AdminFinancePanel } from './components/AdminFinancePanel'
 import { MemberLinkPanel } from './components/MemberLinkPanel'
 import { MemberPortal } from './components/MemberPortal'
 import { MemberRequestsPanel } from './components/MemberRequestsPanel'
@@ -234,7 +235,12 @@ export default function App() {
             </section>
           ))}
 
-        {tab === 'admin' && <AdminImportPanel apiBase={apiBase} />}
+        {tab === 'admin' && (
+          <>
+            <AdminImportPanel apiBase={apiBase} />
+            <AdminFinancePanel apiBase={apiBase} />
+          </>
+        )}
       </main>
     </div>
   )
