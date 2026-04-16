@@ -5,6 +5,7 @@ import { getServiceSupabase } from '../lib/supabase.js'
 import { assertPresidentForRequestBatch } from '../util/presidentKeys.js'
 import { normalizeWhitespace } from '../util/normalize.js'
 import { memberInsertFromRequestedData } from '../util/memberFromRequestedData.js'
+import { appendMemberRequestHistory, buildMemberRequestHistoryEntry } from '../util/memberRequestHistory.js'
 
 export const memberRequestsAdminRouter = Router()
 
@@ -41,6 +42,8 @@ memberRequestsAdminRouter.post('/:id/president-approve', presidentAuth, async (r
       typeof req.body?.approved_by === 'string' && req.body.approved_by.trim()
         ? req.body.approved_by.trim()
         : 'president'
+    const comment =
+      typeof req.body?.comment === 'string' && req.body.comment.trim() ? req.body.comment.trim() : null
 
     const supabase = getServiceSupabase()
     const { data: row, error: fetchErr } = await supabase
@@ -61,12 +64,24 @@ memberRequestsAdminRouter.post('/:id/president-approve', presidentAuth, async (r
 
     if (!assertPresidentForRequestBatch(req, row, res)) return
 
+    const approvedAt = new Date().toISOString()
     const { error: upErr } = await supabase
       .from('member_update_requests')
       .update({
         president_approved_by: approvedBy,
-        president_approved_at: new Date().toISOString(),
+        president_approved_at: approvedAt,
         status: 'pending_admin',
+        action_history: appendMemberRequestHistory(
+          row.action_history,
+          buildMemberRequestHistoryEntry({
+            action: 'president_approved',
+            actor: approvedBy,
+            at: approvedAt,
+            comment,
+            fromStatus: 'pending_president',
+            toStatus: 'pending_admin',
+          }),
+        ),
       })
       .eq('id', id)
 
@@ -89,6 +104,8 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
       typeof req.body?.approved_by === 'string' && req.body.approved_by.trim()
         ? req.body.approved_by.trim()
         : 'admin'
+    const comment =
+      typeof req.body?.comment === 'string' && req.body.comment.trim() ? req.body.comment.trim() : null
 
     const supabase = getServiceSupabase()
     const { data: row, error: fetchErr } = await supabase
@@ -160,12 +177,24 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
         return
       }
 
+      const approvedAt = new Date().toISOString()
       const { error: finErr } = await supabase
         .from('member_update_requests')
         .update({
           admin_approved_by: approvedBy,
-          admin_approved_at: new Date().toISOString(),
+          admin_approved_at: approvedAt,
           status: 'approved',
+          action_history: appendMemberRequestHistory(
+            row.action_history,
+            buildMemberRequestHistoryEntry({
+              action: 'admin_approved',
+              actor: approvedBy,
+              at: approvedAt,
+              comment,
+              fromStatus: 'pending_admin',
+              toStatus: 'approved',
+            }),
+          ),
         })
         .eq('id', id)
 
@@ -194,6 +223,8 @@ memberRequestsAdminRouter.post('/:id/reject', presidentAuth, async (req, res) =>
         : 'admin'
     const reason =
       typeof req.body?.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : null
+    const comment =
+      typeof req.body?.comment === 'string' && req.body.comment.trim() ? req.body.comment.trim() : reason
 
     const supabase = getServiceSupabase()
     const { data: fullRow, error: fetchErr } = await supabase
@@ -214,13 +245,25 @@ memberRequestsAdminRouter.post('/:id/reject', presidentAuth, async (req, res) =>
 
     if (!assertPresidentForRequestBatch(req, fullRow, res)) return
 
+    const rejectedAt = new Date().toISOString()
     const { error: upErr } = await supabase
       .from('member_update_requests')
       .update({
         rejected_by: rejectedBy,
-        rejected_at: new Date().toISOString(),
+        rejected_at: rejectedAt,
         rejection_reason: reason,
         status: 'rejected',
+        action_history: appendMemberRequestHistory(
+          fullRow.action_history,
+          buildMemberRequestHistoryEntry({
+            action: 'rejected',
+            actor: rejectedBy,
+            at: rejectedAt,
+            comment,
+            fromStatus: fullRow.status,
+            toStatus: 'rejected',
+          }),
+        ),
       })
       .eq('id', id)
 

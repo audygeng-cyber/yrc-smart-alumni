@@ -24,7 +24,20 @@ type RequestRow = {
   president_approved_at: string | null
   admin_approved_by: string | null
   admin_approved_at: string | null
+  rejected_by?: string | null
+  rejected_at?: string | null
+  rejection_reason?: string | null
+  action_history?: unknown
   created_at: string
+}
+
+type ActionHistoryEntry = {
+  action: 'submitted' | 'president_approved' | 'admin_approved' | 'rejected'
+  actor: string
+  at: string
+  comment: string | null
+  from_status: string | null
+  to_status: string | null
 }
 
 type QuickView = 'all' | 'new' | 'pending'
@@ -50,7 +63,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>('newest')
   const [viewPreset, setViewPreset] = useState<ViewPreset>('manual')
   const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null)
-  const [rejectReasonDraft, setRejectReasonDraft] = useState('')
+  const [decisionCommentDraft, setDecisionCommentDraft] = useState('')
 
   const summary = useMemo(() => {
     const counts = {
@@ -160,7 +173,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   }, [viewPreset])
 
   useEffect(() => {
-    setRejectReasonDraft('')
+    setDecisionCommentDraft('')
   }, [selectedRequest?.id])
 
   useEffect(() => {
@@ -287,7 +300,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   }
 
   function applyRejectReasonTemplate(reason: string) {
-    setRejectReasonDraft(reason)
+    setDecisionCommentDraft(reason)
   }
 
   function applyPreset(preset: ViewPreset) {
@@ -703,7 +716,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     type="button"
                     disabled={loading}
                     onClick={() =>
-                      void callAction(`/${r.id}/president-approve`, { approved_by: 'ประธานรุ่น' }, 'president-or-admin')
+                      void callAction(
+                        `/${r.id}/president-approve`,
+                        { approved_by: 'ประธานรุ่น', comment: decisionCommentDraft.trim() || undefined },
+                        'president-or-admin',
+                      )
                     }
                     className="rounded bg-amber-800 px-3 py-1.5 text-xs text-white hover:bg-amber-700"
                   >
@@ -715,7 +732,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     onClick={() =>
                       void callAction(
                         `/${r.id}/reject`,
-                        { rejected_by: 'ประธานรุ่น', reason: rejectReasonDraft.trim() || 'ปฏิเสธ' },
+                        {
+                          rejected_by: 'ประธานรุ่น',
+                          reason: decisionCommentDraft.trim() || 'ปฏิเสธ',
+                          comment: decisionCommentDraft.trim() || undefined,
+                        },
                         'president-or-admin',
                       )
                     }
@@ -731,7 +752,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     type="button"
                     disabled={loading}
                     onClick={() =>
-                      void callAction(`/${r.id}/admin-approve`, { approved_by: 'Admin' }, 'admin-only')
+                      void callAction(
+                        `/${r.id}/admin-approve`,
+                        { approved_by: 'Admin', comment: decisionCommentDraft.trim() || undefined },
+                        'admin-only',
+                      )
                     }
                     className="rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700"
                   >
@@ -743,7 +768,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     onClick={() =>
                       void callAction(
                         `/${r.id}/reject`,
-                        { rejected_by: 'Admin', reason: rejectReasonDraft.trim() || 'ปฏิเสธ' },
+                        {
+                          rejected_by: 'Admin',
+                          reason: decisionCommentDraft.trim() || 'ปฏิเสธ',
+                          comment: decisionCommentDraft.trim() || undefined,
+                        },
                         'president-or-admin',
                       )
                     }
@@ -838,15 +867,38 @@ export function MemberRequestsPanel({ apiBase }: Props) {
               ))}
             </div>
             <label className="mt-4 block text-sm text-slate-300">
-              เหตุผลสำหรับการปฏิเสธ
+              หมายเหตุประกอบการอนุมัติ/ปฏิเสธ
               <textarea
-                value={rejectReasonDraft}
-                onChange={(e) => setRejectReasonDraft(e.target.value)}
+                value={decisionCommentDraft}
+                onChange={(e) => setDecisionCommentDraft(e.target.value)}
                 rows={3}
                 className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-700"
-                placeholder="เลือก template หรือพิมพ์เหตุผลเอง"
+                placeholder="ใช้เป็น comment ตอน approve หรือใช้เป็นเหตุผลตอน reject"
               />
             </label>
+          </div>
+
+          <div className="mt-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Action History</p>
+            <div className="mt-3 space-y-3">
+              {getActionHistoryEntries(selectedRequest).map((entry, index) => (
+                <div key={`${entry.action}-${entry.at}-${index}`} className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-slate-100">{getActionHistoryLabel(entry.action)}</p>
+                    <p className="text-xs text-slate-400">{formatDateTime(entry.at)}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">
+                    โดย {entry.actor || '-'} | {entry.from_status ?? '-'} {'->'} {entry.to_status ?? '-'}
+                  </p>
+                  {entry.comment ? <p className="mt-2 rounded bg-slate-900/80 p-2 text-sm text-slate-200">{entry.comment}</p> : null}
+                </div>
+              ))}
+              {getActionHistoryEntries(selectedRequest).length === 0 ? (
+                <p className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm text-slate-500">
+                  ยังไม่มีประวัติการดำเนินการ
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <details className="mt-5 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
@@ -947,6 +999,100 @@ function formatDateTime(value: string): string {
   const time = Date.parse(value)
   if (!Number.isFinite(time)) return value
   return new Date(time).toLocaleString()
+}
+
+function getActionHistoryEntries(row: RequestRow): ActionHistoryEntry[] {
+  const parsed = parseActionHistory(row.action_history)
+  if (parsed.length > 0) return parsed
+
+  const fallback: ActionHistoryEntry[] = [
+    {
+      action: 'submitted',
+      actor: 'member',
+      at: row.created_at,
+      comment: null,
+      from_status: null,
+      to_status: 'pending_president',
+    },
+  ]
+
+  if (row.president_approved_at) {
+    fallback.push({
+      action: 'president_approved',
+      actor: row.president_approved_by ?? 'president',
+      at: row.president_approved_at,
+      comment: null,
+      from_status: 'pending_president',
+      to_status: 'pending_admin',
+    })
+  }
+
+  if (row.admin_approved_at) {
+    fallback.push({
+      action: 'admin_approved',
+      actor: row.admin_approved_by ?? 'admin',
+      at: row.admin_approved_at,
+      comment: null,
+      from_status: 'pending_admin',
+      to_status: 'approved',
+    })
+  }
+
+  if (row.rejected_at) {
+    fallback.push({
+      action: 'rejected',
+      actor: row.rejected_by ?? 'admin',
+      at: row.rejected_at,
+      comment: row.rejection_reason ?? null,
+      from_status: row.president_approved_at ? 'pending_admin' : 'pending_president',
+      to_status: 'rejected',
+    })
+  }
+
+  return fallback
+}
+
+function parseActionHistory(raw: unknown): ActionHistoryEntry[] {
+  if (!Array.isArray(raw)) return []
+
+  return raw.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return []
+    const row = entry as Record<string, unknown>
+    if (
+      !isActionHistoryAction(row.action) ||
+      typeof row.actor !== 'string' ||
+      typeof row.at !== 'string'
+    ) {
+      return []
+    }
+
+    return [
+      {
+        action: row.action,
+        actor: row.actor,
+        at: row.at,
+        comment: typeof row.comment === 'string' && row.comment.trim() ? row.comment.trim() : null,
+        from_status: typeof row.from_status === 'string' ? row.from_status : null,
+        to_status: typeof row.to_status === 'string' ? row.to_status : null,
+      },
+    ]
+  })
+}
+
+function isActionHistoryAction(value: unknown): value is ActionHistoryEntry['action'] {
+  return (
+    value === 'submitted' ||
+    value === 'president_approved' ||
+    value === 'admin_approved' ||
+    value === 'rejected'
+  )
+}
+
+function getActionHistoryLabel(action: ActionHistoryEntry['action']): string {
+  if (action === 'submitted') return 'ส่งคำร้อง'
+  if (action === 'president_approved') return 'ประธานรุ่นอนุมัติ'
+  if (action === 'admin_approved') return 'Admin อนุมัติ'
+  return 'ปฏิเสธคำร้อง'
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {

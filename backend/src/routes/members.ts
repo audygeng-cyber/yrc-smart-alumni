@@ -63,7 +63,7 @@ membersRouter.post('/request-status', async (req, res) => {
     const { data: row, error } = await supabase
       .from('member_update_requests')
       .select(
-        'id,request_type,status,created_at,president_approved_at,admin_approved_at,rejected_at,rejection_reason,requested_data',
+        'id,request_type,status,created_at,president_approved_at,admin_approved_at,rejected_at,rejection_reason,requested_data,action_history',
       )
       .eq('line_uid', line_uid)
       .order('created_at', { ascending: false })
@@ -292,6 +292,16 @@ membersRouter.post('/register-request', async (req, res) => {
         line_uid,
         request_type: 'new_registration',
         requested_data,
+        action_history: [
+          {
+            action: 'submitted',
+            actor: 'member',
+            at: new Date().toISOString(),
+            comment: null,
+            from_status: null,
+            to_status: 'pending_president',
+          },
+        ],
         status: 'pending_president',
       })
       .select('id')
