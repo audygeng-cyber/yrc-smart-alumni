@@ -7,6 +7,9 @@ const STORAGE_AUTO_REFRESH_MS = 'yrc_member_requests_auto_refresh_ms'
 const STORAGE_LAST_PENDING = 'yrc_member_requests_last_pending'
 const STORAGE_LAST_REQUEST_IDS = 'yrc_member_requests_last_ids'
 const STORAGE_VIEW_PRESET = 'yrc_member_requests_view_preset'
+const STORAGE_ACTIVITY_ACTION = 'yrc_member_requests_activity_action'
+const STORAGE_ACTIVITY_SEARCH = 'yrc_member_requests_activity_search'
+const STORAGE_ACTIVITY_LIMIT = 'yrc_member_requests_activity_limit'
 const REJECT_REASON_TEMPLATES = [
   'ข้อมูลไม่ครบถ้วน กรุณาแนบ/กรอกข้อมูลเพิ่มเติม',
   'ไม่พบข้อมูลยืนยันตัวตนตามทะเบียน กรุณาตรวจสอบชื่อ-นามสกุล-รุ่น',
@@ -40,6 +43,15 @@ type ActionHistoryEntry = {
   to_status: string | null
 }
 
+type ActivityFilter = 'all' | ActionHistoryEntry['action']
+
+type RequestActivityRow = ActionHistoryEntry & {
+  requestId: string
+  lineUid: string
+  batch: string
+  fullName: string
+}
+
 type QuickView = 'all' | 'new' | 'pending'
 type SortMode = 'newest' | 'oldest' | 'pending_first'
 type ViewPreset = 'manual' | 'pending_work' | 'new_only' | 'approved_review'
@@ -64,6 +76,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [viewPreset, setViewPreset] = useState<ViewPreset>('manual')
   const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null)
   const [decisionCommentDraft, setDecisionCommentDraft] = useState('')
+  const [activityActionFilter, setActivityActionFilter] = useState<ActivityFilter>('all')
+  const [activitySearch, setActivitySearch] = useState('')
+  const [activityLimit, setActivityLimit] = useState(20)
 
   const summary = useMemo(() => {
     const counts = {
@@ -101,6 +116,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const pendingTotal = summary.pending_president + summary.pending_admin
   const newRowIdSet = useMemo(() => new Set(newRowIds), [newRowIds])
   const searchQueryTrimmed = searchQuery.trim().toLowerCase()
+  const activitySearchTrimmed = activitySearch.trim().toLowerCase()
   const filteredRows = useMemo(() => {
     let nextRows = rows
 
@@ -131,6 +147,50 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
     return nextRows.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a))
   }, [filteredRows, sortMode])
+  const activityRows = useMemo(() => {
+    const flattened = rows.flatMap((row) => {
+      const batch = pickRequestedText(row.requested_data, 'batch')
+      const fullName = [pickRequestedText(row.requested_data, 'first_name'), pickRequestedText(row.requested_data, 'last_name')]
+        .filter(Boolean)
+        .join(' ')
+
+      return getActionHistoryEntries(row).map((entry) => ({
+        ...entry,
+        requestId: row.id,
+        lineUid: row.line_uid ?? '',
+        batch,
+        fullName,
+      }))
+    })
+
+    const filtered = flattened.filter((entry) => {
+      if (activityActionFilter !== 'all' && entry.action !== activityActionFilter) return false
+      if (!activitySearchTrimmed) return true
+      return buildActivitySearchText(entry).includes(activitySearchTrimmed)
+    })
+
+    return filtered
+      .sort((a, b) => getActivityAtMs(b) - getActivityAtMs(a))
+      .slice(0, activityLimit)
+  }, [activityActionFilter, activityLimit, activitySearchTrimmed, rows])
+  const activitySummary = useMemo(() => {
+    const counts: Record<ActivityFilter, number> = {
+      all: 0,
+      submitted: 0,
+      president_approved: 0,
+      admin_approved: 0,
+      rejected: 0,
+    }
+
+    for (const row of rows) {
+      for (const entry of getActionHistoryEntries(row)) {
+        counts.all += 1
+        counts[entry.action] += 1
+      }
+    }
+
+    return counts
+  }, [rows])
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
@@ -149,6 +209,23 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     const savedMs = Number(sessionStorage.getItem(STORAGE_AUTO_REFRESH_MS) ?? '30000')
     if (Number.isFinite(savedMs) && savedMs >= 5000) {
       setAutoRefreshMs(savedMs)
+    }
+
+    const savedActivityAction = sessionStorage.getItem(STORAGE_ACTIVITY_ACTION)
+    if (
+      savedActivityAction === 'all' ||
+      savedActivityAction === 'submitted' ||
+      savedActivityAction === 'president_approved' ||
+      savedActivityAction === 'admin_approved' ||
+      savedActivityAction === 'rejected'
+    ) {
+      setActivityActionFilter(savedActivityAction)
+    }
+
+    setActivitySearch(sessionStorage.getItem(STORAGE_ACTIVITY_SEARCH) ?? '')
+    const savedActivityLimit = Number(sessionStorage.getItem(STORAGE_ACTIVITY_LIMIT) ?? '20')
+    if (Number.isFinite(savedActivityLimit) && savedActivityLimit >= 5) {
+      setActivityLimit(savedActivityLimit)
     }
   }, [])
 
@@ -171,6 +248,18 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_VIEW_PRESET, viewPreset)
   }, [viewPreset])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_ACTIVITY_ACTION, activityActionFilter)
+  }, [activityActionFilter])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_ACTIVITY_SEARCH, activitySearch)
+  }, [activitySearch])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_ACTIVITY_LIMIT, String(activityLimit))
+  }, [activityLimit])
 
   useEffect(() => {
     setDecisionCommentDraft('')
@@ -407,6 +496,40 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setMsg('คัดลอกรายละเอียดคำร้องแล้ว')
     } catch {
       setMsg('คัดลอกรายละเอียดคำร้องไม่สำเร็จ')
+    }
+  }
+
+  async function copyActivitySummary() {
+    const text = [
+      `activity_total: ${activitySummary.all}`,
+      `submitted: ${activitySummary.submitted}`,
+      `president_approved: ${activitySummary.president_approved}`,
+      `admin_approved: ${activitySummary.admin_approved}`,
+      `rejected: ${activitySummary.rejected}`,
+      `visible_rows: ${activityRows.length}`,
+    ].join('\n')
+
+    try {
+      await navigator.clipboard.writeText(text)
+      setMsg('คัดลอกสรุป activity log แล้ว')
+    } catch {
+      setMsg('คัดลอกสรุป activity log ไม่สำเร็จ')
+    }
+  }
+
+  async function copyActivityRows() {
+    if (activityRows.length === 0) {
+      setMsg('ยังไม่มี activity rows ให้คัดลอก')
+      return
+    }
+
+    const text = activityRows.map((entry) => buildActivityRowText(entry)).join('\n\n')
+
+    try {
+      await navigator.clipboard.writeText(text)
+      setMsg(`คัดลอก activity ${activityRows.length} แถวแล้ว`)
+    } catch {
+      setMsg('คัดลอก activity rows ไม่สำเร็จ')
     }
   }
 
@@ -665,6 +788,106 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           ถูกปฏิเสธ
         </button>
       </div>
+
+      <section className="mt-6 rounded-xl border border-cyan-900/40 bg-cyan-950/20 p-5 text-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-cyan-200/80">Admin Activity Log</p>
+            <p className="mt-1 text-xs text-slate-400">รวมเหตุการณ์ทุกคำร้องจาก action history เพื่อ review งานล่าสุดในจุดเดียว</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void copyActivitySummary()}
+              className="rounded border border-cyan-800 px-3 py-1.5 text-xs text-cyan-200 hover:bg-cyan-950/30"
+            >
+              copy summary
+            </button>
+            <button
+              type="button"
+              onClick={() => void copyActivityRows()}
+              className="rounded border border-violet-800 px-3 py-1.5 text-xs text-violet-200 hover:bg-violet-950/30"
+            >
+              copy rows
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded bg-slate-900 px-2 py-1 text-slate-300">ทั้งหมด: {activitySummary.all}</span>
+          <span className="rounded bg-slate-900 px-2 py-1 text-slate-300">ส่งคำร้อง: {activitySummary.submitted}</span>
+          <span className="rounded bg-amber-900/40 px-2 py-1 text-amber-200">ประธานรุ่นอนุมัติ: {activitySummary.president_approved}</span>
+          <span className="rounded bg-emerald-900/40 px-2 py-1 text-emerald-200">Admin อนุมัติ: {activitySummary.admin_approved}</span>
+          <span className="rounded bg-red-900/40 px-2 py-1 text-red-200">ปฏิเสธ: {activitySummary.rejected}</span>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="text-sm text-slate-300">
+            กรอง activity
+            <select
+              value={activityActionFilter}
+              onChange={(e) => setActivityActionFilter(e.target.value as ActivityFilter)}
+              className="mt-1 block rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-600"
+            >
+              <option value="all">ทั้งหมด</option>
+              <option value="submitted">ส่งคำร้อง</option>
+              <option value="president_approved">ประธานรุ่นอนุมัติ</option>
+              <option value="admin_approved">Admin อนุมัติ</option>
+              <option value="rejected">ปฏิเสธ</option>
+            </select>
+          </label>
+          <label className="text-sm text-slate-300">
+            ค้นหาใน activity
+            <input
+              value={activitySearch}
+              onChange={(e) => setActivitySearch(e.target.value)}
+              placeholder="request id / line uid / รุ่น / ชื่อ / comment"
+              className="mt-1 block w-72 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-600"
+            />
+          </label>
+          <label className="text-sm text-slate-300">
+            จำนวนที่แสดง
+            <select
+              value={String(activityLimit)}
+              onChange={(e) => setActivityLimit(Number(e.target.value))}
+              className="mt-1 block rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-600"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {activityRows.map((entry, index) => (
+            <div key={`${entry.requestId}-${entry.action}-${entry.at}-${index}`} className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded px-2 py-0.5 text-xs ${getActionHistoryTone(entry.action)}`}>
+                    {getActionHistoryLabel(entry.action)}
+                  </span>
+                  <span className="font-mono text-xs text-slate-500">{entry.requestId}</span>
+                </div>
+                <span className="text-xs text-slate-400">{formatDateTime(entry.at)}</span>
+              </div>
+              <p className="mt-2 text-xs text-slate-400">
+                {entry.fullName || '-'} | รุ่น {entry.batch || '-'} | line_uid {entry.lineUid || '-'}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                โดย {entry.actor || '-'} | {entry.from_status ?? '-'} {'->'} {entry.to_status ?? '-'}
+              </p>
+              {entry.comment ? <p className="mt-2 rounded bg-slate-900/80 p-2 text-sm text-slate-200">{entry.comment}</p> : null}
+            </div>
+          ))}
+          {activityRows.length === 0 ? (
+            <p className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm text-slate-500">
+              ยังไม่มี activity ที่ตรงกับ filter ปัจจุบัน
+            </p>
+          ) : null}
+        </div>
+      </section>
 
       <ul className="mt-6 space-y-4">
         {sortedRows.map((r) => (
@@ -1093,6 +1316,49 @@ function getActionHistoryLabel(action: ActionHistoryEntry['action']): string {
   if (action === 'president_approved') return 'ประธานรุ่นอนุมัติ'
   if (action === 'admin_approved') return 'Admin อนุมัติ'
   return 'ปฏิเสธคำร้อง'
+}
+
+function getActionHistoryTone(action: ActionHistoryEntry['action']): string {
+  if (action === 'submitted') return 'bg-slate-900 text-slate-200'
+  if (action === 'president_approved') return 'bg-amber-900/40 text-amber-200'
+  if (action === 'admin_approved') return 'bg-emerald-900/40 text-emerald-200'
+  return 'bg-red-900/40 text-red-200'
+}
+
+function getActivityAtMs(entry: RequestActivityRow): number {
+  const time = Date.parse(entry.at)
+  return Number.isFinite(time) ? time : 0
+}
+
+function buildActivitySearchText(entry: RequestActivityRow): string {
+  return [
+    entry.requestId,
+    entry.lineUid,
+    entry.batch,
+    entry.fullName,
+    entry.actor,
+    entry.action,
+    entry.comment ?? '',
+    entry.from_status ?? '',
+    entry.to_status ?? '',
+  ]
+    .join(' ')
+    .toLowerCase()
+}
+
+function buildActivityRowText(entry: RequestActivityRow): string {
+  return [
+    `requestId: ${entry.requestId}`,
+    `action: ${entry.action}`,
+    `label: ${getActionHistoryLabel(entry.action)}`,
+    `actor: ${entry.actor || '-'}`,
+    `at: ${formatDateTime(entry.at)}`,
+    `line_uid: ${entry.lineUid || '-'}`,
+    `batch: ${entry.batch || '-'}`,
+    `name: ${entry.fullName || '-'}`,
+    `status_flow: ${entry.from_status ?? '-'} -> ${entry.to_status ?? '-'}`,
+    `comment: ${entry.comment ?? '-'}`,
+  ].join('\n')
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
