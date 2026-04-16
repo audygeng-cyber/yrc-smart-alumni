@@ -994,6 +994,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     addActivity('info', `Incident preset: ${nextFilter}`)
   }
 
+  function resetActivityView() {
+    setActivityFilter('all')
+    setActivitySearch('')
+    setActivityLimit(20)
+    addActivity('info', 'Reset Activity View')
+  }
+
   async function loadOverviewAndAccounts() {
     if (!adminKey.trim()) {
       setMsg('ใส่ x-admin-key ก่อน')
@@ -1546,6 +1553,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
             className="rounded bg-amber-700 px-2 py-1 text-[11px] text-white hover:bg-amber-600"
           >
             Only Warnings
+          </button>
+          <button
+            type="button"
+            onClick={resetActivityView}
+            className="rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600"
+          >
+            Reset Activity View
           </button>
           {ACTIVITY_SHORTCUTS.map((shortcut) => {
             const active = activitySearchTrimmed.toLowerCase() === shortcut.keyword.toLowerCase()
