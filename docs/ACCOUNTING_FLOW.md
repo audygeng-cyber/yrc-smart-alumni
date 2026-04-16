@@ -39,6 +39,7 @@
   - บันทึกการอนุมัติ/ปฏิเสธ
   - body ตัวอย่าง:
     - `approver_name`
+    - `approver_signer_id` (แนะนำสำหรับกติกา 3 ใน 5 เพื่อกันปัญหาชื่อซ้ำ/encoding)
     - `approver_role_code`: `bank_signer_3of5` หรือ `committee`
     - `decision`: `approve` / `reject`
 - `POST /api/admin/finance/meeting-sessions`

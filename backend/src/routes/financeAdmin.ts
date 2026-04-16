@@ -233,13 +233,15 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
   try {
     const id = req.params.id
     const approver_name = typeof req.body?.approver_name === 'string' ? req.body.approver_name.trim() : ''
+    const approver_signer_id =
+      typeof req.body?.approver_signer_id === 'string' ? req.body.approver_signer_id.trim() : ''
     const approver_role_code =
       typeof req.body?.approver_role_code === 'string' ? req.body.approver_role_code.trim() : ''
     const decision = req.body?.decision === 'reject' ? 'reject' : 'approve'
     const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : null
 
-    if (!id || !approver_name || !approver_role_code) {
-      res.status(400).json({ error: 'id, approver_name, approver_role_code are required' })
+    if (!id || (!approver_name && !approver_signer_id) || !approver_role_code) {
+      res.status(400).json({ error: 'id, approver_name or approver_signer_id, approver_role_code are required' })
       return
     }
 
@@ -271,14 +273,18 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
         res.status(400).json({ error: 'Request missing bank_account_id' })
         return
       }
-      const { data: signer, error: sigErr } = await supabase
+      let signerQuery = supabase
         .from('bank_account_signers')
-        .select('id')
+        .select('id, signer_name')
         .eq('bank_account_id', reqRow.bank_account_id)
-        .eq('signer_name', approver_name)
         .eq('active', true)
         .eq('in_kbiz', true)
-        .maybeSingle()
+      if (approver_signer_id) {
+        signerQuery = signerQuery.eq('id', approver_signer_id)
+      } else {
+        signerQuery = signerQuery.eq('signer_name', approver_name)
+      }
+      const { data: signer, error: sigErr } = await signerQuery.maybeSingle()
       if (sigErr) {
         res.status(500).json({ error: 'Signer lookup failed', details: sigErr })
         return
@@ -289,7 +295,14 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
         })
         return
       }
+      if (!approver_name) {
+        // canonical value from DB ป้องกันปัญหา encoding/whitespace ฝั่ง client
+        ;(req.body as Record<string, unknown>).approver_name = signer.signer_name
+      }
     }
+
+    const approverNameFinal =
+      typeof req.body?.approver_name === 'string' ? req.body.approver_name.trim() : approver_name
 
     let dynamicRequired: number | null = null
     let attendeeCount: number | null = null
@@ -333,7 +346,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
 
     const { error: appErr } = await supabase.from('payment_request_approvals').insert({
       payment_request_id: id,
-      approver_name,
+      approver_name: approverNameFinal,
       approver_role_code,
       decision,
       comment,
