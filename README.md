@@ -3,7 +3,7 @@
 Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 
 - **ความปลอดภัย / git-secret:** ดู [`SECURITY.md`](SECURITY.md)
-- **Cursor Agent (บริบทโปรเจกต์):** [`.cursor/skills/yrc-smart-alumni/SKILL.md`](.cursor/skills/yrc-smart-alumni/SKILL.md)
+- **Cursor Agent (บริบทโปรเจกต์):** [`.cursor/skills/yrc-smart-alumni/SKILL.md`](.cursor/skills/yrc-smart-alumni/SKILL.md) — รวมลิงก์ไป [skills.sh](https://skills.sh/) สำหรับ skill ชุมชน (Supabase, Vercel, Node ฯลฯ)
 
 ## ความต้องการ
 

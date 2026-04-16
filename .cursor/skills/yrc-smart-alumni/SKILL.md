@@ -49,6 +49,29 @@ npm run ci               # ก่อน push
 - **Vercel ไม่ build หลัง push:** Settings → Git → เชื่อม `audygeng-cyber/yrc-smart-alumni` branch `master`
 - **CORS จาก Vercel:** ต้องมี `FRONTEND_ORIGINS` บน API
 
+## skills.sh — ecosystem skill จากชุมชน
+
+[skills.sh](https://skills.sh/) คือ **The Agent Skills Directory** — รวม skill สำหรับ AI agent หลายตัว รวมถึง **Cursor** ติดตั้งด้วย CLI (ดูรายการและ leaderboard บนเว็บ)
+
+รูปแบบทั่วไป (ตัวอย่าง — ตรวจชื่อ repo/skill ล่าสุดบนเว็บก่อนรัน):
+
+```bash
+npx skillsadd <owner/repo>
+```
+
+Skill ที่ **เข้ากับ YRC Smart Alumni** ได้ดี (เลือกตามงาน ไม่ต้องลงทั้งหมด):
+
+| งาน | แนวทางค้นหา / ตัวอย่างจาก leaderboard |
+|-----|----------------------------------------|
+| Supabase / Postgres | `supabase-postgres-best-practices` (org [supabase/agent-skills](https://skills.sh/)) |
+| Deploy Vercel | `deploy-to-vercel` ([vercel-labs/agent-skills](https://skills.sh/)) |
+| React บน Vercel | `vercel-react-best-practices` |
+| Express / Node API | `nodejs-backend-patterns` |
+| GitHub Actions | `github-actions-docs` |
+| Skill ทั่วไปของ Supabase | `supabase` ภายใต้ supabase/agent-skills |
+
+**หมายเหตุ:** skill เหล่านี้ **เสริม** ความรู้ของ Agent — คนละอย่างกับ skill โปรเจกต์ในไฟล์นี้ (บริบท YRC เฉพาะที่นี่ยังเป็นหลัก)
+
 ## เอกสารเพิ่ม
 
 - `README.md` — setup, API, LINE, VAPID, deploy
