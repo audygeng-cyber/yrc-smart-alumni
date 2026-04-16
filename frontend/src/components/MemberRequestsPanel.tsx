@@ -21,6 +21,7 @@ type RequestRow = {
 }
 
 type QuickView = 'all' | 'new' | 'pending'
+type SortMode = 'newest' | 'oldest' | 'pending_first'
 
 type Props = { apiBase: string }
 
@@ -38,6 +39,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [newRowIds, setNewRowIds] = useState<string[]>([])
   const [quickView, setQuickView] = useState<QuickView>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortMode, setSortMode] = useState<SortMode>('newest')
 
   const summary = useMemo(() => {
     const counts = {
@@ -88,6 +90,23 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
     return nextRows.filter((row) => buildRequestSearchText(row).includes(searchQueryTrimmed))
   }, [newRowIdSet, quickView, rows, searchQueryTrimmed])
+  const sortedRows = useMemo(() => {
+    const nextRows = [...filteredRows]
+
+    if (sortMode === 'oldest') {
+      return nextRows.sort((a, b) => getCreatedAtMs(a) - getCreatedAtMs(b))
+    }
+
+    if (sortMode === 'pending_first') {
+      return nextRows.sort((a, b) => {
+        const pendingDiff = getPendingPriority(a.status) - getPendingPriority(b.status)
+        if (pendingDiff !== 0) return pendingDiff
+        return getCreatedAtMs(b) - getCreatedAtMs(a)
+      })
+    }
+
+    return nextRows.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a))
+  }, [filteredRows, sortMode])
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
@@ -334,6 +353,18 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             <option value="60000">60 วินาที</option>
           </select>
         </label>
+        <label className="text-sm text-slate-300">
+          เรียงลำดับ
+          <select
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as SortMode)}
+            className="mt-1 block rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-violet-600"
+          >
+            <option value="newest">ใหม่สุดก่อน</option>
+            <option value="oldest">เก่าสุดก่อน</option>
+            <option value="pending_first">pending ก่อน</option>
+          </select>
+        </label>
         <label className="flex items-center gap-2 rounded-lg border border-slate-800 px-3 py-2 text-sm text-slate-300">
           <input
             type="checkbox"
@@ -444,7 +475,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       </div>
 
       <ul className="mt-6 space-y-4">
-        {filteredRows.map((r) => (
+        {sortedRows.map((r) => (
           <li
             key={r.id}
             className={`rounded-lg border p-4 text-left text-sm ${
@@ -541,7 +572,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         ))}
       </ul>
 
-      {filteredRows.length === 0 && !loading && (
+      {sortedRows.length === 0 && !loading && (
         <p className="mt-6 text-center text-sm text-slate-500">
           {rows.length === 0
             ? 'ไม่มีรายการ (หรือยังไม่ได้กดโหลด)'
@@ -572,6 +603,17 @@ function buildRequestSearchText(row: RequestRow): string {
   ]
 
   return rawParts.join(' ').toLowerCase()
+}
+
+function getCreatedAtMs(row: RequestRow): number {
+  const time = Date.parse(row.created_at)
+  return Number.isFinite(time) ? time : 0
+}
+
+function getPendingPriority(status: string): number {
+  if (status === 'pending_president') return 0
+  if (status === 'pending_admin') return 1
+  return 2
 }
 
 function pickRequestedText(requested: Record<string, unknown>, key: string): string {
