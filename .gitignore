@@ -23,6 +23,9 @@ out/
 .DS_Store
 Thumbs.db
 
+# Temporary clone when syncing Cursor community skills (scripts/sync-cursor-community-skills.ps1)
+_skill-vendor/
+
 # Editor
 .idea/
 .vscode/*

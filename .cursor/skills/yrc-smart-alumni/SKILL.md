@@ -51,26 +51,28 @@ npm run ci               # ก่อน push
 
 ## skills.sh — ecosystem skill จากชุมชน
 
-[skills.sh](https://skills.sh/) คือ **The Agent Skills Directory** — รวม skill สำหรับ AI agent หลายตัว รวมถึง **Cursor** ติดตั้งด้วย CLI (ดูรายการและ leaderboard บนเว็บ)
+[skills.sh](https://skills.sh/) คือ **The Agent Skills Directory** — รวม skill สำหรับ AI agent หลายตัว รวมถึง **Cursor** (ค้นหา skill และ repo ต้นทางบนเว็บ)
 
-รูปแบบทั่วไป (ตัวอย่าง — ตรวจชื่อ repo/skill ล่าสุดบนเว็บก่อนรัน):
+**ใน repo นี้ติดตั้งแล้ว (vendor ใน `.cursor/skills/`):**
 
-```bash
-npx skillsadd <owner/repo>
-```
+| โฟลเดอร์ | ใช้เมื่อ |
+|-----------|----------|
+| `deploy-to-vercel/` | deploy / preview บน Vercel |
+| `react-best-practices/` | ตรงกับ leaderboard *vercel-react-best-practices* |
+| `supabase-postgres-best-practices/` | SQL, RLS, performance Postgres |
 
-Skill ที่ **เข้ากับ YRC Smart Alumni** ได้ดี (เลือกตามงาน ไม่ต้องลงทั้งหมด):
+แหล่งที่มาและวิธีรีเฟรช: [`.cursor/skills/VENDORED_SKILLS.md`](../VENDORED_SKILLS.md) — รันจากราก repo: `powershell -File scripts/sync-cursor-community-skills.ps1`
 
-| งาน | แนวทางค้นหา / ตัวอย่างจาก leaderboard |
-|-----|----------------------------------------|
-| Supabase / Postgres | `supabase-postgres-best-practices` (org [supabase/agent-skills](https://skills.sh/)) |
-| Deploy Vercel | `deploy-to-vercel` ([vercel-labs/agent-skills](https://skills.sh/)) |
-| React บน Vercel | `vercel-react-best-practices` |
-| Express / Node API | `nodejs-backend-patterns` |
-| GitHub Actions | `github-actions-docs` |
-| Skill ทั่วไปของ Supabase | `supabase` ภายใต้ supabase/agent-skills |
+**หมายเหตุ CLI:** แพ็กเกจ npm `skillsadd` ถูก **deprecated** และชี้ไป **skills.ws** (ทดสอบแล้ว `--list` ล้มเหลว) — ไม่พึ่ง `npx skillsadd` สำหรับ repo นี้ ใช้ vendor จาก GitHub ตามตารางใน `VENDORED_SKILLS.md` แทน
 
-**หมายเหตุ:** skill เหล่านี้ **เสริม** ความรู้ของ Agent — คนละอย่างกับ skill โปรเจกต์ในไฟล์นี้ (บริบท YRC เฉพาะที่นี่ยังเป็นหลัก)
+Skill อื่นที่เข้ากับสแต็ก (ยังไม่ vendor — เพิ่มด้วย sparse clone แบบเดียวกับสคริปต์ หรือคัดลอกจาก repo บน skills.sh):
+
+| งาน | ตัวอย่างจาก leaderboard |
+|-----|-------------------------|
+| Express / Node API | `nodejs-backend-patterns` ([wshobson/agents](https://github.com/wshobson/agents)) |
+| GitHub Actions | `github-actions-docs` ([xixu-me/skills](https://github.com/xixu-me/skills)) |
+
+**หมายเหตุ:** skill ชุมชน **เสริม** Agent — บริบท YRC เฉพาะในไฟล์นี้ยังเป็นหลัก
 
 ## เอกสารเพิ่ม
 
