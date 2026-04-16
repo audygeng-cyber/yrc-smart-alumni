@@ -4,6 +4,7 @@ const STORAGE_ADMIN = 'yrc_admin_upload_key'
 const STORAGE_PRESIDENT = 'yrc_president_upload_key'
 const STORAGE_AUTO_REFRESH = 'yrc_member_requests_auto_refresh'
 const STORAGE_AUTO_REFRESH_MS = 'yrc_member_requests_auto_refresh_ms'
+const STORAGE_LAST_PENDING = 'yrc_member_requests_last_pending'
 
 type RequestRow = {
   id: string
@@ -30,6 +31,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [autoRefreshMs, setAutoRefreshMs] = useState(30000)
   const [lastLoadedAt, setLastLoadedAt] = useState<string | null>(null)
+  const [pendingIncrease, setPendingIncrease] = useState(0)
 
   const summary = useMemo(() => {
     const counts = {
@@ -92,6 +94,15 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_AUTO_REFRESH_MS, String(autoRefreshMs))
   }, [autoRefreshMs])
+
+  useEffect(() => {
+    const savedPending = Number(sessionStorage.getItem(STORAGE_LAST_PENDING) ?? '0')
+    if (!Number.isFinite(savedPending) || savedPending < 0) return
+    if (savedPending > 0 && pendingTotal > savedPending) {
+      setPendingIncrease(pendingTotal - savedPending)
+    }
+    sessionStorage.setItem(STORAGE_LAST_PENDING, String(pendingTotal))
+  }, [pendingTotal])
 
   const load = useCallback(async () => {
     if (!adminKey.trim()) {
@@ -186,6 +197,20 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       <h2 className="text-sm font-medium uppercase tracking-wide text-violet-200/90">
         คำร้องสมาชิก (ประธานรุ่น → Admin)
       </h2>
+      {pendingIncrease > 0 ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-900/40 bg-amber-950/20 p-3 text-sm text-amber-100">
+          <p>
+            มีคำร้องที่รอดำเนินการเพิ่มขึ้น {pendingIncrease} รายการ และตอนนี้มี pending รวม {pendingTotal} รายการ
+          </p>
+          <button
+            type="button"
+            onClick={() => setPendingIncrease(0)}
+            className="rounded border border-amber-700 px-3 py-1 text-xs text-amber-100 hover:bg-amber-900/30"
+          >
+            ซ่อนแจ้งเตือน
+          </button>
+        </div>
+      ) : null}
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded bg-amber-900/40 px-2 py-1 text-amber-200">
           pending รวม: {pendingTotal}
