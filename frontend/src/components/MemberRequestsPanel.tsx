@@ -696,6 +696,29 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     }
   }
 
+  async function copyActivityValue(label: string, value: string) {
+    if (!value.trim()) {
+      setMsg(`ไม่มี ${label} ให้คัดลอก`)
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(value)
+      setMsg(`คัดลอก ${label} แล้ว`)
+    } catch {
+      setMsg(`คัดลอก ${label} ไม่สำเร็จ`)
+    }
+  }
+
+  function focusRequestFromActivity(requestId: string) {
+    setSearchQuery(requestId)
+    setQuickView('all')
+    setFilter('')
+    setSortMode('newest')
+    setViewPreset('manual')
+    setMsg(`กรองรายการหลักเป็น request ${requestId}`)
+  }
+
   return (
     <section className="rounded-xl border border-violet-900/40 bg-violet-950/20 p-6">
       <h2 className="text-sm font-medium uppercase tracking-wide text-violet-200/90">
@@ -1123,6 +1146,38 @@ export function MemberRequestsPanel({ apiBase }: Props) {
               <p className="mt-1 text-xs text-slate-500">
                 โดย {entry.actor || '-'} | {entry.from_status ?? '-'} {'->'} {entry.to_status ?? '-'}
               </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void copyActivityValue('request id', entry.requestId)
+                  }}
+                  className="rounded border border-slate-700 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-800"
+                >
+                  copy request id
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void copyActivityValue('line uid', entry.lineUid)
+                  }}
+                  className="rounded border border-violet-800 px-2.5 py-1 text-[11px] text-violet-200 hover:bg-violet-950/30"
+                >
+                  copy line uid
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    focusRequestFromActivity(entry.requestId)
+                  }}
+                  className="rounded border border-cyan-800 px-2.5 py-1 text-[11px] text-cyan-200 hover:bg-cyan-950/30"
+                >
+                  filter list to request
+                </button>
+              </div>
               {entry.comment ? <p className="mt-2 rounded bg-slate-900/80 p-2 text-sm text-slate-200">{entry.comment}</p> : null}
             </div>
           ))}
