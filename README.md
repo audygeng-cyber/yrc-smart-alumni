@@ -2,6 +2,9 @@
 
 Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 
+- **ความปลอดภัย / git-secret:** ดู [`SECURITY.md`](SECURITY.md)
+- **Cursor Agent (บริบทโปรเจกต์):** [`.cursor/skills/yrc-smart-alumni/SKILL.md`](.cursor/skills/yrc-smart-alumni/SKILL.md)
+
 ## ความต้องการ
 
 - Node.js 20+

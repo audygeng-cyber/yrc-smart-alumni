@@ -7,6 +7,9 @@ node_modules/
 .env.*.local
 *.pem
 
+# git-secret (https://git-secret.io) — อย่า commit seed; ไฟล์ *.secret คือ ciphertext ที่อนุญาตให้ track
+.gitsecret/keys/random_seed
+
 # Build outputs
 dist/
 build/

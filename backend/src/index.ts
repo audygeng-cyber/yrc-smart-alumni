@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
+import helmet from 'helmet'
 import { adminAuth } from './middleware/adminAuth.js'
 import { importMembersRouter } from './routes/importMembers.js'
 import { lineAuthRouter } from './routes/lineAuth.js'
@@ -13,6 +14,12 @@ const port = Number(process.env.PORT) || 4000
 
 /** Cloud Run / reverse proxy */
 app.set('trust proxy', 1)
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+)
 
 function parseCorsOrigins(): string[] {
   const raw = process.env.FRONTEND_ORIGINS?.trim()
