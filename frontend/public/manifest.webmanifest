@@ -1,0 +1,18 @@
+{
+  "name": "YRC Smart Alumni",
+  "short_name": "YRC Alumni",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "description": "YRC Smart Alumni member and admin portal",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
