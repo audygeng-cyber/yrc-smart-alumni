@@ -62,7 +62,9 @@ membersRouter.post('/request-status', async (req, res) => {
     const supabase = getServiceSupabase()
     const { data: row, error } = await supabase
       .from('member_update_requests')
-      .select('id,request_type,status,created_at,president_approved_at,admin_approved_at,rejected_at,rejection_reason')
+      .select(
+        'id,request_type,status,created_at,president_approved_at,admin_approved_at,rejected_at,rejection_reason,requested_data',
+      )
       .eq('line_uid', line_uid)
       .order('created_at', { ascending: false })
       .limit(1)

@@ -23,6 +23,7 @@ type RequestStatusRow = {
   admin_approved_at?: string | null
   rejected_at?: string | null
   rejection_reason?: string | null
+  requested_data?: Record<string, unknown> | null
 }
 
 export function MemberLinkPanel({
@@ -48,6 +49,22 @@ export function MemberLinkPanel({
   const [registerExtra, setRegisterExtra] = useState<Record<string, string>>(() =>
     Object.fromEntries(MEMBER_REGISTER_EXTRA_HEADERS.map((h) => [h, ''])),
   )
+
+  const approvedRequestedNames = useMemo(() => {
+    const raw = requestStatus?.requested_data
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+
+    const batchValue = typeof raw.batch === 'string' ? raw.batch.trim() : ''
+    const firstNameValue = typeof raw.first_name === 'string' ? raw.first_name.trim() : ''
+    const lastNameValue = typeof raw.last_name === 'string' ? raw.last_name.trim() : ''
+
+    if (!batchValue || !firstNameValue || !lastNameValue) return null
+    return {
+      batch: batchValue,
+      firstName: firstNameValue,
+      lastName: lastNameValue,
+    }
+  }, [requestStatus])
 
   useEffect(() => {
     if (!lineUid.trim()) {
@@ -169,12 +186,29 @@ export function MemberLinkPanel({
       })
       const j = await r.json().catch(() => ({}))
       setMsg(r.ok ? `ส่งคำร้องแล้ว requestId=${(j as { requestId?: string }).requestId}` : JSON.stringify(j, null, 2))
-      if (r.ok) setShowRegister(false)
+      if (r.ok) {
+        setShowRegister(false)
+        setRequestStatus({
+          id: (j as { requestId?: string }).requestId,
+          request_type: 'new_registration',
+          status: 'pending_president',
+          created_at: new Date().toISOString(),
+          requested_data: body,
+        })
+      }
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
+  }
+
+  function applyApprovedRequestData() {
+    if (!approvedRequestedNames) return
+    setBatch(approvedRequestedNames.batch)
+    setFirstName(approvedRequestedNames.firstName)
+    setLastName(approvedRequestedNames.lastName)
+    setMsg('เติมข้อมูลจากคำร้องล่าสุดแล้ว กด "ตรวจสอบและผูก" เพื่อเข้าหน้าสมาชิก')
   }
 
   return (
@@ -251,9 +285,25 @@ export function MemberLinkPanel({
                 ส่งคำร้องเมื่อ: {requestStatus.created_at ? new Date(requestStatus.created_at).toLocaleString() : '-'}
               </p>
               {requestStatus.status === 'approved' ? (
-                <p className="mt-2 text-xs opacity-90">
-                  คำร้องนี้ได้รับอนุมัติแล้ว ถ้ายังไม่เห็นข้อมูลสมาชิก ให้กด &quot;ตรวจสอบและผูก&quot; อีกครั้ง
-                </p>
+                <>
+                  <p className="mt-2 text-xs opacity-90">
+                    คำร้องนี้ได้รับอนุมัติแล้ว ถ้ายังไม่เห็นข้อมูลสมาชิก ให้กด &quot;ตรวจสอบและผูก&quot; อีกครั้ง
+                  </p>
+                  {approvedRequestedNames ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={applyApprovedRequestData}
+                        className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
+                      >
+                        ใช้ข้อมูลจากคำร้องล่าสุด
+                      </button>
+                      <span className="self-center text-xs opacity-80">
+                        {approvedRequestedNames.batch} · {approvedRequestedNames.firstName} {approvedRequestedNames.lastName}
+                      </span>
+                    </div>
+                  ) : null}
+                </>
               ) : null}
               {requestStatus.status === 'rejected' ? (
                 <p className="mt-2 text-xs opacity-90">
