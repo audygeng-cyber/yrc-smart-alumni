@@ -28,7 +28,11 @@ export default function App() {
     fetch(`${apiBase}/health`)
       .then((r) => r.json())
       .then((j) => setHealth(JSON.stringify(j)))
-      .catch(() => setHealth('ไม่สามารถเชื่อม API (ตรวจว่า backend รันอยู่)'))
+      .catch(() =>
+        setHealth(
+          'ไม่สามารถเชื่อม API — ตรวจว่า backend รันอยู่ และบน production ตั้ง FRONTEND_ORIGINS บน Cloud Run ให้มี origin ของเว็บ (แก้ CORS)',
+        ),
+      )
   }, [])
 
   // LINE OAuth return: Vite env is stable; run once on mount when URL has ?code=&state=

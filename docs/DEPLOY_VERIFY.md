@@ -10,6 +10,22 @@
 2. บน GitHub: workflow CI (ถ้ามี) บน branch ที่ deploy **ผ่าน**
 3. ยืนยันว่า image Cloud Run มาจาก commit ล่าสุดที่ต้องการ (build/deploy ใหม่หลังแก้โค้ด)
 
+### ทดสอบจากเครื่อง (CLI — health + CORS)
+
+ราก repo:
+
+```bash
+node scripts/verify-deployment.mjs https://<CLOUD_RUN_URL> https://<VERCEL_FRONTEND_URL>
+```
+
+PowerShell:
+
+```powershell
+$env:VERIFY_API_BASE="https://xxx.run.app"; $env:VERIFY_FRONTEND_ORIGIN="https://yyy.vercel.app"; npm run verify:deploy
+```
+
+คำสั่งนี้เรียก `GET /health` และถ้ามี origin ของ Vercel จะตรวจว่า response มี `Access-Control-Allow-Origin` ตรงกับ origin หรือไม่
+
 ---
 
 ## ขั้น 1 — Supabase (ฐานข้อมูล)

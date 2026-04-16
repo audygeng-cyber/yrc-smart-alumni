@@ -9,7 +9,8 @@
     "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev -w frontend\" \"npm run dev -w backend\"",
     "build": "npm run build -w frontend && npm run build -w backend",
     "lint": "npm run lint -w frontend",
-    "ci": "npm run build && npm run lint"
+    "ci": "npm run build && npm run lint",
+    "verify:deploy": "node scripts/verify-deployment.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
