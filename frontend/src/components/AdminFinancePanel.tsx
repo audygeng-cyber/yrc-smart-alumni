@@ -4,6 +4,7 @@ const STORAGE_KEY = 'yrc_admin_upload_key'
 const PAGE_SIZE = 20
 const REPORT_PRESETS_KEY = 'yrc_finance_report_presets_v1'
 const ACTIVITY_LOG_KEY = 'yrc_finance_activity_log_v1'
+const AUTO_REFRESH_SETTINGS_KEY = 'yrc_finance_auto_refresh_settings_v1'
 const AUTO_REFRESH_MAX_FAILURES = 3
 
 type Props = { apiBase: string }
@@ -80,6 +81,12 @@ type ActivityItem = {
   at: string
   level: 'info' | 'warn' | 'error'
   message: string
+}
+type AutoRefreshSettings = {
+  enabled: boolean
+  seconds: 30 | 60
+  alertOnPause: boolean
+  soundOnPause: boolean
 }
 
 function normalizeApiBase(base: string): string {
@@ -257,6 +264,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
     const rawPresets = sessionStorage.getItem(REPORT_PRESETS_KEY)
     const rawActivity = sessionStorage.getItem(ACTIVITY_LOG_KEY)
+    const rawAutoRefresh = sessionStorage.getItem(AUTO_REFRESH_SETTINGS_KEY)
     if (rawPresets) {
       try {
         const parsed = JSON.parse(rawPresets) as ReportPreset[]
@@ -285,6 +293,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
     } catch {
       // ignore broken session storage payload
     }
+    try {
+      if (!rawAutoRefresh) return
+      const parsed = JSON.parse(rawAutoRefresh) as Partial<AutoRefreshSettings>
+      if (typeof parsed.enabled === 'boolean') setAutoRefreshEnabled(parsed.enabled)
+      if (parsed.seconds === 30 || parsed.seconds === 60) setAutoRefreshSeconds(parsed.seconds)
+      if (typeof parsed.alertOnPause === 'boolean') setAlertOnPause(parsed.alertOnPause)
+      if (typeof parsed.soundOnPause === 'boolean') setSoundOnPause(parsed.soundOnPause)
+    } catch {
+      // ignore broken session storage payload
+    }
   }, [])
 
   useEffect(() => {
@@ -294,6 +312,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(activityLog))
   }, [activityLog])
+
+  useEffect(() => {
+    const value: AutoRefreshSettings = {
+      enabled: autoRefreshEnabled,
+      seconds: autoRefreshSeconds,
+      alertOnPause,
+      soundOnPause,
+    }
+    sessionStorage.setItem(AUTO_REFRESH_SETTINGS_KEY, JSON.stringify(value))
+  }, [alertOnPause, autoRefreshEnabled, autoRefreshSeconds, soundOnPause])
 
   useEffect(() => {
     if (!allPresets.some((p) => p.id === selectedPresetId)) {
