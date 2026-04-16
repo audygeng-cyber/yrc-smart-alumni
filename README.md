@@ -52,6 +52,13 @@ git push -u origin master
 
 ## นำเข้าสมาชิก (Admin)
 
+**เทมเพลตหัวคอลัมน์** (แถวแรกครบทุกฟิลด์ที่รองรับ — ดาวน์โหลดจากเว็บแท็บ Admin หรือเรียก API):
+
+- `GET /api/admin/members/import-template.xlsx`
+- `GET /api/admin/members/import-template.csv`  
+
+ไม่ต้องใช้ `x-admin-key` สำหรับดาวน์โหลดเทมเพลต
+
 ```bash
 curl -X POST http://localhost:4000/api/admin/members/import ^
   -H "x-admin-key: YOUR_ADMIN_UPLOAD_KEY" ^

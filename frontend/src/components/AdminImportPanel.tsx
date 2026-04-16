@@ -88,6 +88,31 @@ export function AdminImportPanel({ apiBase }: Props) {
           placeholder="ค่าเดียวกับ ADMIN_UPLOAD_KEY ใน backend/.env"
         />
       </label>
+      <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/50 p-3 text-sm text-slate-400">
+        <p className="font-medium text-slate-300">เทมเพลตหัวตาราง (ครบทุกคอลัมน์)</p>
+        <p className="mt-1 text-xs">
+          ดาวน์โหลดแล้วกรอกข้อมูลในชีตแรก — คอลัมน์ที่ไม่มีข้อมูลเว้นว่างได้; ต้องมีอย่างน้อย{' '}
+          <span className="text-amber-200/90">รุ่น · ชื่อ · นามสกุล</span> ตามที่ระบบตรวจตอนนำเข้า
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <a
+            href={`${apiBase}/api/admin/members/import-template.xlsx`}
+            className="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-slate-700"
+            target="_blank"
+            rel="noreferrer"
+          >
+            ดาวน์โหลด .xlsx
+          </a>
+          <a
+            href={`${apiBase}/api/admin/members/import-template.csv`}
+            className="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700"
+            target="_blank"
+            rel="noreferrer"
+          >
+            ดาวน์โหลด .csv
+          </a>
+        </div>
+      </div>
       <label className="mt-4 block text-sm text-slate-300">
         ไฟล์ .xlsx (ชีตแรก)
         <input

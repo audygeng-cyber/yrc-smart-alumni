@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { adminAuth } from './middleware/adminAuth.js'
 import { importMembersRouter } from './routes/importMembers.js'
+import { importTemplateRouter } from './routes/importTemplate.js'
 import { lineAuthRouter } from './routes/lineAuth.js'
 import { memberRequestsAdminRouter } from './routes/memberRequestsAdmin.js'
 import { membersRouter } from './routes/members.js'
@@ -50,6 +51,8 @@ export function createApp(): express.Express {
         lineToken: 'POST /api/auth/line/token',
         membersVerify: 'POST /api/members/verify-link',
         membersRegister: 'POST /api/members/register-request',
+        importTemplates:
+          'GET /api/admin/members/import-template.csv | import-template.xlsx (ไม่ต้องมี key)',
         adminImport: 'POST /api/admin/members/import (ต้องใช้ x-admin-key)',
         memberRequests:
           'GET /api/admin/member-requests (x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
@@ -79,6 +82,7 @@ export function createApp(): express.Express {
   app.use('/api/auth/line', lineOAuthLimit, lineAuthRouter)
   app.use('/api/push', pushRouter)
   app.use('/api/admin/member-requests', memberRequestsAdminRouter)
+  app.use('/api/admin/members', importTemplateRouter)
   app.use('/api/admin/members', adminAuth, importMembersRouter)
   app.use('/api/members', membersPublicLimit, membersRouter)
 

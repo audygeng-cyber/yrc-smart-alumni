@@ -36,6 +36,22 @@ describe.sequential('createApp', () => {
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173')
   })
 
+  it('GET import template CSV (public)', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/admin/members/import-template.csv')
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']?.includes('text/csv')).toBe(true)
+    expect(res.text).toContain('รุ่น')
+    expect(res.text).toContain('ชื่อ')
+  })
+
+  it('GET import template XLSX (public)', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/admin/members/import-template.xlsx')
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']?.includes('spreadsheetml')).toBe(true)
+  })
+
   it('CORS reflects FRONTEND_ORIGINS when set', async () => {
     vi.stubEnv('FRONTEND_ORIGINS', 'https://app.example.com')
     const app = createApp()
