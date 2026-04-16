@@ -1,25 +1,51 @@
+import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MetricCards, PortalShell, SectionPlaceholder, TrendBars } from './ui'
+import {
+  type CommitteePortalData,
+  type CommitteeRoleView,
+  useCommitteePortalData,
+} from './dataAdapter'
 
-export function CommitteeArea() {
+export function CommitteeArea(props: { apiBase: string }) {
+  const [roleView, setRoleView] = useState<CommitteeRoleView>('chair')
+  const portalData = useCommitteePortalData(props.apiBase)
   const navItems = [
-    { to: '/committee/dashboard', label: 'Dashboard' },
-    { to: '/committee/members', label: 'ทะเบียนสมาชิก' },
-    { to: '/committee/finance', label: 'การเงินละเอียด' },
-    { to: '/committee/meetings', label: 'วาระ/รายงานประชุม' },
-    { to: '/committee/attendance', label: 'ลงทะเบียน/ลงชื่อประชุม' },
-    { to: '/committee/voting', label: 'ลงมติ' },
+    { to: '/committee/dashboard', label: 'Dashboard', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    { to: '/committee/members', label: 'ทะเบียนสมาชิก', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    { to: '/committee/finance', label: 'การเงินละเอียด', roles: ['chair'] as CommitteeRoleView[] },
+    { to: '/committee/meetings', label: 'วาระ/รายงานประชุม', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    { to: '/committee/attendance', label: 'ลงทะเบียน/ลงชื่อประชุม', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    { to: '/committee/voting', label: 'ลงมติ', roles: ['chair', 'member'] as CommitteeRoleView[] },
   ]
+  const visibleNavItems = navItems.filter((item) => item.roles.includes(roleView)).map((item) => ({ to: item.to, label: item.label }))
 
   return (
     <PortalShell
       title="Committee Portal"
       subtitle="คณะกรรมการ 35 คน · ทะเบียนสมาชิก · การเงินละเอียด · ประชุม · ลงมติ"
-      navItems={navItems}
+      navItems={visibleNavItems}
     >
+      <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-slate-500">Role view</span>
+          <select
+            value={roleView}
+            onChange={(e) => setRoleView(e.target.value as CommitteeRoleView)}
+            className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+          >
+            <option value="chair">ประธานคณะกรรมการ</option>
+            <option value="member">กรรมการ</option>
+          </select>
+          <span className="text-xs text-slate-500">จำลองสิทธิ์เมนูภายใน committee portal</span>
+          <span className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-400">
+            data: {portalData.loading ? 'loading...' : portalData.source}
+          </span>
+        </div>
+      </section>
       <Routes>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<CommitteeDashboardPage />} />
+        <Route path="dashboard" element={<CommitteeDashboardPage roleView={roleView} portalData={portalData.data} />} />
         <Route
           path="members"
           element={
@@ -32,10 +58,17 @@ export function CommitteeArea() {
         <Route
           path="finance"
           element={
-            <SectionPlaceholder
-              title="การเงินแบบละเอียด"
-              description="รายรับรายจ่ายสมาคมและโรงเรียนกวดวิชาแบบละเอียด พร้อมเอกสารประกอบ"
-            />
+            roleView === 'chair' ? (
+              <SectionPlaceholder
+                title="การเงินแบบละเอียด"
+                description="รายรับรายจ่ายสมาคมและโรงเรียนกวดวิชาแบบละเอียด พร้อมเอกสารประกอบ"
+              />
+            ) : (
+              <SectionPlaceholder
+                title="การเงินแบบละเอียด"
+                description="สิทธิ์ระดับกรรมการเห็นเฉพาะสรุปภาพรวม โปรดยกระดับสิทธิ์เพื่อดูรายละเอียดทั้งหมด"
+              />
+            )
           }
         />
         <Route
@@ -71,38 +104,16 @@ export function CommitteeArea() {
   )
 }
 
-function CommitteeDashboardPage() {
-  const requestTrend = [
-    { label: 'Mon', value: 4 },
-    { label: 'Tue', value: 8 },
-    { label: 'Wed', value: 6 },
-    { label: 'Thu', value: 10 },
-    { label: 'Fri', value: 5 },
-    { label: 'Sat', value: 3 },
-    { label: 'Sun', value: 7 },
-  ]
-
-  const meetings = [
-    { topic: 'วาระการเงินประจำเดือน', time: '09:30', status: 'ready' },
-    { topic: 'โครงการสนับสนุนโรงเรียน', time: '10:30', status: 'pending_vote' },
-    { topic: 'อัปเดตทะเบียนสมาชิก', time: '11:15', status: 'in_review' },
-  ]
-
+function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalData: CommitteePortalData }) {
   return (
     <div className="space-y-4">
-      <MetricCards
-        items={[
-          { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'อัปเดตล่าสุดตามทะเบียนสมาชิก' },
-          { label: 'คำร้องรอดำเนินการ', value: '18', hint: 'pending_president + pending_admin' },
-          { label: 'ผู้ลงทะเบียนประชุม', value: '29/35', hint: 'เทียบกับ quorum ที่กำหนด' },
-          { label: 'วาระรอลงมติ', value: '6', hint: 'พร้อมเปิด vote ในที่ประชุม' },
-        ]}
-      />
+      <MetricCards items={props.portalData.metricCards} />
+      <MetricCards items={props.portalData.roleCards[props.roleView]} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">แนวโน้มคำร้อง 7 วัน</h3>
           <p className="mt-2 text-sm text-slate-400">ใช้ติดตาม backlog ของคำร้องและคาดการณ์ภาระงานทีมอนุมัติ</p>
-          <TrendBars items={requestTrend} />
+          <TrendBars items={props.portalData.requestTrend} />
         </section>
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">งานด่วนวันนี้</h3>
@@ -124,7 +135,7 @@ function CommitteeDashboardPage() {
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สถานะประชุมวันนี้</h3>
         <div className="mt-3 space-y-2 text-sm">
-          {meetings.map((meeting) => (
+          {props.portalData.meetings.map((meeting) => (
             <div key={meeting.topic} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
               <div>
                 <p className="text-slate-100">{meeting.topic}</p>

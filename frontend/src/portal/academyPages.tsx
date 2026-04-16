@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MetricCards, PortalShell, SectionPlaceholder, TrendBars } from './ui'
+import { type AcademyPortalData, type AcademyRoleView, useAcademyPortalData } from './dataAdapter'
 
-type AcademyRoleView = 'admin' | 'teacher' | 'student' | 'parent'
-
-export function AcademyArea() {
+export function AcademyArea(props: { apiBase: string }) {
   const [roleView, setRoleView] = useState<AcademyRoleView>('admin')
+  const portalData = useAcademyPortalData(props.apiBase)
   const navItems = [
     { to: '/academy/dashboard', label: 'Dashboard', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
     { to: '/academy/students', label: 'นักเรียน/ห้องเรียน', roles: ['admin', 'teacher'] as AcademyRoleView[] },
@@ -36,11 +36,14 @@ export function AcademyArea() {
             <option value="parent">ผู้ปกครอง</option>
           </select>
           <span className="text-xs text-slate-500">จำลองสิทธิ์การเข้าถึงเมนูภายใน academy</span>
+          <span className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-400">
+            data: {portalData.loading ? 'loading...' : portalData.source}
+          </span>
         </div>
       </section>
       <Routes>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<AcademyDashboardPage roleView={roleView} />} />
+        <Route path="dashboard" element={<AcademyDashboardPage roleView={roleView} portalData={portalData.data} />} />
         <Route
           path="students"
           element={
@@ -92,20 +95,7 @@ export function AcademyArea() {
   )
 }
 
-function AcademyDashboardPage(props: { roleView: AcademyRoleView }) {
-  const classes = [
-    { room: 'ม.4 ห้อง A', students: 38, avgScore: 84.2 },
-    { room: 'ม.5 ห้อง B', students: 42, avgScore: 81.5 },
-    { room: 'ม.6 ห้อง C', students: 34, avgScore: 86.7 },
-  ]
-
-  const enrollmentFunnel = [
-    { label: 'สมัครใหม่', value: 120 },
-    { label: 'ยืนยันเอกสาร', value: 92 },
-    { label: 'ชำระเงิน', value: 78 },
-    { label: 'เข้าเรียนแล้ว', value: 71 },
-  ]
-
+function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: AcademyPortalData }) {
   const roleSummary =
     props.roleView === 'admin'
       ? 'ผู้บริหารเห็นภาพรวมทั้งหมด'
@@ -115,47 +105,21 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView }) {
           ? 'นักเรียนเห็นข้อมูลส่วนตัว/คอร์ส/ผลคะแนนของตน'
           : 'ผู้ปกครองเห็นข้อมูลของบุตรหลานและความคืบหน้า'
 
-  const roleCards =
-    props.roleView === 'admin'
-      ? [
-          { label: 'นักเรียนใหม่เดือนนี้', value: '74', hint: 'แนวโน้มการสมัครรายเดือน' },
-          { label: 'อัตราชำระครบ', value: '86%', hint: 'สถานะค่าใช้จ่ายรวมทุกคอร์ส' },
-        ]
-      : props.roleView === 'teacher'
-        ? [
-            { label: 'ชั้นเรียนที่รับผิดชอบ', value: '6', hint: 'ห้องเรียน active ของครู' },
-            { label: 'งานตรวจคะแนนค้าง', value: '24', hint: 'รายการที่ต้องตรวจวันนี้' },
-          ]
-        : props.roleView === 'student'
-          ? [
-              { label: 'คอร์สที่ลงทะเบียน', value: '4', hint: 'คอร์สที่กำลังเรียนอยู่' },
-              { label: 'คะแนนเฉลี่ยของฉัน', value: '83.6', hint: 'คำนวณจากทุกวิชาล่าสุด' },
-            ]
-          : [
-              { label: 'บุตรหลานที่ดูแล', value: '2', hint: 'บัญชีที่เชื่อมกับผู้ปกครอง' },
-              { label: 'แจ้งเตือนผลการเรียนใหม่', value: '3', hint: 'อัปเดตที่ยังไม่อ่าน' },
-            ]
+  const roleCards = props.portalData.roleCards[props.roleView]
 
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
         <p className="text-sm text-slate-200">{roleSummary}</p>
       </section>
-      <MetricCards
-        items={[
-          { label: 'นักเรียนทั้งหมด', value: '862', hint: 'รวมทุกห้องและทุกระดับ' },
-          { label: 'ห้องเรียนที่เปิด', value: '24', hint: 'ห้องที่มี active schedule' },
-          { label: 'คอร์สที่เปิด', value: '31', hint: 'คอร์สที่เปิดรับสมัครอยู่' },
-          { label: 'ค่าเฉลี่ยผลการเรียน', value: '82.4', hint: 'คะแนนเฉลี่ยรวมทุกวิชา' },
-        ]}
-      />
+      <MetricCards items={props.portalData.metricCards} />
       <MetricCards items={roleCards} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ผลคะแนนเฉลี่ยตามห้อง</h3>
           <p className="mt-2 text-sm text-slate-400">ดูคุณภาพการเรียนรายห้องเพื่อวางแผนเสริมจุดอ่อน</p>
           <div className="mt-4 space-y-2 text-sm">
-            {classes.map((row) => (
+            {props.portalData.classes.map((row) => (
               <div key={row.room} className="rounded border border-slate-800 px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-slate-100">{row.room}</p>
@@ -171,7 +135,7 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView }) {
         </section>
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">Funnel สมัครเรียน</h3>
-          <TrendBars items={enrollmentFunnel} color="violet" />
+          <TrendBars items={props.portalData.enrollmentFunnel} color="violet" />
           <div className="mt-4 flex flex-wrap gap-2">
             <Link to="/academy/enrollment" className="rounded bg-violet-800 px-3 py-1.5 text-xs text-white hover:bg-violet-700">
               ไปหน้าสมัครเรียน

@@ -268,8 +268,8 @@ export default function App() {
               )
             }
           />
-          <Route path="/committee/*" element={<CommitteeArea />} />
-          <Route path="/academy/*" element={<AcademyArea />} />
+          <Route path="/committee/*" element={<CommitteeArea apiBase={apiBase} />} />
+          <Route path="/academy/*" element={<AcademyArea apiBase={apiBase} />} />
           <Route path="/requests" element={<MemberRequestsPanel apiBase={apiBase} />} />
           <Route
             path="/admin"
