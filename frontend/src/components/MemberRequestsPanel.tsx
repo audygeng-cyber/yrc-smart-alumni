@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 const STORAGE_ADMIN = 'yrc_admin_upload_key'
 const STORAGE_PRESIDENT = 'yrc_president_upload_key'
@@ -25,6 +25,39 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [filter, setFilter] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const summary = useMemo(() => {
+    const counts = {
+      total: rows.length,
+      pending_president: 0,
+      pending_admin: 0,
+      approved: 0,
+      rejected: 0,
+      other: 0,
+    }
+
+    for (const row of rows) {
+      switch (row.status) {
+        case 'pending_president':
+          counts.pending_president += 1
+          break
+        case 'pending_admin':
+          counts.pending_admin += 1
+          break
+        case 'approved':
+          counts.approved += 1
+          break
+        case 'rejected':
+          counts.rejected += 1
+          break
+        default:
+          counts.other += 1
+          break
+      }
+    }
+
+    return counts
+  }, [rows])
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
@@ -166,6 +199,53 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         </button>
       </div>
 
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <SummaryCard label="ทั้งหมด" value={summary.total} tone="slate" />
+        <SummaryCard label="รอประธานรุ่น" value={summary.pending_president} tone="amber" />
+        <SummaryCard label="รอ Admin" value={summary.pending_admin} tone="violet" />
+        <SummaryCard label="อนุมัติแล้ว" value={summary.approved} tone="emerald" />
+        <SummaryCard label="ถูกปฏิเสธ" value={summary.rejected} tone="red" />
+        {summary.other > 0 ? <SummaryCard label="สถานะอื่น" value={summary.other} tone="slate" /> : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setFilter('')}
+          className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+        >
+          ดูทั้งหมด
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('pending_president')}
+          className="rounded border border-amber-800 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-950/30"
+        >
+          รอประธานรุ่น
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('pending_admin')}
+          className="rounded border border-violet-800 px-3 py-1.5 text-xs text-violet-200 hover:bg-violet-950/30"
+        >
+          รอ Admin
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('approved')}
+          className="rounded border border-emerald-800 px-3 py-1.5 text-xs text-emerald-200 hover:bg-emerald-950/30"
+        >
+          อนุมัติแล้ว
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('rejected')}
+          className="rounded border border-red-800 px-3 py-1.5 text-xs text-red-200 hover:bg-red-950/30"
+        >
+          ถูกปฏิเสธ
+        </button>
+      </div>
+
       <ul className="mt-6 space-y-4">
         {rows.map((r) => (
           <li
@@ -265,5 +345,33 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         </pre>
       )}
     </section>
+  )
+}
+
+function SummaryCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: number
+  tone: 'slate' | 'amber' | 'violet' | 'emerald' | 'red'
+}) {
+  const toneClass =
+    tone === 'amber'
+      ? 'border-amber-900/40 bg-amber-950/20 text-amber-100'
+      : tone === 'violet'
+        ? 'border-violet-900/40 bg-violet-950/20 text-violet-100'
+        : tone === 'emerald'
+          ? 'border-emerald-900/40 bg-emerald-950/20 text-emerald-100'
+          : tone === 'red'
+            ? 'border-red-900/40 bg-red-950/20 text-red-100'
+            : 'border-slate-800 bg-slate-950/50 text-slate-100'
+
+  return (
+    <div className={`rounded-lg border p-4 ${toneClass}`}>
+      <p className="text-xs uppercase tracking-wide opacity-80">{label}</p>
+      <p className="mt-2 text-2xl font-semibold">{value}</p>
+    </div>
   )
 }
