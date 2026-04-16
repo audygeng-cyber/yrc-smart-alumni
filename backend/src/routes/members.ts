@@ -19,6 +19,38 @@ membersRouter.get('/', (_req, res) => {
 })
 
 /**
+ * โหลดข้อมูลสมาชิกจาก line_uid ที่ผูกไว้แล้ว — ใช้กู้ session ฝั่ง frontend หลัง refresh
+ * Body: { line_uid }
+ */
+membersRouter.post('/session-member', async (req, res) => {
+  try {
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
+    if (!line_uid) {
+      res.status(400).json({ error: 'line_uid is required' })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: row, error } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
+
+    if (error) {
+      res.status(500).json({ error: 'Lookup failed', details: error })
+      return
+    }
+    if (!row?.id) {
+      res.status(404).json({ code: 'MEMBER_NOT_LINKED', error: 'ยังไม่พบสมาชิกที่ผูก Line UID นี้' })
+      return
+    }
+
+    const full = await fetchMemberRowById(supabase, row.id as string)
+    res.json({ ok: true, memberId: row.id, member: full })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+/**
  * ผูก Line UID กับสมาชิกที่มีอยู่แล้ว (กฎ: รุ่น + ชื่อ + นามสกุล ตรงกันหนึ่งแถวเท่านั้น)
  * แนะนำให้ได้ line_uid จาก POST /api/auth/line/token (ตรวจ id_token กับ LINE แล้ว)
  */

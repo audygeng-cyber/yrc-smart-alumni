@@ -41,6 +41,7 @@ export default function App() {
   const [lineUid, setLineUid] = useState(readLineUid)
   const [lineUidFromOAuth, setLineUidFromOAuth] = useState(readLineFromOAuth)
   const [verifiedMember, setVerifiedMember] = useState<Record<string, unknown> | null>(getInitialVerifiedMember)
+  const [restoringMemberSession, setRestoringMemberSession] = useState(false)
 
   useEffect(() => {
     fetch(`${apiBase}/health`)
@@ -61,6 +62,35 @@ export default function App() {
     }
     if (!uid) setVerifiedMember(null)
   }, [lineUid])
+
+  useEffect(() => {
+    if (!lineUid.trim() || verifiedMember) return
+
+    let cancelled = false
+    ;(async () => {
+      setRestoringMemberSession(true)
+      try {
+        const r = await fetch(`${apiBase}/api/members/session-member`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ line_uid: lineUid.trim() }),
+        })
+        const j = (await r.json().catch(() => ({}))) as { member?: Record<string, unknown> }
+        if (cancelled || !r.ok || !j.member) return
+        setMemberSnapshot(j.member)
+        setVerifiedMember(j.member)
+        setTab('member')
+      } catch (e) {
+        console.error(e)
+      } finally {
+        if (!cancelled) setRestoringMemberSession(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [lineUid, verifiedMember])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -198,16 +228,23 @@ export default function App() {
         {tab === 'requests' && <MemberRequestsPanel apiBase={apiBase} />}
 
         {tab === 'link' && (
-          <MemberLinkPanel
-            apiBase={apiBase}
-            lineUid={lineUid}
-            lineUidFromOAuth={lineUidFromOAuth}
-            onLineUidChange={handleLineUidManualChange}
-            onClearLineSession={handleClearLineSession}
-            lineLoginAvailable={Boolean(lineChannelId && lineRedirectUri)}
-            onStartLineLogin={startLineLogin}
-            onMemberVerified={handleMemberVerified}
-          />
+          <>
+            {restoringMemberSession ? (
+              <section className="mb-4 rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-4 text-sm text-emerald-100/90">
+                กำลังกู้ session สมาชิกจาก LINE UID...
+              </section>
+            ) : null}
+            <MemberLinkPanel
+              apiBase={apiBase}
+              lineUid={lineUid}
+              lineUidFromOAuth={lineUidFromOAuth}
+              onLineUidChange={handleLineUidManualChange}
+              onClearLineSession={handleClearLineSession}
+              lineLoginAvailable={Boolean(lineChannelId && lineRedirectUri)}
+              onStartLineLogin={startLineLogin}
+              onMemberVerified={handleMemberVerified}
+            />
+          </>
         )}
 
         {tab === 'member' &&

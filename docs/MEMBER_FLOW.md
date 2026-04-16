@@ -8,11 +8,13 @@
    - ไม่พบ → แสดง **สมัครใหม่ (คำร้อง)** กรอกฟิลด์เดียวกันตามหัวตาราง + ส่งคำร้อง  
 3. **หน้าสมาชิก** — หัวข้อย่อย: เปลี่ยนแปลงข้อมูลสมาชิก (ใช้ `update-self`), กิจกรรมโรงเรียน, สมาชิกศิษย์เก่า, กิจกรรมสมาคม, โรงเรียนกวดวิชา — สี่หัวข้อหลังเป็นโครง placeholder รอพัฒนาต่อ (ทุน/บริจาค/แดชบอร์ด ฯลฯ)  
 4. **บันทึกข้อมูลเพิ่มเติม** → `POST /api/members/update-self` (ต้องผูก `line_uid` แล้ว)
+5. **กู้ session หลัง refresh** — ถ้ามี `line_uid` อยู่แล้วแต่ไม่มี snapshot ฝั่งหน้าเว็บ ระบบจะเรียก API เพื่อโหลดข้อมูลสมาชิกกลับมาอัตโนมัติ
 
 ## API
 
 | Method | Path | หมายเหตุ |
 |--------|------|-----------|
+| POST | `/api/members/session-member` | Body: `{ "line_uid": "..." }` — โหลดข้อมูลสมาชิกที่ผูก LINE ไว้แล้ว |
 | POST | `/api/members/verify-link` | ตอบ `member` ทั้งแถวเมื่อผูกสำเร็จ |
 | POST | `/api/members/update-self` | Body: `{ "line_uid", "updates": { "เบอร์โทรศัพท์": "..." } }` |
 | POST | `/api/members/register-request` | Body รวม `batch`, `first_name`, `last_name`, `line_uid` และหัวภาษาไทยอื่น |
