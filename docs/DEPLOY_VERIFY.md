@@ -113,6 +113,8 @@ npm run verify:line -- https://<CLOUD_RUN_URL> https://<VERCEL_FRONTEND_URL>
 
 ## ขั้น 5 — LINE Login (ถ้าเปิดใช้)
 
+คู่มือเจาะจง (ตาราง URL ให้ตรงทุกที่ + ตัวอย่าง production): [`LINE_LOGIN_CHECKLIST.md`](./LINE_LOGIN_CHECKLIST.md)
+
 1. บน Cloud Run ใส่ **`LINE_CHANNEL_ID`**, **`LINE_CHANNEL_SECRET`**, **`LINE_REDIRECT_URIS`** (คั่นหลาย URL ด้วย comma — ถ้าใช้ `gcloud` บน Windows ค่ามี comma อาจต้องแก้ใน **Google Cloud Console** แทนการพิมพ์บรรทัดเดียว)
 2. บน Vercel ใส่ **`VITE_LINE_CHANNEL_ID`**, **`VITE_LINE_REDIRECT_URI`** ให้ **ตรงกับหนึ่งในค่าใน `LINE_REDIRECT_URIS`** (รวมว่ามี `/` ท้ายหรือไม่ — ต้องตรงทุกที่)
 3. [LINE Developers](https://developers.line.biz/) → Channel LINE Login → **Callback URL** = URL เดียวกับ `VITE_LINE_REDIRECT_URI`

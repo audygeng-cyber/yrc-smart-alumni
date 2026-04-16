@@ -176,5 +176,5 @@ docker build -t gcr.io/PROJECT_ID/yrc-api:latest .
 - อัปเดต `VITE_API_URL` บน Vercel  
 - อัปเดต `FRONTEND_ORIGINS` บน Cloud Run  
 - ตรวจ LINE / LINE Login callback ให้ตรงโดเมนใหม่  
-- **เช็คลิสต์ทีละขั้น (Cloud Run + Vercel + Supabase + LINE + Push):** [`docs/DEPLOY_VERIFY.md`](docs/DEPLOY_VERIFY.md)  
-- **ทดสอบหลัง deploy แบบ CLI:** `npm run verify:deploy -- <URL_API> <URL_Vercel>` — แบบละเอียด: `npm run verify:deploy:deep -- …` — admin (ใส่ key ใน env): `npm run verify:admin` — LINE (ไม่ต้องใส่ secret): `npm run verify:line -- …` — รายการ migration: `npm run migrations:list` — หรือ GitHub **Actions → Verify production** (ดู `docs/DEPLOY_VERIFY.md`)
+- **เช็คลิสต์ทีละขั้น (Cloud Run + Vercel + Supabase + LINE + Push):** [`docs/DEPLOY_VERIFY.md`](docs/DEPLOY_VERIFY.md) — **LINE Login แบบเจาะจง:** [`docs/LINE_LOGIN_CHECKLIST.md`](docs/LINE_LOGIN_CHECKLIST.md)  
+- **ทดสอบหลัง deploy แบบ CLI:** `npm run verify:deploy -- <URL_API> <URL_Vercel>` — แบบละเอียด: `npm run verify:deploy:deep -- …` — admin (ใส่ key ใน env): `npm run verify:admin` — LINE (ไม่ต้องใส่ secret): `npm run verify:line -- …` — ดู LINE env บน Cloud Run: `npm run line:show-env` — รายการ migration: `npm run migrations:list` — หรือ GitHub **Actions → Verify production** (ดู `docs/DEPLOY_VERIFY.md`)
