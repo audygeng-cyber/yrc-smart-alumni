@@ -395,6 +395,15 @@ export function AdminFinancePanel({ apiBase }: Props) {
       return `${item.at} ${item.atLabel} ${item.level} ${item.message}`.toLowerCase().includes(keyword)
     })
   }, [activityFilter, activityLog, activitySearch])
+  const activityCounts = useMemo(
+    () => ({
+      all: activityLog.length,
+      info: activityLog.filter((item) => item.level === 'info').length,
+      warn: activityLog.filter((item) => item.level === 'warn').length,
+      error: activityLog.filter((item) => item.level === 'error').length,
+    }),
+    [activityLog],
+  )
   const reportKeywordNorm = useMemo(() => reportKeyword.trim().toLowerCase(), [reportKeyword])
   const sortArrow = (active: boolean, dir: SortDirection) => (active ? (dir === 'asc' ? ' ↑' : ' ↓') : '')
 
@@ -1362,16 +1371,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <p className="font-medium text-slate-200">Activity Log (ล่าสุด 20)</p>
-            <select
-              value={activityFilter}
-              onChange={(e) => setActivityFilter(e.target.value as ActivityFilter)}
-              className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200"
-            >
-              <option value="all">all</option>
-              <option value="info">info</option>
-              <option value="warn">warn</option>
-              <option value="error">error</option>
-            </select>
             <input
               type="text"
               value={activitySearch}
@@ -1396,6 +1395,25 @@ export function AdminFinancePanel({ apiBase }: Props) {
               Clear
             </button>
           </div>
+        </div>
+        <div className="mb-2 flex flex-wrap gap-2">
+          {([
+            ['all', activityCounts.all, 'bg-slate-800 text-slate-100'],
+            ['info', activityCounts.info, 'bg-emerald-900/70 text-emerald-200'],
+            ['warn', activityCounts.warn, 'bg-amber-900/70 text-amber-200'],
+            ['error', activityCounts.error, 'bg-rose-900/70 text-rose-200'],
+          ] as const).map(([level, count, color]) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => setActivityFilter(level)}
+              className={`rounded px-2 py-1 text-[11px] ${
+                activityFilter === level ? `${color} ring-1 ring-white/30` : color
+              }`}
+            >
+              {level}: {count}
+            </button>
+          ))}
         </div>
         {filteredActivityLog.length === 0 ? (
           <p className="text-[11px] text-slate-500">ยังไม่มีเหตุการณ์</p>
