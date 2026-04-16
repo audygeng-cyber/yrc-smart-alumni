@@ -37,6 +37,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [pendingIncrease, setPendingIncrease] = useState(0)
   const [newRowIds, setNewRowIds] = useState<string[]>([])
   const [quickView, setQuickView] = useState<QuickView>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const summary = useMemo(() => {
     const counts = {
@@ -73,15 +74,20 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
   const pendingTotal = summary.pending_president + summary.pending_admin
   const newRowIdSet = useMemo(() => new Set(newRowIds), [newRowIds])
+  const searchQueryTrimmed = searchQuery.trim().toLowerCase()
   const filteredRows = useMemo(() => {
+    let nextRows = rows
+
     if (quickView === 'new') {
-      return rows.filter((row) => newRowIdSet.has(row.id))
+      nextRows = nextRows.filter((row) => newRowIdSet.has(row.id))
+    } else if (quickView === 'pending') {
+      nextRows = nextRows.filter((row) => row.status === 'pending_president' || row.status === 'pending_admin')
     }
-    if (quickView === 'pending') {
-      return rows.filter((row) => row.status === 'pending_president' || row.status === 'pending_admin')
-    }
-    return rows
-  }, [newRowIdSet, quickView, rows])
+
+    if (!searchQueryTrimmed) return nextRows
+
+    return nextRows.filter((row) => buildRequestSearchText(row).includes(searchQueryTrimmed))
+  }, [newRowIdSet, quickView, rows, searchQueryTrimmed])
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
@@ -308,6 +314,15 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           />
         </label>
         <label className="text-sm text-slate-300">
+          ค้นหาในคำร้อง
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="line_uid / รุ่น / ชื่อ / นามสกุล"
+            className="mt-1 block w-64 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-violet-600"
+          />
+        </label>
+        <label className="text-sm text-slate-300">
           Auto refresh ทุก
           <select
             value={String(autoRefreshMs)}
@@ -528,7 +543,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
       {filteredRows.length === 0 && !loading && (
         <p className="mt-6 text-center text-sm text-slate-500">
-          {rows.length === 0 ? 'ไม่มีรายการ (หรือยังไม่ได้กดโหลด)' : 'ไม่มีรายการที่ตรงกับ quick filter ปัจจุบัน'}
+          {rows.length === 0
+            ? 'ไม่มีรายการ (หรือยังไม่ได้กดโหลด)'
+            : 'ไม่มีรายการที่ตรงกับ quick filter หรือคำค้นปัจจุบัน'}
         </p>
       )}
 
@@ -539,6 +556,27 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       )}
     </section>
   )
+}
+
+function buildRequestSearchText(row: RequestRow): string {
+  const requested = row.requested_data ?? {}
+  const rawParts = [
+    row.id,
+    row.line_uid ?? '',
+    row.status,
+    row.request_type,
+    pickRequestedText(requested, 'batch'),
+    pickRequestedText(requested, 'first_name'),
+    pickRequestedText(requested, 'last_name'),
+    JSON.stringify(requested),
+  ]
+
+  return rawParts.join(' ').toLowerCase()
+}
+
+function pickRequestedText(requested: Record<string, unknown>, key: string): string {
+  const value = requested[key]
+  return typeof value === 'string' ? value : ''
 }
 
 function SummaryCard({
