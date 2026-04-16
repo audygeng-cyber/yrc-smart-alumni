@@ -775,6 +775,47 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setMsg(`กรองรายการหลักเป็น request ${requestId}`)
   }
 
+  function runSelectedRequestAction(intent: ReviewIntent) {
+    if (!selectedRequest) return
+
+    const draft = decisionCommentDraft.trim()
+
+    if (intent === 'approve') {
+      if (selectedRequest.status === 'pending_president') {
+        void callAction(
+          `/${selectedRequest.id}/president-approve`,
+          { approved_by: 'ประธานรุ่น', comment: draft || undefined },
+          'president-or-admin',
+        )
+        return
+      }
+
+      if (selectedRequest.status === 'pending_admin') {
+        void callAction(
+          `/${selectedRequest.id}/admin-approve`,
+          { approved_by: 'Admin', comment: draft || undefined },
+          'admin-only',
+        )
+        return
+      }
+    }
+
+    if (intent === 'reject' && isPendingRequestStatus(selectedRequest.status)) {
+      void callAction(
+        `/${selectedRequest.id}/reject`,
+        {
+          rejected_by: selectedRequest.status === 'pending_president' ? 'ประธานรุ่น' : 'Admin',
+          reason: draft || 'ปฏิเสธ',
+          comment: draft || undefined,
+        },
+        'president-or-admin',
+      )
+      return
+    }
+
+    setMsg(`คำร้อง ${selectedRequest.id} ไม่อยู่ในสถานะที่ทำ ${intent} ได้`)
+  }
+
   return (
     <section className="rounded-xl border border-violet-900/40 bg-violet-950/20 p-6">
       <h2 className="text-sm font-medium uppercase tracking-wide text-violet-200/90">
@@ -1524,6 +1565,64 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                 placeholder="ใช้เป็น comment ตอน approve หรือใช้เป็นเหตุผลตอน reject"
               />
             </label>
+            {isPendingRequestStatus(selectedRequest.status) ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {reviewIntent === 'approve' ? (
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => runSelectedRequestAction('approve')}
+                    className={`rounded px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50 ${
+                      selectedRequest.status === 'pending_president' ? 'bg-amber-800 hover:bg-amber-700' : 'bg-emerald-800 hover:bg-emerald-700'
+                    }`}
+                  >
+                    {selectedRequest.status === 'pending_president' ? 'approve with draft (president)' : 'approve with draft (admin)'}
+                  </button>
+                ) : null}
+                {reviewIntent === 'reject' ? (
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => runSelectedRequestAction('reject')}
+                    className="rounded border border-red-800 px-3 py-1.5 text-xs font-medium text-red-200 hover:bg-red-950/30 disabled:opacity-50"
+                  >
+                    reject with draft
+                  </button>
+                ) : null}
+                {!reviewIntent ? (
+                  <>
+                    {selectedRequest.status === 'pending_president' ? (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => runSelectedRequestAction('approve')}
+                        className="rounded bg-amber-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                      >
+                        อนุมัติ (ประธานรุ่น)
+                      </button>
+                    ) : null}
+                    {selectedRequest.status === 'pending_admin' ? (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => runSelectedRequestAction('approve')}
+                        className="rounded bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        อนุมัติ (Admin)
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => runSelectedRequestAction('reject')}
+                      className="rounded border border-red-800 px-3 py-1.5 text-xs font-medium text-red-200 hover:bg-red-950/30 disabled:opacity-50"
+                    >
+                      ปฏิเสธ
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-5">
