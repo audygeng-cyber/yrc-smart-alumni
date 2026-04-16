@@ -98,12 +98,14 @@ export async function tryPlTotalsForLegalEntityMonth(
   }
 }
 
-/** ลองใช้นิติบุคคล `association` ก่อน — ไม่มีตาราง/ไม่มีข้อมูล → null */
-export async function tryAssociationMonthlyPlFromJournal(supabase: SupabaseClient): Promise<PlTotals | null> {
+export async function tryMonthlyPlFromJournalByEntityCode(
+  supabase: SupabaseClient,
+  entityCode: 'association' | 'cram_school',
+): Promise<PlTotals | null> {
   const { data: entity, error: entErr } = await supabase
     .from('legal_entities')
     .select('id')
-    .eq('code', 'association')
+    .eq('code', entityCode)
     .maybeSingle()
   if (entErr || !entity?.id) return null
 
@@ -113,4 +115,14 @@ export async function tryAssociationMonthlyPlFromJournal(supabase: SupabaseClien
     fromDate,
     toDate,
   })
+}
+
+/** นิติบุคคลสมาคม — ไม่มีตาราง/ไม่มี journal ในช่วง → null */
+export async function tryAssociationMonthlyPlFromJournal(supabase: SupabaseClient): Promise<PlTotals | null> {
+  return tryMonthlyPlFromJournalByEntityCode(supabase, 'association')
+}
+
+/** โรงเรียนกวดวิชา — แยกจากสมาคม */
+export async function tryCramSchoolMonthlyPlFromJournal(supabase: SupabaseClient): Promise<PlTotals | null> {
+  return tryMonthlyPlFromJournalByEntityCode(supabase, 'cram_school')
 }

@@ -113,4 +113,6 @@ export const academyPortalPayload = {
     { label: 'ชำระเงิน', value: 78 },
     { label: 'เข้าเรียนแล้ว', value: 71 },
   ],
+  /** มีเมื่อมี journal เดือนนี้ของนิติบุคคล cram_school */
+  cramSchoolMonthlyPl: null,
 } as const

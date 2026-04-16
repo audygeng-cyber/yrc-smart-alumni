@@ -47,6 +47,8 @@ export type AcademyPortalData = {
   roleCards: Record<AcademyRoleView, MetricItem[]>
   classes: AcademyClassItem[]
   enrollmentFunnel: TrendItem[]
+  /** P/L เดือนนี้จาก journal นิติบุคคล cram_school — null ถ้ายังไม่มีรายการ */
+  cramSchoolMonthlyPl: { revenue: number; expense: number; netIncome: number } | null
 }
 
 export type PortalDataState<TData> = {
@@ -85,6 +87,7 @@ const academyPortalMockData: AcademyPortalData = {
   roleCards: academyRoleCards,
   classes: academyClasses,
   enrollmentFunnel: academyEnrollmentFunnel,
+  cramSchoolMonthlyPl: null,
 }
 
 async function loadPortalData<TData>(params: { apiBase: string; endpoint: string; fallback: TData }): Promise<{ data: TData; source: PortalDataSource }> {

@@ -51,6 +51,7 @@ describe.sequential('createApp', () => {
     expect(res.status).toBe(200)
     expect(res.body.roleCards?.admin?.length).toBeGreaterThan(0)
     expect(Array.isArray(res.body.classes)).toBe(true)
+    expect(Object.prototype.hasOwnProperty.call(res.body, 'cramSchoolMonthlyPl')).toBe(true)
   })
 
   it('CORS allows default dev origin localhost:5173', async () => {

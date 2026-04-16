@@ -106,6 +106,27 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: Ac
           : 'ผู้ปกครองเห็นข้อมูลของบุตรหลานและความคืบหน้า'
 
   const roleCards = props.portalData.roleCards[props.roleView]
+  const cramPl = props.portalData.cramSchoolMonthlyPl
+  const cramFinanceCards =
+    cramPl !== null
+      ? [
+          {
+            label: 'รายรับ (cram_school)',
+            value: fmtThbShort(cramPl.revenue),
+            hint: 'จากบัญชีแยกประเภท — journal เดือนนี้',
+          },
+          {
+            label: 'รายจ่าย (cram_school)',
+            value: fmtThbShort(cramPl.expense),
+            hint: 'จากบัญชีแยกประเภท — journal เดือนนี้',
+          },
+          {
+            label: 'คงเหลือสุทธิ',
+            value: fmtThbShort(cramPl.netIncome),
+            hint: 'รายรับ − รายจ่าย (cram_school)',
+          },
+        ]
+      : []
 
   return (
     <div className="space-y-4">
@@ -114,6 +135,15 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: Ac
       </section>
       <MetricCards items={props.portalData.metricCards} />
       <MetricCards items={roleCards} />
+      {cramFinanceCards.length > 0 ? (
+        <section className="rounded-lg border border-violet-900/40 bg-violet-950/20 p-4">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-violet-200">การเงินโรงเรียนกวดวิชา (นิติบุคคล)</h3>
+          <p className="mt-1 text-xs text-violet-300/80">ยอดจาก journal เดือนปัจจุบัน — แยกจากสมาคมศิษย์เก่า</p>
+          <div className="mt-3">
+            <MetricCards items={cramFinanceCards} />
+          </div>
+        </section>
+      ) : null}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ผลคะแนนเฉลี่ยตามห้อง</h3>
@@ -152,6 +182,10 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: Ac
       />
     </div>
   )
+}
+
+function fmtThbShort(n: number) {
+  return `฿ ${Math.round(n).toLocaleString('en-US')}`
 }
 
 function NotFoundInline() {

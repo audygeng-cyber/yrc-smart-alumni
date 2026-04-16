@@ -4,7 +4,7 @@ import {
   committeePortalPayload,
   memberPortalPayload,
 } from '../data/portalSnapshot.js'
-import { tryAssociationMonthlyPlFromJournal } from './plFromJournal.js'
+import { tryAssociationMonthlyPlFromJournal, tryCramSchoolMonthlyPlFromJournal } from './plFromJournal.js'
 
 /** โครงเดียวกับ snapshot แต่ mutable (ไม่ใช่ readonly จาก `as const`) */
 type MetricCard = { label: string; value: string; hint: string }
@@ -39,6 +39,7 @@ type AcademyPortalMerged = {
   }
   classes: { room: string; students: number; avgScore: number }[]
   enrollmentFunnel: TrendItem[]
+  cramSchoolMonthlyPl: { revenue: number; expense: number; netIncome: number } | null
 }
 
 function cloneMemberPayload(): MemberPortalMerged {
@@ -315,6 +316,28 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
   base.roleCards.student[0] = { ...base.roleCards.student[0], value: fmtInt(students ?? 0) }
   base.roleCards.parent[0] = { ...base.roleCards.parent[0], value: fmtInt(parents ?? 0) }
   base.roleCards.admin[0] = { ...base.roleCards.admin[0], value: fmtInt(execs ?? 0) }
+
+  const cramPl = await tryCramSchoolMonthlyPlFromJournal(supabase)
+  base.cramSchoolMonthlyPl = cramPl
+
+  const { data: actRows, error: actErr } = await supabase.from('school_activities').select('category').eq('active', true)
+  if (!actErr && actRows && actRows.length > 0) {
+    const cats = new Set(
+      (actRows as { category: string }[])
+        .map((r) => String(r.category ?? '').trim())
+        .filter((c) => c.length > 0),
+    )
+    base.metricCards[1] = {
+      ...base.metricCards[1],
+      value: fmtInt(Math.max(cats.size, 1)),
+      hint: 'จำนวนหมวดคอร์สที่แตกต่าง (school_activities ที่ active)',
+    }
+    base.metricCards[2] = {
+      ...base.metricCards[2],
+      value: fmtInt(actRows.length),
+      hint: 'จำนวนรายการคอร์ส/กิจกรรมที่เปิด (school_activities)',
+    }
+  }
 
   return base
 }
