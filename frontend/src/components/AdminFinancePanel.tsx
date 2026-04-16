@@ -919,6 +919,26 @@ export function AdminFinancePanel({ apiBase }: Props) {
     addActivity('info', `Export Activity Log CSV (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''})`)
   }
 
+  async function copyActivityFilterSummary() {
+    const summary = [
+      'YRC Finance Activity Log View',
+      `filter=${activityFilter}`,
+      `keyword=${activitySearchTrimmed || '-'}`,
+      `visible_count=${filteredActivityLog.length}`,
+      `total_count=${activityLog.length}`,
+      `copied_at=${new Date().toLocaleString()}`,
+    ].join(' | ')
+
+    try {
+      await navigator.clipboard.writeText(summary)
+      setMsg('คัดลอกสรุป current activity filter แล้ว')
+      addActivity('info', `Copy Activity Filter Summary (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''})`)
+    } catch {
+      setMsg(`คัดลอกไม่สำเร็จ\n${summary}`)
+      addActivity('warn', 'Copy Activity Filter Summary ไม่สำเร็จ')
+    }
+  }
+
   async function loadOverviewAndAccounts() {
     if (!adminKey.trim()) {
       setMsg('ใส่ x-admin-key ก่อน')
@@ -1418,6 +1438,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
             />
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={copyActivityFilterSummary}
+              className="rounded bg-cyan-700 px-2 py-1 text-[11px] text-white hover:bg-cyan-600"
+            >
+              Copy Summary
+            </button>
             <button
               type="button"
               onClick={exportActivityLogCsv}
