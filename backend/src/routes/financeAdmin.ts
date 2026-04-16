@@ -442,6 +442,70 @@ financeAdminRouter.get('/exports/payment-requests.csv', async (_req, res) => {
   }
 })
 
+financeAdminRouter.get('/exports/meeting-sessions.csv', async (_req, res) => {
+  try {
+    const supabase = getServiceSupabase()
+
+    const { data: entities } = await supabase.from('legal_entities').select('id,code')
+    const entityCodeById = new Map<string, string>()
+    for (const e of entities ?? []) entityCodeById.set(String(e.id), String(e.code))
+
+    const { data: sessions, error: sErr } = await supabase
+      .from('meeting_sessions')
+      .select('id,legal_entity_id,title,expected_participants,meeting_at,created_by,created_at')
+      .order('created_at', { ascending: false })
+    if (sErr) {
+      res.status(500).json({ error: 'Load meeting_sessions failed', details: sErr })
+      return
+    }
+
+    const sessionIds = (sessions ?? []).map((s) => String(s.id))
+    const attendeesBySession = new Map<string, number>()
+    if (sessionIds.length > 0) {
+      const { data: attendance, error: aErr } = await supabase
+        .from('meeting_attendance')
+        .select('meeting_session_id')
+        .in('meeting_session_id', sessionIds)
+      if (aErr) {
+        res.status(500).json({ error: 'Load meeting_attendance failed', details: aErr })
+        return
+      }
+      for (const a of attendance ?? []) {
+        const key = String(a.meeting_session_id)
+        attendeesBySession.set(key, (attendeesBySession.get(key) ?? 0) + 1)
+      }
+    }
+
+    const rows = (sessions ?? []).map((s) => {
+      const expected = Number(s.expected_participants ?? 0)
+      const attendees = attendeesBySession.get(String(s.id)) ?? 0
+      const quorumNeed = quorumRequired(expected)
+      const majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
+      return {
+        meeting_session_id: s.id,
+        legal_entity_code: entityCodeById.get(String(s.legal_entity_id ?? '')) ?? '',
+        title: s.title,
+        meeting_at: s.meeting_at,
+        expected_participants: expected,
+        attendees,
+        quorum_required: quorumNeed,
+        quorum_met: attendees >= quorumNeed,
+        majority_required: majorityNeed,
+        created_by: s.created_by,
+        created_at: s.created_at,
+      }
+    })
+
+    const csv = rowsToCsv(rows)
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', 'attachment; filename="finance-meeting-sessions.csv"')
+    res.send(csv)
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
 financeAdminRouter.post('/payment-requests', async (req, res) => {
   try {
     const legal_entity_code =

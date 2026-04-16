@@ -434,6 +434,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
         >
           Export Payment Requests CSV
         </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => downloadCsv('/api/admin/finance/exports/meeting-sessions.csv', 'finance-meeting-sessions.csv')}
+          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+        >
+          Export Meeting Sessions CSV
+        </button>
       </div>
 
       <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
