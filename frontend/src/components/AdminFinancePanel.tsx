@@ -418,6 +418,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
     if (activityLimit === 'all') return filteredActivityLog
     return filteredActivityLog.slice(0, activityLimit)
   }, [activityLimit, filteredActivityLog])
+  const activitySnapshotAt = useMemo(
+    () => visibleActivityLog[0]?.atLabel ?? '-',
+    [visibleActivityLog],
+  )
   const activityCounts = useMemo(
     () => ({
       all: activityLog.length,
@@ -1547,6 +1551,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">limit: {String(activityLimit)}</span>
           <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
             visible: {visibleActivityLog.length}
+          </span>
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
+            snapshot: {activitySnapshotAt}
           </span>
         </div>
         <div className="mb-2 flex flex-wrap gap-2">
