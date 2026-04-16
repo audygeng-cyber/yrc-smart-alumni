@@ -26,6 +26,22 @@ async function countMeetingAttendance(supabase: SupabaseClient, meetingSessionId
   return (data ?? []).length
 }
 
+function csvEscape(value: unknown): string {
+  const s = value == null ? '' : String(value)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+function rowsToCsv(rows: Record<string, unknown>[]): string {
+  if (!rows.length) return ''
+  const headers = Object.keys(rows[0] ?? {})
+  const lines = [headers.join(',')]
+  for (const row of rows) {
+    lines.push(headers.map((h) => csvEscape(row[h])).join(','))
+  }
+  return `\uFEFF${lines.join('\n')}\n`
+}
+
 financeAdminRouter.get('/bank-accounts', async (req, res) => {
   try {
     const legalEntityCode =
@@ -248,6 +264,178 @@ financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
         netIncome: revenue - expense,
       },
     })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+financeAdminRouter.get('/reports/donations', async (_req, res) => {
+  try {
+    const supabase = getServiceSupabase()
+    const { data: entities, error: eErr } = await supabase.from('legal_entities').select('id,code,name_th')
+    if (eErr) {
+      res.status(500).json({ error: 'Load legal_entities failed', details: eErr })
+      return
+    }
+    const entityCodeById = new Map<string, string>()
+    for (const e of entities ?? []) entityCodeById.set(String(e.id), String(e.code))
+
+    const { data: donations, error: dErr } = await supabase
+      .from('donations')
+      .select('id,legal_entity_id,batch,amount,member_id,app_user_id,created_at')
+      .order('created_at', { ascending: false })
+    if (dErr) {
+      res.status(500).json({ error: 'Load donations failed', details: dErr })
+      return
+    }
+
+    const memberIds = Array.from(
+      new Set((donations ?? []).map((d) => (d.member_id == null ? '' : String(d.member_id))).filter(Boolean)),
+    )
+    const memberNameById = new Map<string, string>()
+    if (memberIds.length > 0) {
+      const { data: members, error: mErr } = await supabase
+        .from('members')
+        .select('id,first_name,last_name,batch')
+        .in('id', memberIds)
+      if (mErr) {
+        res.status(500).json({ error: 'Load members for donations failed', details: mErr })
+        return
+      }
+      for (const m of members ?? []) {
+        const name = [m.first_name, m.last_name].filter(Boolean).join(' ').trim() || '(ไม่ทราบชื่อ)'
+        const batch = m.batch ? ` รุ่น ${m.batch}` : ''
+        memberNameById.set(String(m.id), `${name}${batch}`)
+      }
+    }
+
+    const byBatch = new Map<string, number>()
+    const byEntity = new Map<string, number>()
+    const byDonor = new Map<string, { donorLabel: string; totalAmount: number; count: number }>()
+    for (const d of donations ?? []) {
+      const amount = Number(d.amount ?? 0)
+      const batch = typeof d.batch === 'string' && d.batch.trim() ? d.batch.trim() : '(ไม่ระบุรุ่น)'
+      byBatch.set(batch, (byBatch.get(batch) ?? 0) + amount)
+
+      const eId = String(d.legal_entity_id ?? '')
+      const eCode = entityCodeById.get(eId) ?? '(unknown)'
+      byEntity.set(eCode, (byEntity.get(eCode) ?? 0) + amount)
+
+      const memberId = d.member_id == null ? '' : String(d.member_id)
+      const donorKey = memberId || (d.app_user_id == null ? '' : String(d.app_user_id)) || `donation:${String(d.id)}`
+      const donorLabel = memberId
+        ? memberNameById.get(memberId) ?? `member:${memberId.slice(0, 8)}`
+        : d.app_user_id
+          ? `app_user:${String(d.app_user_id).slice(0, 8)}`
+          : 'unknown'
+      const cur = byDonor.get(donorKey) ?? { donorLabel, totalAmount: 0, count: 0 }
+      cur.totalAmount += amount
+      cur.count += 1
+      byDonor.set(donorKey, cur)
+    }
+
+    const byBatchRows = Array.from(byBatch.entries())
+      .map(([batch, totalAmount]) => ({ batch, totalAmount }))
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+    const byEntityRows = Array.from(byEntity.entries())
+      .map(([legalEntityCode, totalAmount]) => ({ legalEntityCode, totalAmount }))
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+    const byDonorRows = Array.from(byDonor.values()).sort((a, b) => b.totalAmount - a.totalAmount)
+
+    res.json({
+      ok: true,
+      totals: {
+        donations: (donations ?? []).length,
+        totalAmount: (donations ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0),
+      },
+      byBatch: byBatchRows,
+      byEntity: byEntityRows,
+      byDonor: byDonorRows,
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+financeAdminRouter.get('/exports/donations.csv', async (_req, res) => {
+  try {
+    const supabase = getServiceSupabase()
+    const { data: entities } = await supabase.from('legal_entities').select('id,code')
+    const entityCodeById = new Map<string, string>()
+    for (const e of entities ?? []) entityCodeById.set(String(e.id), String(e.code))
+
+    const { data: donations, error } = await supabase
+      .from('donations')
+      .select('id,created_at,legal_entity_id,batch,amount,member_id,app_user_id,slip_file_url,note')
+      .order('created_at', { ascending: false })
+    if (error) {
+      res.status(500).json({ error: 'Load donations failed', details: error })
+      return
+    }
+
+    const rows = (donations ?? []).map((d) => ({
+      donation_id: d.id,
+      created_at: d.created_at,
+      legal_entity_code: entityCodeById.get(String(d.legal_entity_id ?? '')) ?? '',
+      batch: d.batch,
+      amount: d.amount,
+      member_id: d.member_id,
+      app_user_id: d.app_user_id,
+      slip_file_url: d.slip_file_url,
+      note: d.note,
+    }))
+    const csv = rowsToCsv(rows)
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', 'attachment; filename="finance-donations.csv"')
+    res.send(csv)
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+financeAdminRouter.get('/exports/payment-requests.csv', async (_req, res) => {
+  try {
+    const supabase = getServiceSupabase()
+    const { data: entities } = await supabase.from('legal_entities').select('id,code')
+    const entityCodeById = new Map<string, string>()
+    for (const e of entities ?? []) entityCodeById.set(String(e.id), String(e.code))
+
+    const { data: reqs, error } = await supabase
+      .from('payment_requests')
+      .select(
+        'id,requested_at,legal_entity_id,bank_account_id,meeting_session_id,purpose,amount,currency,approval_rule,required_role_code,required_approvals,status,requested_by,kbiz_transfer_ref,transfer_slip_file_url,note',
+      )
+      .order('requested_at', { ascending: false })
+    if (error) {
+      res.status(500).json({ error: 'Load payment_requests failed', details: error })
+      return
+    }
+
+    const rows = (reqs ?? []).map((r) => ({
+      payment_request_id: r.id,
+      requested_at: r.requested_at,
+      legal_entity_code: entityCodeById.get(String(r.legal_entity_id ?? '')) ?? '',
+      bank_account_id: r.bank_account_id,
+      meeting_session_id: r.meeting_session_id,
+      purpose: r.purpose,
+      amount: r.amount,
+      currency: r.currency,
+      approval_rule: r.approval_rule,
+      required_role_code: r.required_role_code,
+      required_approvals: r.required_approvals,
+      status: r.status,
+      requested_by: r.requested_by,
+      kbiz_transfer_ref: r.kbiz_transfer_ref,
+      transfer_slip_file_url: r.transfer_slip_file_url,
+      note: r.note,
+    }))
+    const csv = rowsToCsv(rows)
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', 'attachment; filename="finance-payment-requests.csv"')
+    res.send(csv)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error'
     res.status(500).json({ error: message })

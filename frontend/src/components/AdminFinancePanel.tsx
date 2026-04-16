@@ -50,6 +50,13 @@ type PlSummaryPayload = {
   }[]
 }
 
+type DonationsReportPayload = {
+  totals: { donations: number; totalAmount: number }
+  byBatch: { batch: string; totalAmount: number }[]
+  byEntity: { legalEntityCode: string; totalAmount: number }[]
+  byDonor: { donorLabel: string; totalAmount: number; count: number }[]
+}
+
 function normalizeApiBase(base: string): string {
   return base.trim().replace(/\/+$/, '')
 }
@@ -87,6 +94,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [overview, setOverview] = useState<OverviewPayload | null>(null)
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [plSummary, setPlSummary] = useState<PlSummaryPayload | null>(null)
+  const [donationsReport, setDonationsReport] = useState<DonationsReportPayload | null>(null)
 
   const [meetingEntity, setMeetingEntity] = useState<'association' | 'cram_school'>('association')
   const [meetingTitle, setMeetingTitle] = useState('ประชุมพิจารณารายการจ่ายเงิน')
@@ -171,6 +179,55 @@ export function AdminFinancePanel({ apiBase }: Props) {
       if (!p.ok) return setMsg(formatFetchError('โหลด P/L summary', p.status, p.payload, p.rawText))
       setPlSummary((p.payload ?? null) as PlSummaryPayload | null)
       setMsg('โหลดรายงาน P/L แล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadDonationsReport() {
+    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/reports/donations`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลด donations dashboard', p.status, p.payload, p.rawText))
+      setDonationsReport((p.payload ?? null) as DonationsReportPayload | null)
+      setMsg('โหลด donations dashboard แล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function downloadCsv(path: string, filename: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}${path}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const blob = await r.blob()
+      if (!r.ok) {
+        const txt = await blob.text().catch(() => '')
+        setMsg(`ดาวน์โหลด ${filename} ไม่สำเร็จ — HTTP ${r.status}\n${txt}`)
+        return
+      }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      setMsg(`ดาวน์โหลด ${filename} แล้ว`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
     } finally {
@@ -351,6 +408,32 @@ export function AdminFinancePanel({ apiBase }: Props) {
         >
           โหลด P/L Summary
         </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={loadDonationsReport}
+          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+        >
+          โหลด Donations Dashboard
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => downloadCsv('/api/admin/finance/exports/donations.csv', 'finance-donations.csv')}
+          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+        >
+          Export Donations CSV
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() =>
+            downloadCsv('/api/admin/finance/exports/payment-requests.csv', 'finance-payment-requests.csv')
+          }
+          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+        >
+          Export Payment Requests CSV
+        </button>
       </div>
 
       <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
@@ -372,7 +455,51 @@ export function AdminFinancePanel({ apiBase }: Props) {
             {plSummary.totals.expense.toLocaleString()} | Net {plSummary.totals.netIncome.toLocaleString()}
           </p>
         ) : null}
+        {donationsReport ? (
+          <p className="mt-1">
+            Donations: {donationsReport.totals.donations} รายการ | Total{' '}
+            {donationsReport.totals.totalAmount.toLocaleString()}
+          </p>
+        ) : null}
       </div>
+
+      {plSummary ? (
+        <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
+          <p className="mb-2 font-medium">P/L Accounts (Top 10)</p>
+          <div className="grid grid-cols-4 gap-2 font-semibold text-slate-400">
+            <span>Code</span>
+            <span>Name</span>
+            <span>Type</span>
+            <span className="text-right">Net</span>
+          </div>
+          {plSummary.accountSummaries.slice(0, 10).map((r) => (
+            <div key={`${r.accountCode}:${r.accountName}`} className="grid grid-cols-4 gap-2 py-1">
+              <span>{r.accountCode}</span>
+              <span>{r.accountName}</span>
+              <span>{r.accountType}</span>
+              <span className="text-right">{r.net.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {donationsReport ? (
+        <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
+          <p className="mb-2 font-medium">Top Donors (Top 10)</p>
+          <div className="grid grid-cols-3 gap-2 font-semibold text-slate-400">
+            <span>Donor</span>
+            <span className="text-right">Count</span>
+            <span className="text-right">Amount</span>
+          </div>
+          {donationsReport.byDonor.slice(0, 10).map((r) => (
+            <div key={r.donorLabel} className="grid grid-cols-3 gap-2 py-1">
+              <span>{r.donorLabel}</span>
+              <span className="text-right">{r.count.toLocaleString()}</span>
+              <span className="text-right">{r.totalAmount.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-4">
