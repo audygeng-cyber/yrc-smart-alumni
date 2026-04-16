@@ -1,10 +1,60 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'yrc_admin_upload_key'
+const BATCH_ID_KEY = 'yrc_last_import_batch_id'
+
+function normalizeApiBase(base: string): string {
+  return base.trim().replace(/\/+$/, '')
+}
+
+/** อ่าน body เป็น text แล้ว parse JSON — ถ้าไม่ใช่ JSON จะได้ payload เป็น null แต่ยังมี status + rawText สำหรับ debug */
+async function readApiJson(r: Response): Promise<{
+  status: number
+  ok: boolean
+  payload: unknown
+  rawText: string
+}> {
+  const rawText = await r.text()
+  let payload: unknown = null
+  const trimmed = rawText.trim()
+  if (trimmed) {
+    try {
+      payload = JSON.parse(trimmed) as unknown
+    } catch {
+      payload = null
+    }
+  }
+  return { status: r.status, ok: r.ok, payload, rawText }
+}
+
+const MAX_ERR_SNIPPET = 800
+
+function formatFetchError(
+  label: string,
+  status: number,
+  payload: unknown,
+  rawText: string,
+): string {
+  const jsonPart =
+    payload !== null && payload !== undefined
+      ? JSON.stringify(payload, null, 2)
+      : '(ไม่ใช่ JSON หรือ body ว่าง)'
+  const snippet = rawText.trim()
+    ? rawText.length > MAX_ERR_SNIPPET
+      ? `${rawText.slice(0, MAX_ERR_SNIPPET)}…`
+      : rawText
+    : '(ไม่มี body)'
+  const hint404 =
+    status === 404
+      ? '\n\nถ้าเป็น 404: มักหมายความว่า API บน Cloud Run ยังไม่ได้ deploy เวอร์ชันที่มี GET /api/admin/members/summary — ให้ build + deploy backend รอบล่าสุดแล้วลองใหม่'
+      : ''
+  return `${label} ไม่สำเร็จ — HTTP ${status}\n${jsonPart}\n\nดิบจากเซิร์ฟเวอร์:\n${snippet}${hint404}`
+}
 
 type Props = { apiBase: string }
 
 export function AdminImportPanel({ apiBase }: Props) {
+  const base = normalizeApiBase(apiBase)
   const [adminKey, setAdminKey] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [lastImportBatchId, setLastImportBatchId] = useState<string | null>(null)
@@ -13,11 +63,20 @@ export function AdminImportPanel({ apiBase }: Props) {
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
+    setLastImportBatchId(sessionStorage.getItem(BATCH_ID_KEY))
   }, [])
 
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEY, adminKey)
   }, [adminKey])
+
+  useEffect(() => {
+    if (lastImportBatchId) {
+      sessionStorage.setItem(BATCH_ID_KEY, lastImportBatchId)
+    } else {
+      sessionStorage.removeItem(BATCH_ID_KEY)
+    }
+  }, [lastImportBatchId])
 
   async function upload() {
     if (!file || !adminKey.trim()) {
@@ -29,18 +88,19 @@ export function AdminImportPanel({ apiBase }: Props) {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const r = await fetch(`${apiBase}/api/admin/members/import`, {
+      const r = await fetch(`${base}/api/admin/members/import`, {
         method: 'POST',
         headers: { 'x-admin-key': adminKey.trim() },
         body: fd,
       })
-      const j = await r.json().catch(() => ({}))
-      if (!r.ok) {
-        setMsg(JSON.stringify(j, null, 2))
+      const { payload, rawText, ok } = await readApiJson(r)
+      if (!ok) {
+        setMsg(formatFetchError('นำเข้า', r.status, payload, rawText))
         return
       }
+      const j = payload as { importBatchId?: unknown; inserted?: unknown }
       setLastImportBatchId(typeof j.importBatchId === 'string' ? j.importBatchId : null)
-      setMsg(`สำเร็จ: importBatchId=${j.importBatchId} จำนวน ${j.inserted} แถว`)
+      setMsg(`สำเร็จ: importBatchId=${String(j.importBatchId)} จำนวน ${String(j.inserted)} แถว`)
       setFile(null)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
@@ -58,12 +118,17 @@ export function AdminImportPanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${apiBase}/api/admin/members/all`, {
+      const r = await fetch(`${base}/api/admin/members/all`, {
         method: 'DELETE',
         headers: { 'x-admin-key': adminKey.trim() },
       })
-      const j = await r.json().catch(() => ({}))
-      setMsg(r.ok ? 'ลบสมาชิกทั้งหมดแล้ว' : JSON.stringify(j, null, 2))
+      const { payload, rawText, ok } = await readApiJson(r)
+      if (ok) {
+        setLastImportBatchId(null)
+        setMsg('ลบสมาชิกทั้งหมดแล้ว')
+      } else {
+        setMsg(formatFetchError('ลบสมาชิกทั้งหมด', r.status, payload, rawText))
+      }
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
     } finally {
@@ -84,17 +149,17 @@ export function AdminImportPanel({ apiBase }: Props) {
       if (lastImportBatchId) {
         q.set('importBatchId', lastImportBatchId)
       }
-      const url = `${apiBase}/api/admin/members/summary${q.toString() ? `?${q.toString()}` : ''}`
+      const url = `${base}/api/admin/members/summary${q.toString() ? `?${q.toString()}` : ''}`
       const r = await fetch(url, {
         method: 'GET',
         headers: { 'x-admin-key': adminKey.trim() },
       })
-      const j = await r.json().catch(() => ({}))
-      setMsg(
-        r.ok
-          ? JSON.stringify(j, null, 2)
-          : `ตรวจสอบหลังนำเข้าไม่สำเร็จ\n${JSON.stringify(j, null, 2)}`,
-      )
+      const { payload, rawText, ok } = await readApiJson(r)
+      if (ok) {
+        setMsg(JSON.stringify(payload, null, 2))
+      } else {
+        setMsg(formatFetchError('ตรวจสอบหลังนำเข้า', r.status, payload, rawText))
+      }
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
     } finally {
@@ -129,7 +194,7 @@ export function AdminImportPanel({ apiBase }: Props) {
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           <a
-            href={`${apiBase}/api/admin/members/import-template.xlsx`}
+            href={`${base}/api/admin/members/import-template.xlsx`}
             className="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-slate-700"
             target="_blank"
             rel="noreferrer"
@@ -137,7 +202,7 @@ export function AdminImportPanel({ apiBase }: Props) {
             ดาวน์โหลด .xlsx
           </a>
           <a
-            href={`${apiBase}/api/admin/members/import-template.csv`}
+            href={`${base}/api/admin/members/import-template.csv`}
             className="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700"
             target="_blank"
             rel="noreferrer"

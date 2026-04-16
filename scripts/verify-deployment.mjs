@@ -33,6 +33,21 @@ async function main() {
   }
   console.log('OK:', healthUrl, '→', JSON.stringify(j))
 
+  const summaryUrl = `${base}/api/admin/members/summary`
+  const rSum = await fetch(summaryUrl)
+  if (rSum.status === 404) {
+    throw new Error(
+      `GET ${summaryUrl} → 404. Deploy the latest backend so GET /api/admin/members/summary exists.`,
+    )
+  }
+  if (rSum.status !== 401 && rSum.status !== 500) {
+    const t = await rSum.text()
+    throw new Error(
+      `GET ${summaryUrl} (no auth probe) → unexpected HTTP ${rSum.status}: ${t.slice(0, 240)}`,
+    )
+  }
+  console.log('OK: admin import summary route exists (no-key probe → HTTP', `${rSum.status})`)
+
   if (!frontendOrigin?.trim()) {
     console.log('Skip: CORS check (pass 2nd arg or VERIFY_FRONTEND_ORIGIN)')
     return
