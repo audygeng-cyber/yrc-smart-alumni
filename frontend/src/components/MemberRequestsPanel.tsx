@@ -10,6 +10,7 @@ const STORAGE_VIEW_PRESET = 'yrc_member_requests_view_preset'
 const STORAGE_ACTIVITY_ACTION = 'yrc_member_requests_activity_action'
 const STORAGE_ACTIVITY_SEARCH = 'yrc_member_requests_activity_search'
 const STORAGE_ACTIVITY_LIMIT = 'yrc_member_requests_activity_limit'
+const STORAGE_ACTIVITY_PRESET = 'yrc_member_requests_activity_preset'
 const REJECT_REASON_TEMPLATES = [
   'ข้อมูลไม่ครบถ้วน กรุณาแนบ/กรอกข้อมูลเพิ่มเติม',
   'ไม่พบข้อมูลยืนยันตัวตนตามทะเบียน กรุณาตรวจสอบชื่อ-นามสกุล-รุ่น',
@@ -44,6 +45,7 @@ type ActionHistoryEntry = {
 }
 
 type ActivityFilter = 'all' | ActionHistoryEntry['action']
+type ActivityPreset = 'manual' | 'rejected_recent' | 'pending_approvals' | 'today'
 
 type RequestActivityRow = ActionHistoryEntry & {
   requestId: string
@@ -79,6 +81,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [activityActionFilter, setActivityActionFilter] = useState<ActivityFilter>('all')
   const [activitySearch, setActivitySearch] = useState('')
   const [activityLimit, setActivityLimit] = useState(20)
+  const [activityPreset, setActivityPreset] = useState<ActivityPreset>('manual')
 
   const summary = useMemo(() => {
     const counts = {
@@ -165,6 +168,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
     const filtered = flattened.filter((entry) => {
       if (activityActionFilter !== 'all' && entry.action !== activityActionFilter) return false
+      if (activityPreset === 'today' && !isSameLocalDay(entry.at, new Date())) return false
       if (!activitySearchTrimmed) return true
       return buildActivitySearchText(entry).includes(activitySearchTrimmed)
     })
@@ -172,7 +176,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     return filtered
       .sort((a, b) => getActivityAtMs(b) - getActivityAtMs(a))
       .slice(0, activityLimit)
-  }, [activityActionFilter, activityLimit, activitySearchTrimmed, rows])
+  }, [activityActionFilter, activityLimit, activityPreset, activitySearchTrimmed, rows])
   const activitySummary = useMemo(() => {
     const counts: Record<ActivityFilter, number> = {
       all: 0,
@@ -227,6 +231,16 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     if (Number.isFinite(savedActivityLimit) && savedActivityLimit >= 5) {
       setActivityLimit(savedActivityLimit)
     }
+
+    const savedActivityPreset = sessionStorage.getItem(STORAGE_ACTIVITY_PRESET)
+    if (
+      savedActivityPreset === 'manual' ||
+      savedActivityPreset === 'rejected_recent' ||
+      savedActivityPreset === 'pending_approvals' ||
+      savedActivityPreset === 'today'
+    ) {
+      setActivityPreset(savedActivityPreset)
+    }
   }, [])
 
   useEffect(() => {
@@ -260,6 +274,10 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_ACTIVITY_LIMIT, String(activityLimit))
   }, [activityLimit])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_ACTIVITY_PRESET, activityPreset)
+  }, [activityPreset])
 
   useEffect(() => {
     setDecisionCommentDraft('')
@@ -390,6 +408,41 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
   function applyRejectReasonTemplate(reason: string) {
     setDecisionCommentDraft(reason)
+  }
+
+  function applyActivityPreset(preset: ActivityPreset) {
+    setActivityPreset(preset)
+
+    if (preset === 'rejected_recent') {
+      setActivityActionFilter('rejected')
+      setActivitySearch('')
+      setActivityLimit(20)
+      setMsg('เปลี่ยนเป็น activity preset: rejected recent')
+      return
+    }
+
+    if (preset === 'pending_approvals') {
+      setActivityActionFilter('all')
+      setActivitySearch('pending_')
+      setActivityLimit(50)
+      setMsg('เปลี่ยนเป็น activity preset: pending approvals')
+      return
+    }
+
+    if (preset === 'today') {
+      setActivityActionFilter('all')
+      setActivitySearch('')
+      setActivityLimit(50)
+      setMsg('เปลี่ยนเป็น activity preset: today')
+      return
+    }
+
+    setMsg('เปลี่ยนเป็น activity preset: manual')
+  }
+
+  function saveCurrentAsManualActivityPreset() {
+    setActivityPreset('manual')
+    setMsg('บันทึก activity view ปัจจุบันเป็น manual preset แล้ว')
   }
 
   function applyPreset(preset: ViewPreset) {
@@ -873,11 +926,43 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded bg-slate-900 px-2 py-1 text-slate-300">preset: {activityPreset}</span>
           <span className="rounded bg-slate-900 px-2 py-1 text-slate-300">ทั้งหมด: {activitySummary.all}</span>
           <span className="rounded bg-slate-900 px-2 py-1 text-slate-300">ส่งคำร้อง: {activitySummary.submitted}</span>
           <span className="rounded bg-amber-900/40 px-2 py-1 text-amber-200">ประธานรุ่นอนุมัติ: {activitySummary.president_approved}</span>
           <span className="rounded bg-emerald-900/40 px-2 py-1 text-emerald-200">Admin อนุมัติ: {activitySummary.admin_approved}</span>
           <span className="rounded bg-red-900/40 px-2 py-1 text-red-200">ปฏิเสธ: {activitySummary.rejected}</span>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => applyActivityPreset('rejected_recent')}
+            className="rounded border border-red-800 px-3 py-1.5 text-xs text-red-200 hover:bg-red-950/30"
+          >
+            rejected ล่าสุด
+          </button>
+          <button
+            type="button"
+            onClick={() => applyActivityPreset('pending_approvals')}
+            className="rounded border border-amber-800 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-950/30"
+          >
+            pending approvals
+          </button>
+          <button
+            type="button"
+            onClick={() => applyActivityPreset('today')}
+            className="rounded border border-cyan-800 px-3 py-1.5 text-xs text-cyan-200 hover:bg-cyan-950/30"
+          >
+            วันนี้
+          </button>
+          <button
+            type="button"
+            onClick={saveCurrentAsManualActivityPreset}
+            className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+          >
+            save current
+          </button>
         </div>
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -1387,6 +1472,18 @@ function getActionHistoryTone(action: ActionHistoryEntry['action']): string {
 function getActivityAtMs(entry: RequestActivityRow): number {
   const time = Date.parse(entry.at)
   return Number.isFinite(time) ? time : 0
+}
+
+function isSameLocalDay(value: string, compareDate: Date): boolean {
+  const time = Date.parse(value)
+  if (!Number.isFinite(time)) return false
+
+  const date = new Date(time)
+  return (
+    date.getFullYear() === compareDate.getFullYear() &&
+    date.getMonth() === compareDate.getMonth() &&
+    date.getDate() === compareDate.getDate()
+  )
 }
 
 function buildActivitySearchText(entry: RequestActivityRow): string {
