@@ -710,6 +710,25 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     }
   }
 
+  async function copyActivityRowSummary(entry: RequestActivityRow) {
+    try {
+      await navigator.clipboard.writeText(buildActivityRowText(entry))
+      setMsg('คัดลอกสรุป activity row แล้ว')
+    } catch {
+      setMsg('คัดลอกสรุป activity row ไม่สำเร็จ')
+    }
+  }
+
+  async function copyActivityMemberIdentity(entry: RequestActivityRow) {
+    const text = buildActivityIdentityText(entry)
+    try {
+      await navigator.clipboard.writeText(text)
+      setMsg('คัดลอกข้อมูลสมาชิกจาก activity แล้ว')
+    } catch {
+      setMsg('คัดลอกข้อมูลสมาชิกจาก activity ไม่สำเร็จ')
+    }
+  }
+
   function focusRequestFromActivity(requestId: string) {
     setSearchQuery(requestId)
     setQuickView('all')
@@ -1156,6 +1175,26 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                   className="rounded border border-slate-700 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-800"
                 >
                   copy request id
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void copyActivityRowSummary(entry)
+                  }}
+                  className="rounded border border-sky-800 px-2.5 py-1 text-[11px] text-sky-200 hover:bg-sky-950/30"
+                >
+                  copy summary
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void copyActivityMemberIdentity(entry)
+                  }}
+                  className="rounded border border-emerald-800 px-2.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-950/30"
+                >
+                  copy member identity
                 </button>
                 <button
                   type="button"
@@ -1690,6 +1729,15 @@ function buildActivityRowText(entry: RequestActivityRow): string {
     `name: ${entry.fullName || '-'}`,
     `status_flow: ${entry.from_status ?? '-'} -> ${entry.to_status ?? '-'}`,
     `comment: ${entry.comment ?? '-'}`,
+  ].join('\n')
+}
+
+function buildActivityIdentityText(entry: RequestActivityRow): string {
+  return [
+    `requestId: ${entry.requestId}`,
+    `line_uid: ${entry.lineUid || '-'}`,
+    `batch: ${entry.batch || '-'}`,
+    `name: ${entry.fullName || '-'}`,
   ].join('\n')
 }
 
