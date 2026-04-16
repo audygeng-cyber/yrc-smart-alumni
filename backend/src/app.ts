@@ -9,6 +9,7 @@ import { importTemplateRouter } from './routes/importTemplate.js'
 import { lineAuthRouter } from './routes/lineAuth.js'
 import { memberRequestsAdminRouter } from './routes/memberRequestsAdmin.js'
 import { membersRouter } from './routes/members.js'
+import { portalRouter } from './routes/portal.js'
 import { pushRouter } from './routes/push.js'
 
 function parseCorsOrigins(): string[] {
@@ -65,6 +66,8 @@ export function createApp(): express.Express {
         memberRequests:
           'GET /api/admin/member-requests (x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
         push: 'GET /api/push/vapid-public, POST /api/push/subscribe',
+        portal:
+          'GET /api/portal/member | /api/portal/committee | /api/portal/academy — snapshot สำหรับ dashboard พอร์ทัล',
       },
     })
   })
@@ -88,6 +91,7 @@ export function createApp(): express.Express {
   })
 
   app.use('/api/auth/line', lineOAuthLimit, lineAuthRouter)
+  app.use('/api/portal', membersPublicLimit, portalRouter)
   app.use('/api/push', pushRouter)
   app.use('/api/admin/member-requests', memberRequestsAdminRouter)
   app.use('/api/admin/finance', adminAuth, financeAdminRouter)

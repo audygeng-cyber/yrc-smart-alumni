@@ -28,6 +28,31 @@ describe.sequential('createApp', () => {
     expect(res.body.paths?.health).toBe('/health')
   })
 
+  it('GET /api/portal/member returns dashboard snapshot', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/portal/member')
+    expect(res.status).toBe(200)
+    expect(Array.isArray(res.body.statsCards)).toBe(true)
+    expect(res.body.roleCards?.member?.length).toBeGreaterThan(0)
+    expect(res.body.roleCards?.staff?.length).toBeGreaterThan(0)
+  })
+
+  it('GET /api/portal/committee returns dashboard snapshot', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/portal/committee')
+    expect(res.status).toBe(200)
+    expect(Array.isArray(res.body.metricCards)).toBe(true)
+    expect(res.body.meetings?.[0]?.status).toBeDefined()
+  })
+
+  it('GET /api/portal/academy returns dashboard snapshot', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/portal/academy')
+    expect(res.status).toBe(200)
+    expect(res.body.roleCards?.admin?.length).toBeGreaterThan(0)
+    expect(Array.isArray(res.body.classes)).toBe(true)
+  })
+
   it('CORS allows default dev origin localhost:5173', async () => {
     const app = createApp()
     const res = await request(app)
