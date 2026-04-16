@@ -35,6 +35,13 @@ function getInitialTab(): Tab {
   return 'home'
 }
 
+function getMemberDisplayName(member: Record<string, unknown> | null): string {
+  if (!member) return ''
+  const first = member.first_name != null ? String(member.first_name) : ''
+  const last = member.last_name != null ? String(member.last_name) : ''
+  return `${first} ${last}`.trim()
+}
+
 export default function App() {
   const [health, setHealth] = useState<string>('…')
   const [tab, setTab] = useState<Tab>(getInitialTab)
@@ -177,6 +184,7 @@ export default function App() {
 
   const showMemberTab = Boolean(lineUid && verifiedMember)
   const mainClass = tab === 'member' ? 'max-w-5xl' : 'max-w-2xl'
+  const verifiedMemberName = getMemberDisplayName(verifiedMember)
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -229,6 +237,33 @@ export default function App() {
 
         {tab === 'link' && (
           <>
+            <section className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Member Session Status</p>
+                  {restoringMemberSession ? (
+                    <p className="mt-1 text-emerald-200">กำลังกู้ session สมาชิกจาก LINE UID...</p>
+                  ) : verifiedMember && lineUid ? (
+                    <p className="mt-1 text-emerald-200">
+                      ผูกสมาชิกแล้ว: {verifiedMemberName || 'สมาชิกที่ผูกไว้'} {readLineName() ? `· LINE ${readLineName()}` : ''}
+                    </p>
+                  ) : lineUid ? (
+                    <p className="mt-1 text-amber-200">มี LINE UID แล้ว แต่ยังไม่ได้ผูกสมาชิกในรอบนี้</p>
+                  ) : (
+                    <p className="mt-1 text-slate-400">ยังไม่มี LINE session หรือ member session</p>
+                  )}
+                </div>
+                {verifiedMember && lineUid ? (
+                  <button
+                    type="button"
+                    onClick={() => setTab('member')}
+                    className="rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700"
+                  >
+                    ไปหน้าสมาชิก
+                  </button>
+                ) : null}
+              </div>
+            </section>
             {restoringMemberSession ? (
               <section className="mb-4 rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-4 text-sm text-emerald-100/90">
                 กำลังกู้ session สมาชิกจาก LINE UID...
