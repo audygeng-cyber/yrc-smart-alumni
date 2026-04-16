@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const STORAGE_KEY = 'yrc_admin_upload_key'
 const PAGE_SIZE = 20
@@ -205,6 +205,8 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [lastAutoRefreshError, setLastAutoRefreshError] = useState<string | null>(null)
   const [autoRefreshFailureCount, setAutoRefreshFailureCount] = useState(0)
   const [autoRefreshPausedByError, setAutoRefreshPausedByError] = useState(false)
+  const [alertOnPause, setAlertOnPause] = useState(true)
+  const [soundOnPause, setSoundOnPause] = useState(true)
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -231,6 +233,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [approveDecision, setApproveDecision] = useState<'approve' | 'reject'>('approve')
   const builtinPresets = useMemo(() => buildBuiltinReportPresets(), [])
   const allPresets = useMemo(() => [...builtinPresets, ...customPresets], [builtinPresets, customPresets])
+  const pauseAlertSentRef = useRef(false)
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
@@ -476,6 +479,53 @@ export function AdminFinancePanel({ apiBase }: Props) {
     reportFrom,
     reportTo,
   ])
+
+  useEffect(() => {
+    if (!autoRefreshPausedByError || pauseAlertSentRef.current) return
+
+    if (alertOnPause && typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification('YRC Finance Auto Refresh Paused', {
+          body: `Auto refresh หยุดชั่วคราวหลัง error ต่อเนื่อง ${autoRefreshFailureCount} ครั้ง`,
+        })
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission().then((permission) => {
+          if (permission === 'granted') {
+            new Notification('YRC Finance Auto Refresh Paused', {
+              body: `Auto refresh หยุดชั่วคราวหลัง error ต่อเนื่อง ${autoRefreshFailureCount} ครั้ง`,
+            })
+          }
+        })
+      }
+    }
+
+    if (soundOnPause && typeof window !== 'undefined') {
+      const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (Ctx) {
+        const ctx = new Ctx()
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(880, ctx.currentTime)
+        gain.gain.setValueAtTime(0.001, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02)
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.3)
+        window.setTimeout(() => {
+          void ctx.close()
+        }, 400)
+      }
+    }
+
+    pauseAlertSentRef.current = true
+  }, [alertOnPause, autoRefreshFailureCount, autoRefreshPausedByError, soundOnPause])
+
+  useEffect(() => {
+    if (!autoRefreshPausedByError) pauseAlertSentRef.current = false
+  }, [autoRefreshPausedByError])
 
   function toggleAutoRefresh(enabled: boolean) {
     setAutoRefreshEnabled(enabled)
@@ -1124,6 +1174,22 @@ export function AdminFinancePanel({ apiBase }: Props) {
         {lastAutoRefreshError ? (
           <span className="w-full text-[11px] text-rose-300">{lastAutoRefreshError}</span>
         ) : null}
+        <label className="flex items-center gap-1 text-[11px] text-slate-300">
+          <input
+            type="checkbox"
+            checked={alertOnPause}
+            onChange={(e) => setAlertOnPause(e.target.checked)}
+          />
+          desktop alert
+        </label>
+        <label className="flex items-center gap-1 text-[11px] text-slate-300">
+          <input
+            type="checkbox"
+            checked={soundOnPause}
+            onChange={(e) => setSoundOnPause(e.target.checked)}
+          />
+          sound alert
+        </label>
       </div>
 
       <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-5">
