@@ -522,6 +522,22 @@ function MetricCards(props: { items: Array<{ label: string; value: string; hint:
 }
 
 function CommitteeDashboardPage() {
+  const requestTrend = [
+    { label: 'Mon', value: 4 },
+    { label: 'Tue', value: 8 },
+    { label: 'Wed', value: 6 },
+    { label: 'Thu', value: 10 },
+    { label: 'Fri', value: 5 },
+    { label: 'Sat', value: 3 },
+    { label: 'Sun', value: 7 },
+  ]
+
+  const meetings = [
+    { topic: 'วาระการเงินประจำเดือน', time: '09:30', status: 'ready' },
+    { topic: 'โครงการสนับสนุนโรงเรียน', time: '10:30', status: 'pending_vote' },
+    { topic: 'อัปเดตทะเบียนสมาชิก', time: '11:15', status: 'in_review' },
+  ]
+
   return (
     <div className="space-y-4">
       <MetricCards
@@ -532,15 +548,67 @@ function CommitteeDashboardPage() {
           { label: 'วาระรอลงมติ', value: '6', hint: 'พร้อมเปิด vote ในที่ประชุม' },
         ]}
       />
-      <SectionPlaceholder
-        title="Dashboard คณะกรรมการ"
-        description="พื้นที่นี้เตรียมไว้สำหรับกราฟแนวโน้มสมาชิก, การเงินรายเดือน, attendance trend, และผลลงมติ"
-      />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">แนวโน้มคำร้อง 7 วัน</h3>
+          <p className="mt-2 text-sm text-slate-400">ใช้ติดตาม backlog ของคำร้องและคาดการณ์ภาระงานทีมอนุมัติ</p>
+          <TrendBars items={requestTrend} />
+        </section>
+        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">งานด่วนวันนี้</h3>
+          <ul className="mt-3 space-y-2 text-sm">
+            <li className="rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-amber-100">ตรวจ quorum ก่อนเริ่มประชุม</li>
+            <li className="rounded border border-red-900/40 bg-red-950/20 px-3 py-2 text-red-100">วาระลงมติค้าง 2 รายการ</li>
+            <li className="rounded border border-sky-900/40 bg-sky-950/20 px-3 py-2 text-sky-100">ติดตามเอกสารการเงินเดือนล่าสุด</li>
+          </ul>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link to="/committee/voting" className="rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700">เปิดหน้าลงมติ</Link>
+            <Link to="/committee/attendance" className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">เช็กชื่อประชุม</Link>
+          </div>
+        </section>
+      </div>
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สถานะประชุมวันนี้</h3>
+        <div className="mt-3 space-y-2 text-sm">
+          {meetings.map((meeting) => (
+            <div key={meeting.topic} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
+              <div>
+                <p className="text-slate-100">{meeting.topic}</p>
+                <p className="text-xs text-slate-400">เริ่ม {meeting.time}</p>
+              </div>
+              <span
+                className={`rounded px-2 py-0.5 text-xs ${
+                  meeting.status === 'ready'
+                    ? 'bg-emerald-900/40 text-emerald-200'
+                    : meeting.status === 'pending_vote'
+                      ? 'bg-amber-900/40 text-amber-200'
+                      : 'bg-sky-900/40 text-sky-200'
+                }`}
+              >
+                {meeting.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
 
 function AcademyDashboardPage() {
+  const classes = [
+    { room: 'ม.4 ห้อง A', students: 38, avgScore: 84.2 },
+    { room: 'ม.5 ห้อง B', students: 42, avgScore: 81.5 },
+    { room: 'ม.6 ห้อง C', students: 34, avgScore: 86.7 },
+  ]
+
+  const enrollmentFunnel = [
+    { label: 'สมัครใหม่', value: 120 },
+    { label: 'ยืนยันเอกสาร', value: 92 },
+    { label: 'ชำระเงิน', value: 78 },
+    { label: 'เข้าเรียนแล้ว', value: 71 },
+  ]
+
   return (
     <div className="space-y-4">
       <MetricCards
@@ -551,9 +619,37 @@ function AcademyDashboardPage() {
           { label: 'ค่าเฉลี่ยผลการเรียน', value: '82.4', hint: 'คะแนนเฉลี่ยรวมทุกวิชา' },
         ]}
       />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ผลคะแนนเฉลี่ยตามห้อง</h3>
+          <p className="mt-2 text-sm text-slate-400">ดูคุณภาพการเรียนรายห้องเพื่อวางแผนเสริมจุดอ่อน</p>
+          <div className="mt-4 space-y-2 text-sm">
+            {classes.map((row) => (
+              <div key={row.room} className="rounded border border-slate-800 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-slate-100">{row.room}</p>
+                  <p className="text-xs text-slate-400">{row.students} คน</p>
+                </div>
+                <div className="mt-2 h-2 rounded bg-slate-800">
+                  <div className="h-full rounded bg-cyan-500/80" style={{ width: `${Math.min(100, row.avgScore)}%` }} />
+                </div>
+                <p className="mt-1 text-xs text-cyan-200">คะแนนเฉลี่ย {row.avgScore}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">Funnel สมัครเรียน</h3>
+          <TrendBars items={enrollmentFunnel} color="violet" />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link to="/academy/enrollment" className="rounded bg-violet-800 px-3 py-1.5 text-xs text-white hover:bg-violet-700">ไปหน้าสมัครเรียน</Link>
+            <Link to="/academy/reports" className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">ดูรายงานทั้งหมด</Link>
+          </div>
+        </section>
+      </div>
       <SectionPlaceholder
-        title="Dashboard โรงเรียนกวดวิชา"
-        description="พื้นที่นี้เตรียมไว้สำหรับ infographic แยกตาม role: ผู้บริหาร/ครู/นักเรียน/ผู้ปกครอง"
+        title="Role-based infographic"
+        description="รองรับการแสดงผลต่างกันตามสิทธิ์: ผู้บริหารเห็นภาพรวมทั้งหมด, ครูเห็นห้องที่สอน, นักเรียน/ผู้ปกครองเห็นข้อมูลรายบุคคล"
       />
     </div>
   )
@@ -582,6 +678,14 @@ function MemberProfilePage(props: { member: Record<string, unknown> }) {
 }
 
 function MemberStatisticsPage() {
+  const batchDistribution = [
+    { label: 'รุ่น 53', value: 96 },
+    { label: 'รุ่น 54', value: 124 },
+    { label: 'รุ่น 55', value: 141 },
+    { label: 'รุ่น 56', value: 109 },
+    { label: 'รุ่น 57', value: 133 },
+  ]
+
   return (
     <div className="space-y-4">
       <MetricCards
@@ -592,29 +696,54 @@ function MemberStatisticsPage() {
           { label: 'คำร้องเดือนนี้', value: '42', hint: 'คำร้องอัปเดตข้อมูลทั้งหมด' },
         ]}
       />
-      <SectionPlaceholder
-        title="สถิติสมาชิก"
-        description="พื้นที่นี้เตรียมสำหรับกราฟสมาชิกแยกรุ่น, สมาชิกใหม่รายเดือน, และการมีส่วนร่วมกิจกรรม"
-      />
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สัดส่วนสมาชิกตามรุ่น (ตัวอย่าง)</h3>
+        <TrendBars items={batchDistribution} color="emerald" />
+      </section>
     </div>
   )
 }
 
 function MemberDonationsPage() {
   return (
-    <SectionPlaceholder
-      title="สนับสนุนกิจกรรมโรงเรียน"
-      description="พื้นที่นี้เตรียมสำหรับบริจาคเงิน, แนบสลิป, และดูประวัติการสนับสนุนกิจกรรมของสมาชิก"
-    />
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สนับสนุนกิจกรรมโรงเรียน</h3>
+        <p className="mt-2 text-sm text-slate-400">เลือกโครงการที่ต้องการสนับสนุนและแนบสลิปเพื่อยืนยันรายการ</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <DonationCampaignCard title="กองทุนทุนการศึกษา" progress={72} target="500,000" raised="360,000" />
+          <DonationCampaignCard title="พัฒนาห้องเรียนอัจฉริยะ" progress={41} target="800,000" raised="328,000" />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" className="rounded bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700">บริจาคและแนบสลิป</button>
+          <button type="button" className="rounded border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">ดูประวัติการบริจาค</button>
+        </div>
+      </section>
+    </div>
   )
 }
 
 function MemberMeetingsPage() {
   return (
-    <SectionPlaceholder
-      title="สาระประชุมและรายรับรายจ่าย"
-      description="พื้นที่นี้เตรียมสำหรับอ่านสาระการประชุม, รายงานประชุม, และรายรับรายจ่ายในระดับสมาชิก"
-    />
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สาระประชุมและรายรับรายจ่าย</h3>
+        <p className="mt-2 text-sm text-slate-400">ข้อมูลที่สมาชิกเข้าถึงได้: สรุปรายงานประชุมและภาพรวมทางการเงิน</p>
+        <div className="mt-4 space-y-2 text-sm">
+          <MeetingReportRow title="ประชุมใหญ่สามัญประจำปี 2569" date="12/04/2569" />
+          <MeetingReportRow title="สรุปโครงการสนับสนุนกิจกรรมเดือนมีนาคม" date="28/03/2569" />
+          <MeetingReportRow title="รายงานการเงินไตรมาส 1/2569" date="20/03/2569" />
+        </div>
+      </section>
+      <MetricCards
+        items={[
+          { label: 'รายรับเดือนนี้', value: '฿ 482,000', hint: 'รวมรายรับที่เปิดเผยต่อสมาชิก' },
+          { label: 'รายจ่ายเดือนนี้', value: '฿ 351,400', hint: 'ค่าใช้จ่ายกิจกรรมและงานบริหาร' },
+          { label: 'ยอดคงเหลือสุทธิ', value: '฿ 130,600', hint: 'รายรับ - รายจ่าย' },
+          { label: 'จำนวนรายงานประชุม', value: '18', hint: 'เอกสารที่เผยแพร่ในระบบ' },
+        ]}
+      />
+    </div>
   )
 }
 
@@ -624,6 +753,47 @@ function SectionPlaceholder(props: { title: string; description: string }) {
       <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">{props.title}</h3>
       <p className="mt-3 text-sm text-slate-400">{props.description}</p>
     </section>
+  )
+}
+
+function TrendBars(props: { items: Array<{ label: string; value: number }>; color?: 'emerald' | 'violet' | 'cyan' }) {
+  const max = Math.max(...props.items.map((item) => item.value), 1)
+  const tone =
+    props.color === 'violet' ? 'bg-violet-500/80' : props.color === 'cyan' ? 'bg-cyan-500/80' : 'bg-emerald-500/80'
+  return (
+    <div className="mt-4 space-y-2">
+      {props.items.map((item) => (
+        <div key={item.label} className="grid grid-cols-[64px_1fr_48px] items-center gap-3 text-sm">
+          <span className="text-slate-400">{item.label}</span>
+          <div className="h-2 rounded bg-slate-800">
+            <div className={`h-full rounded ${tone}`} style={{ width: `${(item.value / max) * 100}%` }} />
+          </div>
+          <span className="text-right text-slate-300">{item.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function DonationCampaignCard(props: { title: string; progress: number; target: string; raised: string }) {
+  return (
+    <div className="rounded border border-slate-800 bg-slate-900/60 p-4">
+      <p className="text-sm text-slate-100">{props.title}</p>
+      <p className="mt-1 text-xs text-slate-400">สะสม {props.raised} / เป้าหมาย {props.target}</p>
+      <div className="mt-3 h-2 rounded bg-slate-800">
+        <div className="h-full rounded bg-emerald-500/80" style={{ width: `${Math.min(100, props.progress)}%` }} />
+      </div>
+      <p className="mt-2 text-xs text-emerald-200">คืบหน้า {props.progress}%</p>
+    </div>
+  )
+}
+
+function MeetingReportRow(props: { title: string; date: string }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
+      <p className="text-slate-100">{props.title}</p>
+      <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-300">{props.date}</span>
+    </div>
   )
 }
 
