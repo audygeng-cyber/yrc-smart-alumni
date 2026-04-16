@@ -20,6 +20,8 @@ type RequestRow = {
   created_at: string
 }
 
+type QuickView = 'all' | 'new' | 'pending'
+
 type Props = { apiBase: string }
 
 export function MemberRequestsPanel({ apiBase }: Props) {
@@ -34,6 +36,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [lastLoadedAt, setLastLoadedAt] = useState<string | null>(null)
   const [pendingIncrease, setPendingIncrease] = useState(0)
   const [newRowIds, setNewRowIds] = useState<string[]>([])
+  const [quickView, setQuickView] = useState<QuickView>('all')
 
   const summary = useMemo(() => {
     const counts = {
@@ -69,6 +72,16 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   }, [rows])
 
   const pendingTotal = summary.pending_president + summary.pending_admin
+  const newRowIdSet = useMemo(() => new Set(newRowIds), [newRowIds])
+  const filteredRows = useMemo(() => {
+    if (quickView === 'new') {
+      return rows.filter((row) => newRowIdSet.has(row.id))
+    }
+    if (quickView === 'pending') {
+      return rows.filter((row) => row.status === 'pending_president' || row.status === 'pending_admin')
+    }
+    return rows
+  }, [newRowIdSet, quickView, rows])
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
@@ -344,6 +357,42 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
+          onClick={() => setQuickView('all')}
+          className={`rounded border px-3 py-1.5 text-xs ${
+            quickView === 'all'
+              ? 'border-violet-700 bg-violet-900/40 text-violet-100'
+              : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          ทั้งหมดในรายการ
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickView('new')}
+          className={`rounded border px-3 py-1.5 text-xs ${
+            quickView === 'new'
+              ? 'border-emerald-700 bg-emerald-900/40 text-emerald-100'
+              : 'border-emerald-800 text-emerald-200 hover:bg-emerald-950/30'
+          }`}
+        >
+          เฉพาะรายการใหม่ ({newRowIds.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickView('pending')}
+          className={`rounded border px-3 py-1.5 text-xs ${
+            quickView === 'pending'
+              ? 'border-amber-700 bg-amber-900/40 text-amber-100'
+              : 'border-amber-800 text-amber-200 hover:bg-amber-950/30'
+          }`}
+        >
+          เฉพาะ pending ({pendingTotal})
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
           onClick={() => setFilter('')}
           className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
         >
@@ -380,11 +429,11 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       </div>
 
       <ul className="mt-6 space-y-4">
-        {rows.map((r) => (
+        {filteredRows.map((r) => (
           <li
             key={r.id}
             className={`rounded-lg border p-4 text-left text-sm ${
-              newRowIds.includes(r.id)
+              newRowIdSet.has(r.id)
                 ? 'border-emerald-700/60 bg-emerald-950/20 shadow-[0_0_0_1px_rgba(16,185,129,0.18)]'
                 : 'border-slate-800 bg-slate-950/60'
             }`}
@@ -392,7 +441,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-xs text-slate-500">{r.id}</span>
-                {newRowIds.includes(r.id) ? (
+                {newRowIdSet.has(r.id) ? (
                   <span className="rounded bg-emerald-900/50 px-2 py-0.5 text-xs text-emerald-200">ใหม่</span>
                 ) : null}
               </div>
@@ -477,8 +526,10 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         ))}
       </ul>
 
-      {rows.length === 0 && !loading && (
-        <p className="mt-6 text-center text-sm text-slate-500">ไม่มีรายการ (หรือยังไม่ได้กดโหลด)</p>
+      {filteredRows.length === 0 && !loading && (
+        <p className="mt-6 text-center text-sm text-slate-500">
+          {rows.length === 0 ? 'ไม่มีรายการ (หรือยังไม่ได้กดโหลด)' : 'ไม่มีรายการที่ตรงกับ quick filter ปัจจุบัน'}
+        </p>
       )}
 
       {msg && (
