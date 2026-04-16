@@ -477,6 +477,57 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setMsg(`exported ${sortedRows.length} rows from current view`)
   }
 
+  function exportActivityCsv() {
+    if (activityRows.length === 0) {
+      setMsg('ยังไม่มี activity ในมุมมองปัจจุบันให้ export')
+      return
+    }
+
+    const headers = [
+      'request_id',
+      'action',
+      'action_label',
+      'actor',
+      'at',
+      'line_uid',
+      'batch',
+      'name',
+      'from_status',
+      'to_status',
+      'comment',
+    ]
+
+    const lines = [
+      headers.join(','),
+      ...activityRows.map((entry) =>
+        [
+          csvCell(entry.requestId),
+          csvCell(entry.action),
+          csvCell(getActionHistoryLabel(entry.action)),
+          csvCell(entry.actor),
+          csvCell(entry.at),
+          csvCell(entry.lineUid),
+          csvCell(entry.batch),
+          csvCell(entry.fullName),
+          csvCell(entry.from_status ?? ''),
+          csvCell(entry.to_status ?? ''),
+          csvCell(entry.comment ?? ''),
+        ].join(','),
+      ),
+    ]
+
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `member-request-activity-${activityActionFilter}-${activityLimit}-${Date.now()}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    setMsg(`exported ${activityRows.length} activity rows`)
+  }
+
   async function copyRequestSummary() {
     if (!selectedRequest) return
     const text = buildRequestSummaryText(selectedRequest)
@@ -796,6 +847,14 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             <p className="mt-1 text-xs text-slate-400">รวมเหตุการณ์ทุกคำร้องจาก action history เพื่อ review งานล่าสุดในจุดเดียว</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={exportActivityCsv}
+              disabled={activityRows.length === 0}
+              className="rounded border border-sky-800 px-3 py-1.5 text-xs text-sky-200 hover:bg-sky-950/30 disabled:opacity-50"
+            >
+              export csv
+            </button>
             <button
               type="button"
               onClick={() => void copyActivitySummary()}
