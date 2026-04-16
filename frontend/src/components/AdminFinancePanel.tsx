@@ -404,10 +404,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   function buildReportQueryString() {
+    return buildReportQueryStringFromValues(reportEntity, reportFrom, reportTo)
+  }
+
+  function buildReportQueryStringFromValues(entity: ReportFilterEntity, from: string, to: string) {
     const q = new URLSearchParams()
-    if (reportEntity) q.set('legal_entity_code', reportEntity)
-    if (reportFrom.trim()) q.set('from', reportFrom.trim())
-    if (reportTo.trim()) q.set('to', reportTo.trim())
+    if (entity) q.set('legal_entity_code', entity)
+    if (from.trim()) q.set('from', from.trim())
+    if (to.trim()) q.set('to', to.trim())
     const s = q.toString()
     return s ? `?${s}` : ''
   }
@@ -457,6 +461,53 @@ export function AdminFinancePanel({ apiBase }: Props) {
       return
     }
     applyPreset(preset)
+  }
+
+  async function applySelectedPresetAndLoad() {
+    const preset = allPresets.find((p) => p.id === selectedPresetId)
+    if (!preset) {
+      setMsg('ไม่พบ preset ที่เลือก')
+      return
+    }
+    applyPreset(preset)
+    if (!adminKey.trim()) return setMsg('ใช้ preset แล้ว — ใส่ x-admin-key ก่อนโหลดรายงาน')
+
+    setLoading(true)
+    setMsg(null)
+    try {
+      const q = buildReportQueryStringFromValues(preset.legalEntityCode, preset.from, preset.to)
+      const [plResp, donationsResp] = await Promise.all([
+        fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
+          headers: { 'x-admin-key': adminKey.trim() },
+        }),
+        fetch(`${base}/api/admin/finance/reports/donations${q}`, {
+          headers: { 'x-admin-key': adminKey.trim() },
+        }),
+      ])
+      const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])
+      if (!pl.ok || !donations.ok) {
+        const errors: string[] = []
+        if (!pl.ok) errors.push(formatFetchError('โหลด P/L summary', pl.status, pl.payload, pl.rawText))
+        if (!donations.ok) {
+          errors.push(
+            formatFetchError('โหลด donations dashboard', donations.status, donations.payload, donations.rawText),
+          )
+        }
+        setMsg(errors.join('\n\n------------------------------\n\n'))
+        return
+      }
+      setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
+      setDonationsReport((donations.payload ?? null) as DonationsReportPayload | null)
+      setPlPage(1)
+      setDonorPage(1)
+      setBatchPage(1)
+      setEntityPage(1)
+      setMsg(`ใช้ preset และโหลดรายงานแล้ว: ${preset.name}`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
   }
 
   function saveCurrentPreset() {
@@ -951,6 +1002,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
           className="rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50"
         >
           ใช้ preset
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={applySelectedPresetAndLoad}
+          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50"
+        >
+          ใช้ preset + โหลดทันที
         </button>
         <input
           type="text"
