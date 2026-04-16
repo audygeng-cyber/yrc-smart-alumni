@@ -57,6 +57,8 @@ type DonationsReportPayload = {
   byDonor: { donorLabel: string; totalAmount: number; count: number }[]
 }
 
+type ReportFilterEntity = '' | 'association' | 'cram_school'
+
 function normalizeApiBase(base: string): string {
   return base.trim().replace(/\/+$/, '')
 }
@@ -95,6 +97,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [plSummary, setPlSummary] = useState<PlSummaryPayload | null>(null)
   const [donationsReport, setDonationsReport] = useState<DonationsReportPayload | null>(null)
+  const [reportEntity, setReportEntity] = useState<ReportFilterEntity>('')
+  const [reportFrom, setReportFrom] = useState('')
+  const [reportTo, setReportTo] = useState('')
 
   const [meetingEntity, setMeetingEntity] = useState<'association' | 'cram_school'>('association')
   const [meetingTitle, setMeetingTitle] = useState('ประชุมพิจารณารายการจ่ายเงิน')
@@ -130,6 +135,15 @@ export function AdminFinancePanel({ apiBase }: Props) {
     () => accounts.find((a) => a.id === paymentBankAccountId) ?? null,
     [accounts, paymentBankAccountId],
   )
+
+  function buildReportQueryString() {
+    const q = new URLSearchParams()
+    if (reportEntity) q.set('legal_entity_code', reportEntity)
+    if (reportFrom.trim()) q.set('from', reportFrom.trim())
+    if (reportTo.trim()) q.set('to', reportTo.trim())
+    const s = q.toString()
+    return s ? `?${s}` : ''
+  }
 
   async function loadOverviewAndAccounts() {
     if (!adminKey.trim()) {
@@ -172,7 +186,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/pl-summary`, {
+      const r = await fetch(`${base}/api/admin/finance/reports/pl-summary${buildReportQueryString()}`, {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const p = await readApiJson(r)
@@ -191,7 +205,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/donations`, {
+      const r = await fetch(`${base}/api/admin/finance/reports/donations${buildReportQueryString()}`, {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const p = await readApiJson(r)
@@ -210,7 +224,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}${path}`, {
+      const r = await fetch(`${base}${path}${buildReportQueryString()}`, {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const blob = await r.blob()
@@ -441,6 +455,44 @@ export function AdminFinancePanel({ apiBase }: Props) {
           className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
         >
           Export Meeting Sessions CSV
+        </button>
+      </div>
+
+      <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-4">
+        <select
+          value={reportEntity}
+          onChange={(e) => setReportEntity(e.target.value as ReportFilterEntity)}
+          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+        >
+          <option value="">ทุกหน่วยงาน (ทั้งหมด)</option>
+          <option value="association">association</option>
+          <option value="cram_school">cram_school</option>
+        </select>
+        <input
+          type="date"
+          value={reportFrom}
+          onChange={(e) => setReportFrom(e.target.value)}
+          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          placeholder="from"
+        />
+        <input
+          type="date"
+          value={reportTo}
+          onChange={(e) => setReportTo(e.target.value)}
+          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          placeholder="to"
+        />
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => {
+            setReportEntity('')
+            setReportFrom('')
+            setReportTo('')
+          }}
+          className="rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50"
+        >
+          ล้างตัวกรองรายงาน
         </button>
       </div>
 

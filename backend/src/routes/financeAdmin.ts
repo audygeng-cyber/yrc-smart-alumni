@@ -42,6 +42,23 @@ function rowsToCsv(rows: Record<string, unknown>[]): string {
   return `\uFEFF${lines.join('\n')}\n`
 }
 
+function readDateRangeFromQuery(query: Record<string, unknown>) {
+  const fromDate = typeof query.from === 'string' ? query.from.trim() : ''
+  const toDate = typeof query.to === 'string' ? query.to.trim() : ''
+  return { fromDate, toDate }
+}
+
+async function readLegalEntityFilter(
+  supabase: SupabaseClient,
+  query: Record<string, unknown>,
+): Promise<{ legalEntityCode: string; legalEntityId: string | null; error: string | null }> {
+  const legalEntityCode = typeof query.legal_entity_code === 'string' ? query.legal_entity_code.trim() : ''
+  if (!legalEntityCode) return { legalEntityCode: '', legalEntityId: null, error: null }
+  const entity = await getLegalEntity(supabase, legalEntityCode)
+  if (!entity) return { legalEntityCode, legalEntityId: null, error: 'Unknown legal_entity_code' }
+  return { legalEntityCode, legalEntityId: String(entity.id), error: null }
+}
+
 financeAdminRouter.get('/bank-accounts', async (req, res) => {
   try {
     const legalEntityCode =
@@ -153,20 +170,15 @@ financeAdminRouter.get('/overview', async (_req, res) => {
 
 financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
   try {
-    const legalEntityCode =
-      typeof req.query.legal_entity_code === 'string' ? req.query.legal_entity_code.trim() : ''
-    const fromDate = typeof req.query.from === 'string' ? req.query.from.trim() : ''
-    const toDate = typeof req.query.to === 'string' ? req.query.to.trim() : ''
     const supabase = getServiceSupabase()
-
-    let legalEntityId: string | null = null
-    if (legalEntityCode) {
-      const entity = await getLegalEntity(supabase, legalEntityCode)
-      if (!entity) {
-        res.status(400).json({ error: 'Unknown legal_entity_code' })
-        return
-      }
-      legalEntityId = String(entity.id)
+    const { fromDate, toDate } = readDateRangeFromQuery(req.query as Record<string, unknown>)
+    const { legalEntityCode, legalEntityId, error } = await readLegalEntityFilter(
+      supabase,
+      req.query as Record<string, unknown>,
+    )
+    if (error) {
+      res.status(400).json({ error })
+      return
     }
 
     let entriesQ = supabase.from('journal_entries').select('id,legal_entity_id,entry_date')
@@ -257,6 +269,11 @@ financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
 
     res.json({
       ok: true,
+      filters: {
+        legal_entity_code: legalEntityCode || null,
+        from: fromDate || null,
+        to: toDate || null,
+      },
       accountSummaries,
       totals: {
         revenue,
@@ -273,6 +290,16 @@ financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
 financeAdminRouter.get('/reports/donations', async (_req, res) => {
   try {
     const supabase = getServiceSupabase()
+    const req = _req
+    const { fromDate, toDate } = readDateRangeFromQuery(req.query as Record<string, unknown>)
+    const { legalEntityCode, legalEntityId, error } = await readLegalEntityFilter(
+      supabase,
+      req.query as Record<string, unknown>,
+    )
+    if (error) {
+      res.status(400).json({ error })
+      return
+    }
     const { data: entities, error: eErr } = await supabase.from('legal_entities').select('id,code,name_th')
     if (eErr) {
       res.status(500).json({ error: 'Load legal_entities failed', details: eErr })
@@ -281,10 +308,14 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
     const entityCodeById = new Map<string, string>()
     for (const e of entities ?? []) entityCodeById.set(String(e.id), String(e.code))
 
-    const { data: donations, error: dErr } = await supabase
+    let donationsQ = supabase
       .from('donations')
       .select('id,legal_entity_id,batch,amount,member_id,app_user_id,created_at')
       .order('created_at', { ascending: false })
+    if (legalEntityId) donationsQ = donationsQ.eq('legal_entity_id', legalEntityId)
+    if (fromDate) donationsQ = donationsQ.gte('created_at', `${fromDate}T00:00:00.000Z`)
+    if (toDate) donationsQ = donationsQ.lte('created_at', `${toDate}T23:59:59.999Z`)
+    const { data: donations, error: dErr } = await donationsQ
     if (dErr) {
       res.status(500).json({ error: 'Load donations failed', details: dErr })
       return
@@ -345,6 +376,11 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
 
     res.json({
       ok: true,
+      filters: {
+        legal_entity_code: legalEntityCode || null,
+        from: fromDate || null,
+        to: toDate || null,
+      },
       totals: {
         donations: (donations ?? []).length,
         totalAmount: (donations ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0),
@@ -359,17 +395,30 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
   }
 })
 
-financeAdminRouter.get('/exports/donations.csv', async (_req, res) => {
+financeAdminRouter.get('/exports/donations.csv', async (req, res) => {
   try {
     const supabase = getServiceSupabase()
+    const { fromDate, toDate } = readDateRangeFromQuery(req.query as Record<string, unknown>)
+    const { legalEntityCode, legalEntityId, error: filterErr } = await readLegalEntityFilter(
+      supabase,
+      req.query as Record<string, unknown>,
+    )
+    if (filterErr) {
+      res.status(400).json({ error: filterErr })
+      return
+    }
     const { data: entities } = await supabase.from('legal_entities').select('id,code')
     const entityCodeById = new Map<string, string>()
     for (const e of entities ?? []) entityCodeById.set(String(e.id), String(e.code))
 
-    const { data: donations, error } = await supabase
+    let donationsQ = supabase
       .from('donations')
       .select('id,created_at,legal_entity_id,batch,amount,member_id,app_user_id,slip_file_url,note')
       .order('created_at', { ascending: false })
+    if (legalEntityId) donationsQ = donationsQ.eq('legal_entity_id', legalEntityId)
+    if (fromDate) donationsQ = donationsQ.gte('created_at', `${fromDate}T00:00:00.000Z`)
+    if (toDate) donationsQ = donationsQ.lte('created_at', `${toDate}T23:59:59.999Z`)
+    const { data: donations, error } = await donationsQ
     if (error) {
       res.status(500).json({ error: 'Load donations failed', details: error })
       return
@@ -385,6 +434,9 @@ financeAdminRouter.get('/exports/donations.csv', async (_req, res) => {
       app_user_id: d.app_user_id,
       slip_file_url: d.slip_file_url,
       note: d.note,
+      filter_legal_entity_code: legalEntityCode || '',
+      filter_from: fromDate || '',
+      filter_to: toDate || '',
     }))
     const csv = rowsToCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
@@ -396,19 +448,32 @@ financeAdminRouter.get('/exports/donations.csv', async (_req, res) => {
   }
 })
 
-financeAdminRouter.get('/exports/payment-requests.csv', async (_req, res) => {
+financeAdminRouter.get('/exports/payment-requests.csv', async (req, res) => {
   try {
     const supabase = getServiceSupabase()
+    const { fromDate, toDate } = readDateRangeFromQuery(req.query as Record<string, unknown>)
+    const { legalEntityCode, legalEntityId, error: filterErr } = await readLegalEntityFilter(
+      supabase,
+      req.query as Record<string, unknown>,
+    )
+    if (filterErr) {
+      res.status(400).json({ error: filterErr })
+      return
+    }
     const { data: entities } = await supabase.from('legal_entities').select('id,code')
     const entityCodeById = new Map<string, string>()
     for (const e of entities ?? []) entityCodeById.set(String(e.id), String(e.code))
 
-    const { data: reqs, error } = await supabase
+    let paymentQ = supabase
       .from('payment_requests')
       .select(
         'id,requested_at,legal_entity_id,bank_account_id,meeting_session_id,purpose,amount,currency,approval_rule,required_role_code,required_approvals,status,requested_by,kbiz_transfer_ref,transfer_slip_file_url,note',
       )
       .order('requested_at', { ascending: false })
+    if (legalEntityId) paymentQ = paymentQ.eq('legal_entity_id', legalEntityId)
+    if (fromDate) paymentQ = paymentQ.gte('requested_at', `${fromDate}T00:00:00.000Z`)
+    if (toDate) paymentQ = paymentQ.lte('requested_at', `${toDate}T23:59:59.999Z`)
+    const { data: reqs, error } = await paymentQ
     if (error) {
       res.status(500).json({ error: 'Load payment_requests failed', details: error })
       return
@@ -431,6 +496,9 @@ financeAdminRouter.get('/exports/payment-requests.csv', async (_req, res) => {
       kbiz_transfer_ref: r.kbiz_transfer_ref,
       transfer_slip_file_url: r.transfer_slip_file_url,
       note: r.note,
+      filter_legal_entity_code: legalEntityCode || '',
+      filter_from: fromDate || '',
+      filter_to: toDate || '',
     }))
     const csv = rowsToCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
@@ -442,18 +510,31 @@ financeAdminRouter.get('/exports/payment-requests.csv', async (_req, res) => {
   }
 })
 
-financeAdminRouter.get('/exports/meeting-sessions.csv', async (_req, res) => {
+financeAdminRouter.get('/exports/meeting-sessions.csv', async (req, res) => {
   try {
     const supabase = getServiceSupabase()
+    const { fromDate, toDate } = readDateRangeFromQuery(req.query as Record<string, unknown>)
+    const { legalEntityCode, legalEntityId, error: filterErr } = await readLegalEntityFilter(
+      supabase,
+      req.query as Record<string, unknown>,
+    )
+    if (filterErr) {
+      res.status(400).json({ error: filterErr })
+      return
+    }
 
     const { data: entities } = await supabase.from('legal_entities').select('id,code')
     const entityCodeById = new Map<string, string>()
     for (const e of entities ?? []) entityCodeById.set(String(e.id), String(e.code))
 
-    const { data: sessions, error: sErr } = await supabase
+    let sessionsQ = supabase
       .from('meeting_sessions')
       .select('id,legal_entity_id,title,expected_participants,meeting_at,created_by,created_at')
       .order('created_at', { ascending: false })
+    if (legalEntityId) sessionsQ = sessionsQ.eq('legal_entity_id', legalEntityId)
+    if (fromDate) sessionsQ = sessionsQ.gte('created_at', `${fromDate}T00:00:00.000Z`)
+    if (toDate) sessionsQ = sessionsQ.lte('created_at', `${toDate}T23:59:59.999Z`)
+    const { data: sessions, error: sErr } = await sessionsQ
     if (sErr) {
       res.status(500).json({ error: 'Load meeting_sessions failed', details: sErr })
       return
@@ -493,6 +574,9 @@ financeAdminRouter.get('/exports/meeting-sessions.csv', async (_req, res) => {
         majority_required: majorityNeed,
         created_by: s.created_by,
         created_at: s.created_at,
+        filter_legal_entity_code: legalEntityCode || '',
+        filter_from: fromDate || '',
+        filter_to: toDate || '',
       }
     })
 
