@@ -177,4 +177,4 @@ docker build -t gcr.io/PROJECT_ID/yrc-api:latest .
 - อัปเดต `FRONTEND_ORIGINS` บน Cloud Run  
 - ตรวจ LINE / LINE Login callback ให้ตรงโดเมนใหม่  
 - **เช็คลิสต์ทีละขั้น (Cloud Run + Vercel + Supabase + LINE + Push):** [`docs/DEPLOY_VERIFY.md`](docs/DEPLOY_VERIFY.md)  
-- **ทดสอบหลัง deploy แบบ CLI:** `node scripts/verify-deployment.mjs <URL_API> <URL_Vercel>` — หรือรันจาก GitHub **Actions → Verify production** (ดู `docs/DEPLOY_VERIFY.md`)
+- **ทดสอบหลัง deploy แบบ CLI:** `npm run verify:deploy -- <URL_API> <URL_Vercel>` — แบบละเอียด: `npm run verify:deploy:deep -- …` — ทดสอบ admin (ใส่ key ใน env): `npm run verify:admin` — หรือรันจาก GitHub **Actions → Verify production** (ดู `docs/DEPLOY_VERIFY.md`)

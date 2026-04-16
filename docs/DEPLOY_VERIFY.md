@@ -26,11 +26,23 @@ $env:VERIFY_API_BASE="https://xxx.run.app"; $env:VERIFY_FRONTEND_ORIGIN="https:/
 
 คำสั่งนี้เรียก `GET /health` ตรวจว่า `GET /api/admin/members/summary` มีอยู่ (probe ไม่ใส่ key) และถ้ามี origin ของ Vercel จะตรวจ CORS
 
-**ตรวจแบบละเอียด** (เทมเพลตนำเข้า, VAPID, CORS preflight, และว่า bundle หน้าเว็บฝัง host ของ API ตรงกับ URL ที่ให้):
+**ตรวจแบบละเอียด** (เทมเพลตนำเข้า, VAPID, **LINE route** (POST ว่างต้องได้ 400 ตามที่ออกแบบ), CORS preflight, และว่า bundle หน้าเว็บฝัง host ของ API ตรงกับ URL ที่ให้):
 
 ```bash
 npm run verify:deploy:deep -- https://<CLOUD_RUN_URL> https://<VERCEL_FRONTEND_URL>
 ```
+
+**ตรวจ Admin ด้วย key จริง** (ใส่ key ใน env เท่านั้น — ห้าม commit):
+
+```bash
+# PowerShell
+$env:VERIFY_API_BASE="https://<CLOUD_RUN_URL>"
+$env:VERIFY_ADMIN_KEY="<ADMIN_UPLOAD_KEY>"
+npm run verify:admin
+```
+
+จะเรียก `GET /api/admin/members/summary` และ `GET /api/admin/member-requests` พร้อม `x-admin-key`  
+ถ้าต้องการกรองเฉพาะ batch: `$env:VERIFY_IMPORT_BATCH_ID="<uuid>"`
 
 **จาก GitHub:** ไปที่ **Actions** → workflow **Verify production** → **Run workflow** แล้วใส่ URL ทั้งสอง (ไฟล์ `.github/workflows/verify-production.yml`) — workflow นี้ยังเป็นแบบเบื้องต้น ไม่รวมโหมด deep
 
@@ -38,11 +50,12 @@ npm run verify:deploy:deep -- https://<CLOUD_RUN_URL> https://<VERCEL_FRONTEND_U
 
 ## ขั้น 1 — Supabase (ฐานข้อมูล)
 
-1. เข้า [Supabase Dashboard](https://supabase.com/dashboard) → โปรเจกต์ที่ใช้จริง
-2. **SQL Editor** หรือ Migration: รันไฟล์ใน `supabase/migrations/` **ตามลำดับเวลาในชื่อไฟล์**  
+1. ยืนยันว่า migration ใน repo (`supabase/migrations/*.sql`) ถูกนำไปรันในโปรเจกต์จริงแล้ว — อย่างน้อย `initial_members` และถ้าใช้ Web Push ต้องมี `push_subscriptions`
+2. เข้า [Supabase Dashboard](https://supabase.com/dashboard) → โปรเจกต์ที่ใช้จริง
+3. **SQL Editor** หรือ Migration: รันไฟล์ใน `supabase/migrations/` **ตามลำดับเวลาในชื่อไฟล์**  
    - `20260415120000_initial_members.sql`  
    - `20260415140000_push_subscriptions.sql` (ถ้าใช้ Web Push)
-3. ตรวจว่า **Project URL** และ **service role key** ตรงกับที่ใส่ใน **Cloud Run env** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`)
+4. ตรวจว่า **Project URL** และ **service role key** ตรงกับที่ใส่ใน **Cloud Run env** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`)
 
 ---
 

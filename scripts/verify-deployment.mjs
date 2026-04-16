@@ -133,6 +133,20 @@ async function main() {
     )
   }
 
+  const lineTokenUrl = `${base}/api/auth/line/token`
+  const rLine = await fetch(lineTokenUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: origin },
+    body: JSON.stringify({}),
+  })
+  const lineJ = await rLine.json().catch(() => null)
+  if (rLine.status !== 400 || lineJ?.error !== 'code and redirect_uri are required') {
+    throw new Error(
+      `POST /api/auth/line/token (empty body) → expected HTTP 400 + code/redirect_uri error, got ${rLine.status} ${JSON.stringify(lineJ)?.slice(0, 160)}`,
+    )
+  }
+  console.log('OK: LINE token route responds (400 when body empty — expected)')
+
   const preUrl = `${base}/api/members/verify-link`
   const rOpt = await fetch(preUrl, {
     method: 'OPTIONS',

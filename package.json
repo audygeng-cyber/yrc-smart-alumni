@@ -12,7 +12,8 @@
     "test": "npm run test -w backend",
     "ci": "npm run build && npm run lint && npm run test",
     "verify:deploy": "node scripts/verify-deployment.mjs",
-    "verify:deploy:deep": "node scripts/verify-deployment.mjs --deep"
+    "verify:deploy:deep": "node scripts/verify-deployment.mjs --deep",
+    "verify:admin": "node scripts/verify-admin.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
