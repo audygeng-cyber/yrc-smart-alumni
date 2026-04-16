@@ -106,6 +106,22 @@ function paginateRows<T>(rows: T[], page: number, pageSize: number) {
   }
 }
 
+function csvEscapeCell(value: unknown): string {
+  const s = value == null ? '' : String(value)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+function rowsToCsvText(rows: Record<string, unknown>[]): string {
+  if (!rows.length) return ''
+  const headers = Object.keys(rows[0] ?? {})
+  const lines = [headers.join(',')]
+  for (const row of rows) {
+    lines.push(headers.map((h) => csvEscapeCell(row[h])).join(','))
+  }
+  return `\uFEFF${lines.join('\n')}\n`
+}
+
 export function AdminFinancePanel({ apiBase }: Props) {
   const base = normalizeApiBase(apiBase)
   const [adminKey, setAdminKey] = useState('')
@@ -229,6 +245,47 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }, [donationsReport?.byEntity, entitySortDir, entitySortKey, reportKeywordNorm])
   const entityPaged = useMemo(() => paginateRows(entityRows, entityPage, PAGE_SIZE), [entityRows, entityPage])
 
+  const plExportRows = useMemo(
+    () =>
+      plRows.map((r) => ({
+        account_code: r.accountCode,
+        account_name: r.accountName,
+        account_type: r.accountType,
+        debit: r.debit,
+        credit: r.credit,
+        net: r.net,
+      })),
+    [plRows],
+  )
+
+  const donorExportRows = useMemo(
+    () =>
+      donorRows.map((r) => ({
+        donor: r.donorLabel,
+        donation_count: r.count,
+        total_amount: r.totalAmount,
+      })),
+    [donorRows],
+  )
+
+  const batchExportRows = useMemo(
+    () =>
+      batchRows.map((r) => ({
+        batch: r.batch,
+        total_amount: r.totalAmount,
+      })),
+    [batchRows],
+  )
+
+  const entityExportRows = useMemo(
+    () =>
+      entityRows.map((r) => ({
+        legal_entity_code: r.legalEntityCode,
+        total_amount: r.totalAmount,
+      })),
+    [entityRows],
+  )
+
   useEffect(() => {
     setPlPage(1)
     setDonorPage(1)
@@ -305,6 +362,24 @@ export function AdminFinancePanel({ apiBase }: Props) {
         </button>
       </div>
     )
+  }
+
+  function downloadCurrentViewCsv(filename: string, rows: Record<string, unknown>[]) {
+    if (!rows.length) {
+      setMsg(`ไม่มีข้อมูลสำหรับ export: ${filename}`)
+      return
+    }
+    const csv = rowsToCsvText(rows)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    setMsg(`ดาวน์โหลด ${filename} (current view) แล้ว`)
   }
 
   async function loadOverviewAndAccounts() {
@@ -699,7 +774,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
       {plSummary ? (
         <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
-          <p className="mb-2 font-medium">P/L Accounts (ทั้งหมด)</p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="font-medium">P/L Accounts (ทั้งหมด)</p>
+            <button
+              type="button"
+              onClick={() => downloadCurrentViewCsv('finance-current-pl.csv', plExportRows)}
+              className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+            >
+              Export Current View CSV
+            </button>
+          </div>
           <div className="grid grid-cols-4 gap-2 font-semibold text-slate-400">
             <button type="button" onClick={() => togglePlSort('accountCode')} className="text-left hover:text-slate-200">
               Code{sortArrow(plSortKey === 'accountCode', plSortDir)}
@@ -733,7 +817,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
       {donationsReport ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
-            <p className="mb-2 font-medium">Donors (ทั้งหมด)</p>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="font-medium">Donors (ทั้งหมด)</p>
+              <button
+                type="button"
+                onClick={() => downloadCurrentViewCsv('finance-current-donors.csv', donorExportRows)}
+                className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+              >
+                Export Current View CSV
+              </button>
+            </div>
             <div className="grid grid-cols-3 gap-2 font-semibold text-slate-400">
               <button
                 type="button"
@@ -768,7 +861,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
           </div>
 
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
-            <p className="mb-2 font-medium">Donations by Batch</p>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="font-medium">Donations by Batch</p>
+              <button
+                type="button"
+                onClick={() => downloadCurrentViewCsv('finance-current-batch.csv', batchExportRows)}
+                className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+              >
+                Export Current View CSV
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
               <button type="button" onClick={() => toggleBatchSort('batch')} className="text-left hover:text-slate-200">
                 Batch{sortArrow(batchSortKey === 'batch', batchSortDir)}
@@ -791,7 +893,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
           </div>
 
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200 md:col-span-2">
-            <p className="mb-2 font-medium">Donations by Legal Entity</p>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="font-medium">Donations by Legal Entity</p>
+              <button
+                type="button"
+                onClick={() => downloadCurrentViewCsv('finance-current-entity.csv', entityExportRows)}
+                className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+              >
+                Export Current View CSV
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
               <button
                 type="button"
