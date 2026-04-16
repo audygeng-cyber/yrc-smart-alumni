@@ -48,6 +48,13 @@
 - `GET /api/admin/finance/meeting-sessions/:id/summary`
   - ดู attendees, quorum required, majority required
 
+## หมายเหตุ migration เดิมที่เคยมีข้อมูลบริจาค
+
+ถ้าเคยมีตาราง `donations` มาก่อน migration accounting และเจอ error ว่า `column donations.legal_entity_id does not exist`  
+ให้รัน migration hotfix เพิ่ม:
+
+- `20260416180000_donations_legal_entity_hotfix.sql`
+
 ## แผนต่อยอด
 
 1. ผูก approval กับ user session จริง (`app_users` + `app_user_roles`) แทนรับ role จาก body
