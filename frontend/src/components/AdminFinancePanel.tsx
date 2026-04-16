@@ -446,6 +446,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
               setLastAutoRefreshError(
                 `${errors.join('\n\n------------------------------\n\n')}\n\nAuto refresh ผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
               )
+              addActivity('warn', `Auto refresh ผิดพลาด ${next}/${AUTO_REFRESH_MAX_FAILURES}`)
             }
             return next
           })
@@ -456,6 +457,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         setLastAutoRefreshAt(new Date().toLocaleTimeString())
         setLastAutoRefreshError(null)
         setAutoRefreshFailureCount(0)
+        addActivity('info', 'Auto refresh สำเร็จ')
       } catch {
         if (!cancelled) {
           setAutoRefreshFailureCount((prev) => {
@@ -470,6 +472,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
               setLastAutoRefreshError(
                 `Auto refresh เรียก API ไม่สำเร็จ\n\nAuto refresh ผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
               )
+              addActivity('warn', `Auto refresh เรียก API ไม่สำเร็จ ${next}/${AUTO_REFRESH_MAX_FAILURES}`)
             }
             return next
           })
@@ -770,6 +773,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
     a.remove()
     URL.revokeObjectURL(url)
     setMsg(`ดาวน์โหลด ${filename} (current view) แล้ว`)
+  }
+
+  function exportActivityLogCsv() {
+    if (!activityLog.length) {
+      setMsg('ยังไม่มี activity log สำหรับ export')
+      return
+    }
+    const rows = activityLog.map((it) => ({
+      time: it.at,
+      level: it.level,
+      message: it.message,
+    }))
+    downloadCurrentViewCsv('finance-activity-log.csv', rows)
+    addActivity('info', 'Export Activity Log CSV')
   }
 
   async function loadOverviewAndAccounts() {
@@ -1232,13 +1249,22 @@ export function AdminFinancePanel({ apiBase }: Props) {
       <div className="mt-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
         <div className="mb-2 flex items-center justify-between">
           <p className="font-medium text-slate-200">Activity Log (ล่าสุด 20)</p>
-          <button
-            type="button"
-            onClick={() => setActivityLog([])}
-            className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
-          >
-            Clear
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={exportActivityLogCsv}
+              className="rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600"
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivityLog([])}
+              className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+            >
+              Clear
+            </button>
+          </div>
         </div>
         {activityLog.length === 0 ? (
           <p className="text-[11px] text-slate-500">ยังไม่มีเหตุการณ์</p>
