@@ -46,12 +46,15 @@ type ActionHistoryEntry = {
 
 type ActivityFilter = 'all' | ActionHistoryEntry['action']
 type ActivityPreset = 'manual' | 'rejected_recent' | 'pending_approvals' | 'today'
+type ActivitySeverityFilter = 'all' | 'critical' | 'warning' | 'info'
 
 type RequestActivityRow = ActionHistoryEntry & {
   requestId: string
   lineUid: string
   batch: string
   fullName: string
+  severity: ActivitySeverityFilter
+  isToday: boolean
 }
 
 type QuickView = 'all' | 'new' | 'pending'
@@ -82,6 +85,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [activitySearch, setActivitySearch] = useState('')
   const [activityLimit, setActivityLimit] = useState(20)
   const [activityPreset, setActivityPreset] = useState<ActivityPreset>('manual')
+  const [activitySeverityFilter, setActivitySeverityFilter] = useState<ActivitySeverityFilter>('all')
 
   const summary = useMemo(() => {
     const counts = {
@@ -151,6 +155,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     return nextRows.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a))
   }, [filteredRows, sortMode])
   const activityRows = useMemo(() => {
+    const now = new Date()
     const flattened = rows.flatMap((row) => {
       const batch = pickRequestedText(row.requested_data, 'batch')
       const fullName = [pickRequestedText(row.requested_data, 'first_name'), pickRequestedText(row.requested_data, 'last_name')]
@@ -163,12 +168,15 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         lineUid: row.line_uid ?? '',
         batch,
         fullName,
+        severity: getActivitySeverity(entry),
+        isToday: isSameLocalDay(entry.at, now),
       }))
     })
 
     const filtered = flattened.filter((entry) => {
       if (activityActionFilter !== 'all' && entry.action !== activityActionFilter) return false
-      if (activityPreset === 'today' && !isSameLocalDay(entry.at, new Date())) return false
+      if (activityPreset === 'today' && !entry.isToday) return false
+      if (activitySeverityFilter !== 'all' && entry.severity !== activitySeverityFilter) return false
       if (!activitySearchTrimmed) return true
       return buildActivitySearchText(entry).includes(activitySearchTrimmed)
     })
@@ -176,7 +184,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     return filtered
       .sort((a, b) => getActivityAtMs(b) - getActivityAtMs(a))
       .slice(0, activityLimit)
-  }, [activityActionFilter, activityLimit, activityPreset, activitySearchTrimmed, rows])
+  }, [activityActionFilter, activityLimit, activityPreset, activitySearchTrimmed, activitySeverityFilter, rows])
   const activitySummary = useMemo(() => {
     const counts: Record<ActivityFilter, number> = {
       all: 0,
@@ -190,6 +198,24 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       for (const entry of getActionHistoryEntries(row)) {
         counts.all += 1
         counts[entry.action] += 1
+      }
+    }
+
+    return counts
+  }, [rows])
+  const activitySeveritySummary = useMemo(() => {
+    const counts: Record<ActivitySeverityFilter, number> = {
+      all: 0,
+      critical: 0,
+      warning: 0,
+      info: 0,
+    }
+
+    for (const row of rows) {
+      for (const entry of getActionHistoryEntries(row)) {
+        const severity = getActivitySeverity(entry)
+        counts.all += 1
+        counts[severity] += 1
       }
     }
 
@@ -415,6 +441,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
     if (preset === 'rejected_recent') {
       setActivityActionFilter('rejected')
+      setActivitySeverityFilter('critical')
       setActivitySearch('')
       setActivityLimit(20)
       setMsg('เปลี่ยนเป็น activity preset: rejected recent')
@@ -423,6 +450,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
     if (preset === 'pending_approvals') {
       setActivityActionFilter('all')
+      setActivitySeverityFilter('warning')
       setActivitySearch('pending_')
       setActivityLimit(50)
       setMsg('เปลี่ยนเป็น activity preset: pending approvals')
@@ -431,6 +459,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
     if (preset === 'today') {
       setActivityActionFilter('all')
+      setActivitySeverityFilter('all')
       setActivitySearch('')
       setActivityLimit(50)
       setMsg('เปลี่ยนเป็น activity preset: today')
@@ -932,6 +961,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           <span className="rounded bg-amber-900/40 px-2 py-1 text-amber-200">ประธานรุ่นอนุมัติ: {activitySummary.president_approved}</span>
           <span className="rounded bg-emerald-900/40 px-2 py-1 text-emerald-200">Admin อนุมัติ: {activitySummary.admin_approved}</span>
           <span className="rounded bg-red-900/40 px-2 py-1 text-red-200">ปฏิเสธ: {activitySummary.rejected}</span>
+          <span className="rounded bg-red-950/60 px-2 py-1 text-red-100">critical: {activitySeveritySummary.critical}</span>
+          <span className="rounded bg-amber-950/50 px-2 py-1 text-amber-100">warning: {activitySeveritySummary.warning}</span>
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-200">info: {activitySeveritySummary.info}</span>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -981,6 +1013,19 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             </select>
           </label>
           <label className="text-sm text-slate-300">
+            ระดับความสำคัญ
+            <select
+              value={activitySeverityFilter}
+              onChange={(e) => setActivitySeverityFilter(e.target.value as ActivitySeverityFilter)}
+              className="mt-1 block rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-600"
+            >
+              <option value="all">ทั้งหมด</option>
+              <option value="critical">critical</option>
+              <option value="warning">warning</option>
+              <option value="info">info</option>
+            </select>
+          </label>
+          <label className="text-sm text-slate-300">
             ค้นหาใน activity
             <input
               value={activitySearch}
@@ -1006,12 +1051,29 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
         <div className="mt-4 space-y-3">
           {activityRows.map((entry, index) => (
-            <div key={`${entry.requestId}-${entry.action}-${entry.at}-${index}`} className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+            <div
+              key={`${entry.requestId}-${entry.action}-${entry.at}-${index}`}
+              className={`rounded-lg border p-3 ${
+                entry.severity === 'critical'
+                  ? 'border-red-700/60 bg-red-950/20 shadow-[0_0_0_1px_rgba(239,68,68,0.16)]'
+                  : entry.severity === 'warning'
+                    ? 'border-amber-700/50 bg-amber-950/15 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]'
+                    : 'border-slate-800 bg-slate-950/50'
+              }`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded px-2 py-0.5 text-xs ${getActionHistoryTone(entry.action)}`}>
                     {getActionHistoryLabel(entry.action)}
                   </span>
+                  <span className={`rounded px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${getActivitySeverityTone(entry.severity)}`}>
+                    {entry.severity}
+                  </span>
+                  {entry.isToday ? (
+                    <span className="rounded bg-cyan-900/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-cyan-200">
+                      today
+                    </span>
+                  ) : null}
                   <span className="font-mono text-xs text-slate-500">{entry.requestId}</span>
                 </div>
                 <span className="text-xs text-slate-400">{formatDateTime(entry.at)}</span>
@@ -1467,6 +1529,18 @@ function getActionHistoryTone(action: ActionHistoryEntry['action']): string {
   if (action === 'president_approved') return 'bg-amber-900/40 text-amber-200'
   if (action === 'admin_approved') return 'bg-emerald-900/40 text-emerald-200'
   return 'bg-red-900/40 text-red-200'
+}
+
+function getActivitySeverity(entry: ActionHistoryEntry): ActivitySeverityFilter {
+  if (entry.action === 'rejected') return 'critical'
+  if (entry.to_status === 'pending_admin' || entry.to_status === 'pending_president') return 'warning'
+  return 'info'
+}
+
+function getActivitySeverityTone(severity: ActivitySeverityFilter): string {
+  if (severity === 'critical') return 'bg-red-950/70 text-red-100'
+  if (severity === 'warning') return 'bg-amber-950/60 text-amber-100'
+  return 'bg-slate-800 text-slate-200'
 }
 
 function getActivityAtMs(entry: RequestActivityRow): number {
