@@ -987,6 +987,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
   }
 
+  function applyIncidentPreset(nextFilter: Extract<ActivityFilter, 'warn' | 'error'>) {
+    setActivityFilter(nextFilter)
+    setActivitySearch('')
+    setActivityLimit(10)
+    addActivity('info', `Incident preset: ${nextFilter}`)
+  }
+
   async function loadOverviewAndAccounts() {
     if (!adminKey.trim()) {
       setMsg('ใส่ x-admin-key ก่อน')
@@ -1526,6 +1533,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
           </div>
         </div>
         <div className="mb-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => applyIncidentPreset('error')}
+            className="rounded bg-rose-700 px-2 py-1 text-[11px] text-white hover:bg-rose-600"
+          >
+            Only Errors
+          </button>
+          <button
+            type="button"
+            onClick={() => applyIncidentPreset('warn')}
+            className="rounded bg-amber-700 px-2 py-1 text-[11px] text-white hover:bg-amber-600"
+          >
+            Only Warnings
+          </button>
           {ACTIVITY_SHORTCUTS.map((shortcut) => {
             const active = activitySearchTrimmed.toLowerCase() === shortcut.keyword.toLowerCase()
             return (
