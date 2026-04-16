@@ -3,6 +3,7 @@ import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { adminAuth } from './middleware/adminAuth.js'
+import { financeAdminRouter } from './routes/financeAdmin.js'
 import { importMembersRouter } from './routes/importMembers.js'
 import { importTemplateRouter } from './routes/importTemplate.js'
 import { lineAuthRouter } from './routes/lineAuth.js'
@@ -57,6 +58,8 @@ export function createApp(): express.Express {
         adminImport: 'POST /api/admin/members/import (ต้องใช้ x-admin-key)',
         adminImportSummary:
           'GET /api/admin/members/summary?importBatchId=... (ต้องใช้ x-admin-key)',
+        finance:
+          'GET /api/admin/finance/overview, POST /api/admin/finance/payment-requests, POST /api/admin/finance/payment-requests/:id/approve',
         memberRequests:
           'GET /api/admin/member-requests (x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
         push: 'GET /api/push/vapid-public, POST /api/push/subscribe',
@@ -85,6 +88,7 @@ export function createApp(): express.Express {
   app.use('/api/auth/line', lineOAuthLimit, lineAuthRouter)
   app.use('/api/push', pushRouter)
   app.use('/api/admin/member-requests', memberRequestsAdminRouter)
+  app.use('/api/admin/finance', adminAuth, financeAdminRouter)
   app.use('/api/admin/members', importTemplateRouter)
   app.use('/api/admin/members', adminAuth, importMembersRouter)
   app.use('/api/members', membersPublicLimit, membersRouter)

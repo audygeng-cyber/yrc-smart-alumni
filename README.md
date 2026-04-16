@@ -100,7 +100,9 @@ Body JSON: `{ "line_uid": "…", "updates": { "เบอร์โทรศัพ
 Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name": "…", … }`  
 สร้างแถวใน `member_update_requests` (สถานะ `pending_president`)
 
-รายละเอียด flow และการนำเข้ารายชื่อชุดใหม่: [`docs/MEMBER_FLOW.md`](docs/MEMBER_FLOW.md)
+รายละเอียด flow และการนำเข้ารายชื่อชุดใหม่: [`docs/MEMBER_FLOW.md`](docs/MEMBER_FLOW.md)  
+แผนระบบหลายบทบาท (URL เดียว + LINE login + RBAC): [`docs/SYSTEM_V2_ROADMAP.md`](docs/SYSTEM_V2_ROADMAP.md)  
+แผนระบบบัญชี/อนุมัติจ่ายเงิน: [`docs/ACCOUNTING_FLOW.md`](docs/ACCOUNTING_FLOW.md)
 
 หน้าเว็บแท็บ **ผูกบัญชี** / **Admin** ใช้ทดสอบ flow เหล่านี้ได้จาก UI
 
