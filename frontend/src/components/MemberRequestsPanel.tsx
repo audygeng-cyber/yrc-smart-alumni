@@ -211,6 +211,15 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     }
   }
 
+  function markAllAsSeen() {
+    const currentIds = rows.map((row) => row.id)
+    sessionStorage.setItem(STORAGE_LAST_REQUEST_IDS, currentIds.join(','))
+    sessionStorage.setItem(STORAGE_LAST_PENDING, String(pendingTotal))
+    setNewRowIds([])
+    setPendingIncrease(0)
+    setMsg('ทำเครื่องหมายคำร้องปัจจุบันทั้งหมดว่าเห็นแล้ว')
+  }
+
   return (
     <section className="rounded-xl border border-violet-900/40 bg-violet-950/20 p-6">
       <h2 className="text-sm font-medium uppercase tracking-wide text-violet-200/90">
@@ -243,6 +252,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           }`}
         >
           auto refresh: {autoRefresh ? 'on' : 'off'}
+        </span>
+        <span className="rounded bg-emerald-900/40 px-2 py-1 text-emerald-200">
+          ใหม่: {newRowIds.length}
         </span>
       </div>
       <p className="mt-2 text-xs text-slate-500">
@@ -309,6 +321,14 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50"
         >
           โหลดรายการ
+        </button>
+        <button
+          type="button"
+          disabled={loading || (newRowIds.length === 0 && pendingIncrease === 0)}
+          onClick={markAllAsSeen}
+          className="rounded-lg border border-emerald-800 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-950/30 disabled:opacity-50"
+        >
+          mark all as seen
         </button>
       </div>
 
