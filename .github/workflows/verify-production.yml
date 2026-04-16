@@ -1,0 +1,31 @@
+# รันจาก GitHub → Actions → "Verify production" → Run workflow
+# ใส่ URL ของ Cloud Run และ Vercel แล้วกด Run (ทดสอบ /health + CORS)
+name: Verify production
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base:
+        description: "ฐาน URL ของ API (Cloud Run) เช่น https://xxx.run.app"
+        required: true
+        type: string
+      frontend_origin:
+        description: "Origin ของเว็บ (Vercel) เช่น https://yyy.vercel.app"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Health + CORS check
+        run: node scripts/verify-deployment.mjs "${{ inputs.api_base }}" "${{ inputs.frontend_origin }}"

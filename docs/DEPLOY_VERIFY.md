@@ -26,6 +26,8 @@ $env:VERIFY_API_BASE="https://xxx.run.app"; $env:VERIFY_FRONTEND_ORIGIN="https:/
 
 คำสั่งนี้เรียก `GET /health` และถ้ามี origin ของ Vercel จะตรวจว่า response มี `Access-Control-Allow-Origin` ตรงกับ origin หรือไม่
 
+**จาก GitHub:** ไปที่ **Actions** → workflow **Verify production** → **Run workflow** แล้วใส่ URL ทั้งสอง (ไฟล์ `.github/workflows/verify-production.yml`)
+
 ---
 
 ## ขั้น 1 — Supabase (ฐานข้อมูล)
