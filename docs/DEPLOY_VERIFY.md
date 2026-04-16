@@ -44,6 +44,20 @@ npm run verify:admin
 จะเรียก `GET /api/admin/members/summary` และ `GET /api/admin/member-requests` พร้อม `x-admin-key`  
 ถ้าต้องการกรองเฉพาะ batch: `$env:VERIFY_IMPORT_BATCH_ID="<uuid>"`
 
+**รายการ migration สำหรับรันใน Supabase (ลำดับ + ตัวอย่างหัวไฟล์):**
+
+```bash
+npm run migrations:list
+```
+
+**ตรวจว่า Cloud Run พร้อมสำหรับ LINE Login (ไม่ต้องใส่ Channel Secret):**
+
+```bash
+npm run verify:line -- https://<CLOUD_RUN_URL> https://<VERCEL_FRONTEND_URL>
+```
+
+ถ้าได้ **401 + line_token_exchange_failed** ถือว่าโครงสร้างพร้อมแล้ว (LINE ปฏิเสธ code ทดสอบ) — จากนั้นตั้ง `VITE_LINE_*` บน Vercel และ Callback URL ใน LINE Developers
+
 **จาก GitHub:** ไปที่ **Actions** → workflow **Verify production** → **Run workflow** แล้วใส่ URL ทั้งสอง (ไฟล์ `.github/workflows/verify-production.yml`) — workflow นี้ยังเป็นแบบเบื้องต้น ไม่รวมโหมด deep
 
 ---
@@ -99,10 +113,12 @@ npm run verify:admin
 
 ## ขั้น 5 — LINE Login (ถ้าเปิดใช้)
 
-1. [LINE Developers](https://developers.line.biz/) → Channel LINE Login → **Callback URL**  
-   - ต้องมี URL ของ Vercel (และ localhost ถ้ายังทดสอบ local) ตรงกับ `VITE_LINE_REDIRECT_URI` / `LINE_REDIRECT_URIS`
-2. ทดลองล็อกอินจาก URL **production (HTTPS)** — ห้ามอ้างแค่ localhost ว่า “ใช้ได้” แล้ว production จะอัตโนมัติ
-3. ถ้า redirect ผิดหรือ `invalid_grant` — เช็ค redirect URI ให้ตรงทุกจุด (รวม `/` ท้าย path)
+1. บน Cloud Run ใส่ **`LINE_CHANNEL_ID`**, **`LINE_CHANNEL_SECRET`**, **`LINE_REDIRECT_URIS`** (คั่นหลาย URL ด้วย comma — ถ้าใช้ `gcloud` บน Windows ค่ามี comma อาจต้องแก้ใน **Google Cloud Console** แทนการพิมพ์บรรทัดเดียว)
+2. บน Vercel ใส่ **`VITE_LINE_CHANNEL_ID`**, **`VITE_LINE_REDIRECT_URI`** ให้ **ตรงกับหนึ่งในค่าใน `LINE_REDIRECT_URIS`** (รวมว่ามี `/` ท้ายหรือไม่ — ต้องตรงทุกที่)
+3. [LINE Developers](https://developers.line.biz/) → Channel LINE Login → **Callback URL** = URL เดียวกับ `VITE_LINE_REDIRECT_URI`
+4. รัน `npm run verify:line -- <API> <Vercel URL>` — ถ้าได้ **401 line_token_exchange_failed** แปลว่าโครงสร้าง API พร้อม
+5. ทดลองล็อกอินจาก URL **production (HTTPS)**
+6. ถ้า `invalid_grant` / redirect ผิด — เช็คให้ redirect ตรงทุกจุด (Console, env, ปุ่มล็อกอิน)
 
 ---
 
