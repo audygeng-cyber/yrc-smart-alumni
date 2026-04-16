@@ -4,6 +4,7 @@ import {
   committeePortalPayload,
   memberPortalPayload,
 } from '../data/portalSnapshot.js'
+import { tryAssociationMonthlyPlFromJournal } from './plFromJournal.js'
 
 /** โครงเดียวกับ snapshot แต่ mutable (ไม่ใช่ readonly จาก `as const`) */
 type MetricCard = { label: string; value: string; hint: string }
@@ -122,36 +123,64 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
 
   base.roleCards.staff[0] = { ...base.roleCards.staff[0], value: fmtInt(requestsMonth ?? 0) }
 
-  const { data: donationsMonth, error: e5 } = await supabase
-    .from('donations')
-    .select('amount')
-    .gte('created_at', start)
-    .lt('created_at', end)
-  if (e5) throw e5
+  const plFromJournal = await tryAssociationMonthlyPlFromJournal(supabase)
+  if (plFromJournal !== null) {
+    base.financeCards[0] = {
+      ...base.financeCards[0],
+      value: fmtThb(Math.round(plFromJournal.revenue)),
+      hint: 'รวมรายรับจากบัญชีแยกประเภท (นิติบุคคลสมาคม) เดือนนี้',
+    }
+    base.financeCards[1] = {
+      ...base.financeCards[1],
+      value: fmtThb(Math.round(plFromJournal.expense)),
+      hint: 'รวมรายจ่ายจากบัญชีแยกประเภท (นิติบุคคลสมาคม) เดือนนี้',
+    }
+    base.financeCards[2] = {
+      ...base.financeCards[2],
+      value: fmtThb(Math.round(plFromJournal.netIncome)),
+      hint: 'รายรับ − รายจ่าย จาก journal เดือนนี้',
+    }
+  } else {
+    const { data: donationsMonth, error: e5 } = await supabase
+      .from('donations')
+      .select('amount')
+      .gte('created_at', start)
+      .lt('created_at', end)
+    if (e5) throw e5
 
-  const donationTotal = (donationsMonth ?? []).reduce((s, r: { amount?: string | number | null }) => {
-    const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
-    return s + (Number.isFinite(n) ? n : 0)
-  }, 0)
+    const donationTotal = (donationsMonth ?? []).reduce((s, r: { amount?: string | number | null }) => {
+      const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
+      return s + (Number.isFinite(n) ? n : 0)
+    }, 0)
 
-  const { data: paymentsMonth, error: e6 } = await supabase
-    .from('payment_requests')
-    .select('amount')
-    .in('status', ['approved', 'executed'])
-    .gte('created_at', start)
-    .lt('created_at', end)
-  if (e6) throw e6
+    const { data: paymentsMonth, error: e6 } = await supabase
+      .from('payment_requests')
+      .select('amount')
+      .in('status', ['approved', 'executed'])
+      .gte('created_at', start)
+      .lt('created_at', end)
+    if (e6) throw e6
 
-  const expenseTotal = (paymentsMonth ?? []).reduce((s, r: { amount?: string | number | null }) => {
-    const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
-    return s + (Number.isFinite(n) ? n : 0)
-  }, 0)
+    const expenseTotal = (paymentsMonth ?? []).reduce((s, r: { amount?: string | number | null }) => {
+      const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
+      return s + (Number.isFinite(n) ? n : 0)
+    }, 0)
 
-  base.financeCards[0] = { ...base.financeCards[0], value: fmtThb(Math.round(donationTotal)) }
-  base.financeCards[1] = { ...base.financeCards[1], value: fmtThb(Math.round(expenseTotal)) }
-  base.financeCards[2] = {
-    ...base.financeCards[2],
-    value: fmtThb(Math.round(donationTotal - expenseTotal)),
+    base.financeCards[0] = {
+      ...base.financeCards[0],
+      value: fmtThb(Math.round(donationTotal)),
+      hint: 'พร็อกซี: ผลรวมการบริจาคเดือนนี้ (ยังไม่มี journal ในช่วงนี้)',
+    }
+    base.financeCards[1] = {
+      ...base.financeCards[1],
+      value: fmtThb(Math.round(expenseTotal)),
+      hint: 'พร็อกซี: คำขอจ่ายที่อนุมัติ/โอนแล้วเดือนนี้',
+    }
+    base.financeCards[2] = {
+      ...base.financeCards[2],
+      value: fmtThb(Math.round(donationTotal - expenseTotal)),
+      hint: 'พร็อกซี: บริจาค − คำขอจ่าย (เมื่อยังไม่ใช้บัญชีแยกประเภท)',
+    }
   }
 
   const { count: reportsCount, error: e7 } = await supabase
