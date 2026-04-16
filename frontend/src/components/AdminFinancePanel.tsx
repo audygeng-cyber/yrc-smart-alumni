@@ -74,6 +74,12 @@ type ReportPreset = {
   to: string
   keyword: string
 }
+type ActivityItem = {
+  id: string
+  at: string
+  level: 'info' | 'warn' | 'error'
+  message: string
+}
 
 function normalizeApiBase(base: string): string {
   return base.trim().replace(/\/+$/, '')
@@ -207,6 +213,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [autoRefreshPausedByError, setAutoRefreshPausedByError] = useState(false)
   const [alertOnPause, setAlertOnPause] = useState(true)
   const [soundOnPause, setSoundOnPause] = useState(true)
+  const [activityLog, setActivityLog] = useState<ActivityItem[]>([])
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -234,6 +241,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const builtinPresets = useMemo(() => buildBuiltinReportPresets(), [])
   const allPresets = useMemo(() => [...builtinPresets, ...customPresets], [builtinPresets, customPresets])
   const pauseAlertSentRef = useRef(false)
+
+  function addActivity(level: ActivityItem['level'], message: string) {
+    const next: ActivityItem = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      at: new Date().toLocaleTimeString(),
+      level,
+      message,
+    }
+    setActivityLog((prev) => [next, ...prev].slice(0, 20))
+  }
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
@@ -424,6 +441,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
               setLastAutoRefreshError(
                 `${errors.join('\n\n------------------------------\n\n')}\n\nAuto refresh หยุดชั่วคราว (error ต่อเนื่อง ${next} ครั้ง)`,
               )
+              addActivity('warn', `Auto refresh pause (error ต่อเนื่อง ${next} ครั้ง)`)
             } else {
               setLastAutoRefreshError(
                 `${errors.join('\n\n------------------------------\n\n')}\n\nAuto refresh ผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
@@ -447,6 +465,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
               setLastAutoRefreshError(
                 `Auto refresh เรียก API ไม่สำเร็จ\n\nAuto refresh หยุดชั่วคราว (error ต่อเนื่อง ${next} ครั้ง)`,
               )
+              addActivity('warn', `Auto refresh pause (เรียก API ล้มเหลว ${next} ครั้ง)`)
             } else {
               setLastAutoRefreshError(
                 `Auto refresh เรียก API ไม่สำเร็จ\n\nAuto refresh ผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
@@ -534,17 +553,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setAutoRefreshFailureCount(0)
       setLastAutoRefreshError(null)
       setIsAutoRefreshing(false)
+      addActivity('info', 'ปิด Auto refresh')
       return
     }
     setAutoRefreshPausedByError(false)
     setAutoRefreshFailureCount(0)
     setLastAutoRefreshError(null)
+    addActivity('info', 'เปิด Auto refresh')
   }
 
   function resumeAutoRefresh() {
     setAutoRefreshPausedByError(false)
     setAutoRefreshFailureCount(0)
     setLastAutoRefreshError(null)
+    addActivity('info', 'Resume Auto refresh')
   }
 
   function togglePlSort(nextKey: PlSortKey) {
@@ -632,6 +654,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setBatchPage(1)
     setEntityPage(1)
     setMsg(`ใช้ preset แล้ว: ${preset.name}`)
+    addActivity('info', `ใช้ preset: ${preset.name}`)
   }
 
   function applySelectedPreset() {
@@ -674,6 +697,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
           )
         }
         setMsg(errors.join('\n\n------------------------------\n\n'))
+        addActivity('warn', `ใช้ preset + โหลดทันทีล้มเหลวบางส่วน: ${preset.name}`)
         return
       }
       setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
@@ -683,8 +707,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setBatchPage(1)
       setEntityPage(1)
       setMsg(`ใช้ preset และโหลดรายงานแล้ว: ${preset.name}`)
+      addActivity('info', `ใช้ preset + โหลดทันทีสำเร็จ: ${preset.name}`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ใช้ preset + โหลดทันทีไม่สำเร็จ: ${preset.name}`)
     } finally {
       setLoading(false)
     }
@@ -709,6 +735,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setSelectedPresetId(id)
     setPresetName('')
     setMsg(`บันทึก preset แล้ว: ${name}`)
+    addActivity('info', `บันทึก preset: ${name}`)
   }
 
   function deleteSelectedPreset() {
@@ -724,6 +751,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setCustomPresets((cur) => cur.filter((p) => p.id !== selectedPresetId))
     setSelectedPresetId(builtinPresets[0]?.id ?? '')
     setMsg(`ลบ preset แล้ว: ${target.name}`)
+    addActivity('warn', `ลบ preset: ${target.name}`)
   }
 
   function downloadCurrentViewCsv(filename: string, rows: Record<string, unknown>[]) {
@@ -773,8 +801,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const data = (p2.payload ?? {}) as { accounts?: BankAccount[] }
       setAccounts(Array.isArray(data.accounts) ? data.accounts : [])
       setMsg('โหลดภาพรวมและบัญชีธนาคารแล้ว')
+      addActivity('info', 'โหลด Overview + Bank Accounts สำเร็จ')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลด Overview + Bank Accounts ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -793,8 +823,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setPlSummary((p.payload ?? null) as PlSummaryPayload | null)
       setPlPage(1)
       setMsg('โหลดรายงาน P/L แล้ว')
+      addActivity('info', 'โหลดรายงาน P/L สำเร็จ')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดรายงาน P/L ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -815,8 +847,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setBatchPage(1)
       setEntityPage(1)
       setMsg('โหลด donations dashboard แล้ว')
+      addActivity('info', 'โหลด Donations dashboard สำเร็จ')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลด Donations dashboard ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -859,12 +893,15 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
       if (errors.length > 0) {
         setMsg(errors.join('\n\n------------------------------\n\n'))
+        addActivity('warn', 'โหลดรายงานทั้งหมดบางส่วนไม่สำเร็จ')
         return
       }
 
       setMsg('โหลดรายงานทั้งหมดแล้ว (P/L + Donations)')
+      addActivity('info', 'โหลดรายงานทั้งหมดสำเร็จ')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดรายงานทั้งหมดไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -1190,6 +1227,40 @@ export function AdminFinancePanel({ apiBase }: Props) {
           />
           sound alert
         </label>
+      </div>
+
+      <div className="mt-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="font-medium text-slate-200">Activity Log (ล่าสุด 20)</p>
+          <button
+            type="button"
+            onClick={() => setActivityLog([])}
+            className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+          >
+            Clear
+          </button>
+        </div>
+        {activityLog.length === 0 ? (
+          <p className="text-[11px] text-slate-500">ยังไม่มีเหตุการณ์</p>
+        ) : (
+          <div className="max-h-36 space-y-1 overflow-auto">
+            {activityLog.map((it) => (
+              <div key={it.id} className="flex items-start gap-2 text-[11px]">
+                <span
+                  className={`mt-0.5 inline-block h-2 w-2 rounded-full ${
+                    it.level === 'error'
+                      ? 'bg-rose-400'
+                      : it.level === 'warn'
+                        ? 'bg-amber-400'
+                        : 'bg-emerald-400'
+                  }`}
+                />
+                <span className="w-16 shrink-0 text-slate-500">{it.at}</span>
+                <span className="text-slate-200">{it.message}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-5">
