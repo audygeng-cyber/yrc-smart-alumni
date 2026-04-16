@@ -64,12 +64,47 @@ npm run verify:line -- https://<CLOUD_RUN_URL> https://<VERCEL_FRONTEND_URL>
 
 ## ขั้น 1 — Supabase (ฐานข้อมูล)
 
-1. ยืนยันว่า migration ใน repo (`supabase/migrations/*.sql`) ถูกนำไปรันในโปรเจกต์จริงแล้ว — อย่างน้อย `initial_members` และถ้าใช้ Web Push ต้องมี `push_subscriptions`
-2. เข้า [Supabase Dashboard](https://supabase.com/dashboard) → โปรเจกต์ที่ใช้จริง
-3. **SQL Editor** หรือ Migration: รันไฟล์ใน `supabase/migrations/` **ตามลำดับเวลาในชื่อไฟล์**  
-   - `20260415120000_initial_members.sql`  
-   - `20260415140000_push_subscriptions.sql` (ถ้าใช้ Web Push)
-4. ตรวจว่า **Project URL** และ **service role key** ตรงกับที่ใส่ใน **Cloud Run env** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`)
+1. ยืนยันว่า migration ในโปรเจกต์ (โฟลเดอร์ `supabase/migrations/`) ถูกนำไปรันในโปรเจกต์ Supabase จริงแล้ว — อย่างน้อยตารางหลักจาก `initial_members` และถ้าใช้ Web Push ต้องมีตาราง `push_subscriptions`
+2. เข้า [Supabase Dashboard](https://supabase.com/dashboard) → เลือกโปรเจกต์ที่ใช้กับ YRC
+3. ตรวจว่า **Project URL** และ **service role key** ตรงกับที่ใส่ใน **Cloud Run env** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`)
+
+### คำว่า “repo / ไฟล์ใน repo” คืออะไร
+
+- **Repo** หมายถึง **โฟลเดอร์โปรเจกต์บนเครื่องคุณ** (โค้ดที่ clone/download ไว้) เช่น  
+  `C:\Users\gengk\Desktop\YRC Smart Alumni`
+- **ไฟล์ migration** คือไฟล์ `.sql` อยู่ใต้โฟลเดอร์ย่อย  
+  `YRC Smart Alumni\supabase\migrations\`  
+  มีอย่างน้อยสองไฟล์ (รันตามลำดับชื่อ — ตัวเลขหน้าชื่อไฟล์น้อยก่อน):
+  - `20260415120000_initial_members.sql`
+  - `20260415140000_push_subscriptions.sql`
+
+### วิธีรัน SQL ใน Supabase แบบทีละขั้น (สำหรับคนที่ไม่เคยใช้ SQL Editor)
+
+1. ในเว็บ Supabase ดู**แถบเมนูซ้าย** — หารายการชื่อ **SQL** หรือ **SQL Editor** (ไอคอนมักเป็น `>_` หรือคำว่า SQL) แล้วคลิก  
+2. ถ้าไม่เห็นคำว่า “New query” ให้ลองมองหาอย่างใดอย่างหนึ่งแทน (ขึ้นกับเวอร์ชันหน้าเว็บ):
+   - ปุ่ม **+** หรือ **New snippet** / **Create a new query**
+   - แท็บว่างชื่อ **Untitled** / **New** — คลิกแล้วจะได้ช่องพิมพ์ SQL
+   - หรือมีช่องพิมพ์ SQL อยู่กลางหน้าอยู่แล้ว ไม่ต้องกดอะไรเพิ่ม — วางโค้ดลงไปได้เลย
+3. เปิดไฟล์ `.sql` บนเครื่องคุณ:
+   - เปิด **File Explorer** → ไปที่  
+     `Desktop\YRC Smart Alumni\supabase\migrations\`
+   - ดับเบิลคลิกไฟล์ `20260415120000_initial_members.sql` — ถ้าเปิดด้วย Notepad / Cursor / VS Code ได้  
+   - **Ctrl+A** เลือกทั้งหมด → **Ctrl+C** คัดลอก
+4. กลับไปที่หน้า **SQL Editor** ของ Supabase — คลิกในช่องพิมพ์ SQL → **Ctrl+V** วาง
+5. กดปุ่ม **Run** (หรือ **CTRL+Enter** ถ้าเว็บรองรับ) — รอจนขึ้นว่าสำเร็จหรือไม่มี error สำคัญ  
+6. ทำซ้ำข้อ 3–5 กับไฟล์ที่สอง `20260415140000_push_subscriptions.sql`
+
+ถ้า Supabase แจ้งว่าตารางมีอยู่แล้ว (`already exists`) มักถือว่าเคยรัน migration นี้ไปแล้ว — ใช้งานต่อได้ ถ้าไม่แน่ใจให้ดูใน **Table Editor** ว่ามีตาราง `members` หรือไม่
+
+### ดูลำดับไฟล์จากเทอร์มินัล (ทางเลือก)
+
+รากโปรเจกต์:
+
+```bash
+npm run migrations:list
+```
+
+จะพิมพ์ชื่อไฟล์เรียงลำดับและหัวข้อความให้
 
 ---
 
