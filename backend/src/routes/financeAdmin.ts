@@ -26,6 +26,66 @@ async function countMeetingAttendance(supabase: SupabaseClient, meetingSessionId
   return (data ?? []).length
 }
 
+financeAdminRouter.get('/bank-accounts', async (req, res) => {
+  try {
+    const legalEntityCode =
+      typeof req.query.legal_entity_code === 'string' ? req.query.legal_entity_code.trim() : ''
+    const supabase = getServiceSupabase()
+
+    let accountsQuery = supabase
+      .from('bank_accounts')
+      .select(
+        'id, legal_entity_id, bank_name, account_name, account_no_masked, signer_pool_size, required_signers, kbiz_enabled, created_at',
+      )
+      .order('created_at', { ascending: true })
+
+    if (legalEntityCode) {
+      const entity = await getLegalEntity(supabase, legalEntityCode)
+      if (!entity) {
+        res.status(400).json({ error: 'Unknown legal_entity_code' })
+        return
+      }
+      accountsQuery = accountsQuery.eq('legal_entity_id', entity.id)
+    }
+
+    const { data: accounts, error: accErr } = await accountsQuery
+    if (accErr) {
+      res.status(500).json({ error: 'Load bank_accounts failed', details: accErr })
+      return
+    }
+
+    const accountIds = (accounts ?? []).map((a) => String(a.id))
+    const signersByAccount: Record<string, unknown[]> = {}
+    if (accountIds.length > 0) {
+      const { data: signers, error: signErr } = await supabase
+        .from('bank_account_signers')
+        .select('id,bank_account_id,signer_name,kbiz_name,in_kbiz,active')
+        .in('bank_account_id', accountIds)
+        .order('signer_name', { ascending: true })
+      if (signErr) {
+        res.status(500).json({ error: 'Load bank_account_signers failed', details: signErr })
+        return
+      }
+      for (const s of signers ?? []) {
+        const key = String(s.bank_account_id)
+        if (!signersByAccount[key]) signersByAccount[key] = []
+        signersByAccount[key]!.push(s)
+      }
+    }
+
+    res.json({
+      ok: true,
+      accounts: (accounts ?? []).map((a) => ({
+        ...a,
+        signers: signersByAccount[String(a.id)] ?? [],
+      })),
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
 financeAdminRouter.get('/overview', async (_req, res) => {
   try {
     const supabase = getServiceSupabase()

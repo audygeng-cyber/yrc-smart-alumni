@@ -59,7 +59,7 @@ export function createApp(): express.Express {
         adminImportSummary:
           'GET /api/admin/members/summary?importBatchId=... (ต้องใช้ x-admin-key)',
         finance:
-          'GET /api/admin/finance/overview, POST /api/admin/finance/payment-requests, POST /api/admin/finance/payment-requests/:id/approve, POST /api/admin/finance/meeting-sessions, POST /api/admin/finance/meeting-sessions/:id/sign-attendance',
+          'GET /api/admin/finance/overview | bank-accounts, POST /api/admin/finance/payment-requests, POST /api/admin/finance/payment-requests/:id/approve, POST /api/admin/finance/meeting-sessions, POST /api/admin/finance/meeting-sessions/:id/sign-attendance',
         memberRequests:
           'GET /api/admin/member-requests (x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
         push: 'GET /api/push/vapid-public, POST /api/push/subscribe',

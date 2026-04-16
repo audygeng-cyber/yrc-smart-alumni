@@ -55,6 +55,19 @@
 
 - `20260416180000_donations_legal_entity_hotfix.sql`
 
+## ข้อมูล seed บัญชีธนาคารและผู้ลงนาม
+
+สำหรับระบบทดสอบรอบนี้มี migration seed:
+
+- `20260416190000_seed_bank_accounts_and_signers.sql`
+
+จะเติม:
+
+- บัญชีสมาคม: `205-2-76989-5`
+- บัญชีกวดวิชา: `205-2-77071-0`
+- บัญชีสมาชิก: `205-2-77086-9`
+- ผู้ลงนาม 5 คน (active + in_kbiz) ลงในทุกบัญชี
+
 ## แผนต่อยอด
 
 1. ผูก approval กับ user session จริง (`app_users` + `app_user_roles`) แทนรับ role จาก body
