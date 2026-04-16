@@ -7,6 +7,7 @@ const ACTIVITY_LOG_KEY = 'yrc_finance_activity_log_v1'
 const AUTO_REFRESH_SETTINGS_KEY = 'yrc_finance_auto_refresh_settings_v1'
 const ACTIVITY_FILTER_KEY = 'yrc_finance_activity_filter_v1'
 const ACTIVITY_SEARCH_KEY = 'yrc_finance_activity_search_v1'
+const ACTIVITY_LIMIT_KEY = 'yrc_finance_activity_limit_v1'
 const AUTO_REFRESH_MAX_FAILURES = 3
 
 type Props = { apiBase: string }
@@ -86,6 +87,7 @@ type ActivityItem = {
   message: string
 }
 type ActivityFilter = 'all' | 'info' | 'warn' | 'error'
+type ActivityLimit = 10 | 20 | 'all'
 type AutoRefreshSettings = {
   enabled: boolean
   seconds: 30 | 60
@@ -243,6 +245,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [activityLog, setActivityLog] = useState<ActivityItem[]>([])
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all')
   const [activitySearch, setActivitySearch] = useState('')
+  const [activityLimit, setActivityLimit] = useState<ActivityLimit>(20)
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -290,6 +293,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     const rawAutoRefresh = sessionStorage.getItem(AUTO_REFRESH_SETTINGS_KEY)
     const rawActivityFilter = sessionStorage.getItem(ACTIVITY_FILTER_KEY)
     const rawActivitySearch = sessionStorage.getItem(ACTIVITY_SEARCH_KEY)
+    const rawActivityLimit = sessionStorage.getItem(ACTIVITY_LIMIT_KEY)
     if (rawPresets) {
       try {
         const parsed = JSON.parse(rawPresets) as ReportPreset[]
@@ -351,6 +355,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
     if (typeof rawActivitySearch === 'string') {
       setActivitySearch(rawActivitySearch)
     }
+    if (rawActivityLimit === '10' || rawActivityLimit === '20' || rawActivityLimit === 'all') {
+      setActivityLimit(rawActivityLimit === 'all' ? 'all' : Number(rawActivityLimit) as 10 | 20)
+    }
   }, [])
 
   useEffect(() => {
@@ -368,6 +375,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(ACTIVITY_SEARCH_KEY, activitySearch)
   }, [activitySearch])
+
+  useEffect(() => {
+    sessionStorage.setItem(ACTIVITY_LIMIT_KEY, String(activityLimit))
+  }, [activityLimit])
 
   useEffect(() => {
     const value: AutoRefreshSettings = {
@@ -403,6 +414,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
       return `${item.at} ${item.atLabel} ${item.level} ${item.message}`.toLowerCase().includes(keyword)
     })
   }, [activityFilter, activityLog, activitySearch])
+  const visibleActivityLog = useMemo(() => {
+    if (activityLimit === 'all') return filteredActivityLog
+    return filteredActivityLog.slice(0, activityLimit)
+  }, [activityLimit, filteredActivityLog])
   const activityCounts = useMemo(
     () => ({
       all: activityLog.length,
@@ -905,18 +920,21 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   function exportActivityLogCsv() {
-    if (!filteredActivityLog.length) {
+    if (!visibleActivityLog.length) {
       setMsg('ยังไม่มี activity log สำหรับ export')
       return
     }
-    const rows = filteredActivityLog.map((it) => ({
+    const rows = visibleActivityLog.map((it) => ({
       timestamp: it.at,
       display_time: it.atLabel,
       level: it.level,
       message: it.message,
     }))
     downloadCurrentViewCsv('finance-activity-log.csv', rows)
-    addActivity('info', `Export Activity Log CSV (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''})`)
+    addActivity(
+      'info',
+      `Export Activity Log CSV (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
+    )
   }
 
   async function copyActivityFilterSummary() {
@@ -924,15 +942,19 @@ export function AdminFinancePanel({ apiBase }: Props) {
       'YRC Finance Activity Log View',
       `filter=${activityFilter}`,
       `keyword=${activitySearchTrimmed || '-'}`,
-      `visible_count=${filteredActivityLog.length}`,
+      `visible_count=${visibleActivityLog.length}`,
       `total_count=${activityLog.length}`,
+      `limit=${activityLimit}`,
       `copied_at=${new Date().toLocaleString()}`,
     ].join(' | ')
 
     try {
       await navigator.clipboard.writeText(summary)
       setMsg('คัดลอกสรุป current activity filter แล้ว')
-      addActivity('info', `Copy Activity Filter Summary (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''})`)
+      addActivity(
+        'info',
+        `Copy Activity Filter Summary (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
+      )
     } catch {
       setMsg(`คัดลอกไม่สำเร็จ\n${summary}`)
       addActivity('warn', 'Copy Activity Filter Summary ไม่สำเร็จ')
@@ -940,22 +962,25 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   async function copyVisibleActivityRows() {
-    if (!filteredActivityLog.length) {
+    if (!visibleActivityLog.length) {
       setMsg('ไม่มี activity log ที่มองเห็นอยู่สำหรับคัดลอก')
       return
     }
 
     const lines = [
       'YRC Finance Activity Log Rows',
-      `filter=${activityFilter} | keyword=${activitySearchTrimmed || '-'} | visible=${filteredActivityLog.length}`,
-      ...filteredActivityLog.map((it) => `[${it.atLabel}] [${it.level}] ${it.message}`),
+      `filter=${activityFilter} | keyword=${activitySearchTrimmed || '-'} | visible=${visibleActivityLog.length} | limit=${activityLimit}`,
+      ...visibleActivityLog.map((it) => `[${it.atLabel}] [${it.level}] ${it.message}`),
     ]
     const text = lines.join('\n')
 
     try {
       await navigator.clipboard.writeText(text)
       setMsg('คัดลอก visible activity rows แล้ว')
-      addActivity('info', `Copy Visible Activity Rows (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''})`)
+      addActivity(
+        'info',
+        `Copy Visible Activity Rows (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
+      )
     } catch {
       setMsg(`คัดลอกไม่สำเร็จ\n${text}`)
       addActivity('warn', 'Copy Visible Activity Rows ไม่สำเร็จ')
@@ -1459,6 +1484,15 @@ export function AdminFinancePanel({ apiBase }: Props) {
               className="w-48 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200"
               placeholder="ค้นหา log..."
             />
+            <select
+              value={String(activityLimit)}
+              onChange={(e) => setActivityLimit(e.target.value === 'all' ? 'all' : (Number(e.target.value) as 10 | 20))}
+              className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="all">all</option>
+            </select>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -1536,11 +1570,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
             </button>
           ))}
         </div>
-        {filteredActivityLog.length === 0 ? (
+        {visibleActivityLog.length === 0 ? (
           <p className="text-[11px] text-slate-500">ยังไม่มีเหตุการณ์</p>
         ) : (
           <div className="max-h-36 space-y-1 overflow-auto">
-            {filteredActivityLog.map((it) => (
+            {visibleActivityLog.map((it) => (
               <div key={it.id} className="flex items-start gap-2 text-[11px]">
                 <span
                   className={`mt-0.5 inline-block h-2 w-2 rounded-full ${
