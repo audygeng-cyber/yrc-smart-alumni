@@ -97,6 +97,8 @@ const ACTIVITY_SHORTCUTS = [
   { label: 'Preset', keyword: 'preset' },
   { label: 'Reports', keyword: 'โหลดรายงาน' },
   { label: 'Export', keyword: 'Export' },
+  { label: 'Meeting', keyword: 'ประชุม' },
+  { label: 'Payment', keyword: 'คำขอจ่ายเงิน' },
 ] as const
 
 function normalizeApiBase(base: string): string {
