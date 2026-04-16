@@ -1102,15 +1102,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
         }),
       })
       const p = await readApiJson(r)
-      if (!p.ok) return setMsg(formatFetchError('สร้างประชุม', p.status, p.payload, p.rawText))
+      if (!p.ok) {
+        addActivity('error', `สร้างประชุมไม่สำเร็จ: ${meetingTitle.trim()}`)
+        return setMsg(formatFetchError('สร้างประชุม', p.status, p.payload, p.rawText))
+      }
       const j = (p.payload ?? {}) as { meetingSession?: { id?: string }; quorumRequired?: number }
       if (j.meetingSession?.id) {
         setMeetingId(j.meetingSession.id)
         setPaymentMeetingId(j.meetingSession.id)
       }
       setMsg(`สร้างประชุมแล้ว quorum required=${String(j.quorumRequired ?? '')}`)
+      addActivity('info', `สร้างประชุมสำเร็จ: ${meetingTitle.trim()} (${meetingEntity})`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `สร้างประชุมไม่สำเร็จ: ${meetingTitle.trim()}`)
     } finally {
       setLoading(false)
     }
@@ -1132,10 +1137,15 @@ export function AdminFinancePanel({ apiBase }: Props) {
         }),
       })
       const p = await readApiJson(r)
-      if (!p.ok) return setMsg(formatFetchError('ลงชื่อเข้าประชุม', p.status, p.payload, p.rawText))
+      if (!p.ok) {
+        addActivity('error', `ลงชื่อเข้าประชุมไม่สำเร็จ: ${attendanceName.trim()}`)
+        return setMsg(formatFetchError('ลงชื่อเข้าประชุม', p.status, p.payload, p.rawText))
+      }
       setMsg('ลงชื่อเข้าประชุมแล้ว')
+      addActivity('info', `ลงชื่อเข้าประชุมสำเร็จ: ${attendanceName.trim()} (${attendanceRole})`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ลงชื่อเข้าประชุมไม่สำเร็จ: ${attendanceName.trim()}`)
     } finally {
       setLoading(false)
     }
@@ -1189,12 +1199,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
         }),
       })
       const p = await readApiJson(r)
-      if (!p.ok) return setMsg(formatFetchError('สร้างคำขอจ่ายเงิน', p.status, p.payload, p.rawText))
+      if (!p.ok) {
+        addActivity('error', `สร้างคำขอจ่ายเงินไม่สำเร็จ: ${paymentPurpose.trim()} (${amount.toLocaleString()})`)
+        return setMsg(formatFetchError('สร้างคำขอจ่ายเงิน', p.status, p.payload, p.rawText))
+      }
       const j = (p.payload ?? {}) as { paymentRequest?: { id?: string } }
       if (j.paymentRequest?.id) setPaymentRequestId(j.paymentRequest.id)
       setMsg('สร้างคำขอจ่ายเงินแล้ว')
+      addActivity('info', `สร้างคำขอจ่ายเงินสำเร็จ: ${paymentPurpose.trim()} (${amount.toLocaleString()})`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `สร้างคำขอจ่ายเงินไม่สำเร็จ: ${paymentPurpose.trim()}`)
     } finally {
       setLoading(false)
     }
@@ -1220,10 +1235,24 @@ export function AdminFinancePanel({ apiBase }: Props) {
         }),
       })
       const p = await readApiJson(r)
-      if (!p.ok) return setMsg(formatFetchError('อนุมัติรายการ', p.status, p.payload, p.rawText))
+      if (!p.ok) {
+        addActivity(
+          'error',
+          `อนุมัติรายการไม่สำเร็จ: ${paymentRequestId.trim()} (${approveRoleCode}/${approveDecision})`,
+        )
+        return setMsg(formatFetchError('อนุมัติรายการ', p.status, p.payload, p.rawText))
+      }
       setMsg(JSON.stringify(p.payload, null, 2))
+      addActivity(
+        approveDecision === 'approve' ? 'info' : 'warn',
+        `บันทึกการตัดสินคำขอสำเร็จ: ${paymentRequestId.trim()} (${approveRoleCode}/${approveDecision})`,
+      )
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
+      addActivity(
+        'error',
+        `อนุมัติรายการไม่สำเร็จ: ${paymentRequestId.trim()} (${approveRoleCode}/${approveDecision})`,
+      )
     } finally {
       setLoading(false)
     }
