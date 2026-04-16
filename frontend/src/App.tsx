@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react'
 import { AdminImportPanel } from './components/AdminImportPanel'
 import { MemberLinkPanel } from './components/MemberLinkPanel'
+import { MemberPortal } from './components/MemberPortal'
 import { MemberRequestsPanel } from './components/MemberRequestsPanel'
 import { PushOptIn } from './components/PushOptIn'
 import {
   clearLineSession,
   readLineFromOAuth,
+  readLineName,
   readLineUid,
+  readMemberSnapshot,
   setLineSessionFromOAuth,
   setManualLineUid,
+  setMemberSnapshot,
   SS_OAUTH_STATE,
 } from './lineSession'
 
@@ -16,13 +20,26 @@ const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
 const lineChannelId = import.meta.env.VITE_LINE_CHANNEL_ID ?? ''
 const lineRedirectUri = import.meta.env.VITE_LINE_REDIRECT_URI ?? ''
 
-type Tab = 'home' | 'link' | 'requests' | 'admin'
+type Tab = 'home' | 'link' | 'member' | 'requests' | 'admin'
+
+function getInitialVerifiedMember(): Record<string, unknown> | null {
+  const uid = readLineUid()
+  const snap = readMemberSnapshot()
+  if (uid && snap && String(snap.line_uid ?? '') === uid) return snap
+  return null
+}
+
+function getInitialTab(): Tab {
+  if (getInitialVerifiedMember()) return 'member'
+  return 'home'
+}
 
 export default function App() {
   const [health, setHealth] = useState<string>('…')
-  const [tab, setTab] = useState<Tab>('home')
+  const [tab, setTab] = useState<Tab>(getInitialTab)
   const [lineUid, setLineUid] = useState(readLineUid)
   const [lineUidFromOAuth, setLineUidFromOAuth] = useState(readLineFromOAuth)
+  const [verifiedMember, setVerifiedMember] = useState<Record<string, unknown> | null>(getInitialVerifiedMember)
 
   useEffect(() => {
     fetch(`${apiBase}/health`)
@@ -35,7 +52,15 @@ export default function App() {
       )
   }, [])
 
-  // LINE OAuth return: Vite env is stable; run once on mount when URL has ?code=&state=
+  useEffect(() => {
+    const uid = readLineUid()
+    const snap = readMemberSnapshot()
+    if (snap && uid && String(snap.line_uid ?? '') !== uid) {
+      setVerifiedMember(null)
+    }
+    if (!uid) setVerifiedMember(null)
+  }, [lineUid])
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
@@ -72,7 +97,13 @@ export default function App() {
         setLineSessionFromOAuth(j.line_uid, j.name ?? undefined)
         setLineUid(j.line_uid)
         setLineUidFromOAuth(true)
-        setTab('link')
+        const snap = readMemberSnapshot()
+        if (snap && String(snap.line_uid ?? '') === j.line_uid) {
+          setVerifiedMember(snap)
+          setTab('member')
+        } else {
+          setTab('link')
+        }
       } catch (e) {
         console.error(e)
       } finally {
@@ -98,6 +129,7 @@ export default function App() {
     clearLineSession()
     setLineUid('')
     setLineUidFromOAuth(false)
+    setVerifiedMember(null)
   }
 
   function handleLineUidManualChange(v: string) {
@@ -105,6 +137,15 @@ export default function App() {
     setManualLineUid(v)
     setLineUidFromOAuth(false)
   }
+
+  function handleMemberVerified(member: Record<string, unknown>) {
+    setMemberSnapshot(member)
+    setVerifiedMember(member)
+    setTab('member')
+  }
+
+  const showMemberTab = Boolean(lineUid && verifiedMember)
+  const mainClass = tab === 'member' ? 'max-w-5xl' : 'max-w-2xl'
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -116,6 +157,7 @@ export default function App() {
             [
               ['home', 'หน้าหลัก'],
               ['link', 'ผูกบัญชี'],
+              ...(showMemberTab ? ([['member', 'หน้าสมาชิก']] as const) : []),
               ['requests', 'คำร้อง'],
               ['admin', 'Admin'],
             ] as const
@@ -136,7 +178,7 @@ export default function App() {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-2xl px-6 py-10">
+      <main className={`mx-auto px-6 py-10 ${mainClass}`}>
         {tab === 'home' && (
           <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
             <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">Backend /health</h2>
@@ -163,8 +205,35 @@ export default function App() {
             onClearLineSession={handleClearLineSession}
             lineLoginAvailable={Boolean(lineChannelId && lineRedirectUri)}
             onStartLineLogin={startLineLogin}
+            onMemberVerified={handleMemberVerified}
           />
         )}
+
+        {tab === 'member' &&
+          (verifiedMember && lineUid ? (
+            <MemberPortal
+              apiBase={apiBase}
+              lineUid={lineUid}
+              member={verifiedMember}
+              onMemberUpdated={(m) => {
+                setVerifiedMember(m)
+                setMemberSnapshot(m)
+              }}
+              lineDisplayName={readLineName()}
+            />
+          ) : (
+            <section className="rounded-xl border border-amber-900/40 bg-amber-950/20 p-6 text-sm text-amber-100/90">
+              <p>ยังไม่มีข้อมูลสมาชิกในวาระนี้ — ไปที่แท็บ &quot;ผูกบัญชี&quot; แล้วกด &quot;ตรวจสอบและผูก&quot; เมื่อพบในทะเบียน</p>
+              <button
+                type="button"
+                onClick={() => setTab('link')}
+                className="mt-4 rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700"
+              >
+                ไปแท็บผูกบัญชี
+              </button>
+            </section>
+          ))}
+
         {tab === 'admin' && <AdminImportPanel apiBase={apiBase} />}
       </main>
     </div>
