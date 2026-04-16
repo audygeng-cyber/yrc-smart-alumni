@@ -200,6 +200,8 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false)
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState<30 | 60>(30)
   const [lastAutoRefreshAt, setLastAutoRefreshAt] = useState<string | null>(null)
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false)
+  const [lastAutoRefreshError, setLastAutoRefreshError] = useState<string | null>(null)
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -371,11 +373,15 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }, [reportKeywordNorm])
 
   useEffect(() => {
-    if (!autoRefreshEnabled) return
+    if (!autoRefreshEnabled) {
+      setIsAutoRefreshing(false)
+      return
+    }
     if (!adminKey.trim()) return
 
     let cancelled = false
     const run = async () => {
+      setIsAutoRefreshing(true)
       try {
         const q = buildReportQueryStringFromValues(reportEntity, reportFrom, reportTo)
         const [plResp, donationsResp] = await Promise.all([
@@ -401,14 +407,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
               ),
             )
           }
-          setMsg(errors.join('\n\n------------------------------\n\n'))
+          setLastAutoRefreshError(errors.join('\n\n------------------------------\n\n'))
           return
         }
         setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
         setDonationsReport((donations.payload ?? null) as DonationsReportPayload | null)
         setLastAutoRefreshAt(new Date().toLocaleTimeString())
+        setLastAutoRefreshError(null)
       } catch {
-        if (!cancelled) setMsg('Auto refresh เรียก API ไม่สำเร็จ')
+        if (!cancelled) setLastAutoRefreshError('Auto refresh เรียก API ไม่สำเร็จ')
+      } finally {
+        if (!cancelled) setIsAutoRefreshing(false)
       }
     }
 
@@ -1022,6 +1031,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
         <span>
           ล่าสุด: {lastAutoRefreshAt ? lastAutoRefreshAt : '-'}
         </span>
+        <span
+          className={`rounded px-2 py-1 text-[11px] ${
+            !autoRefreshEnabled
+              ? 'bg-slate-800 text-slate-300'
+              : isAutoRefreshing
+                ? 'bg-amber-900/70 text-amber-200'
+                : 'bg-emerald-900/70 text-emerald-200'
+          }`}
+        >
+          {!autoRefreshEnabled ? 'ปิด' : isAutoRefreshing ? 'กำลังรีเฟรช...' : 'เปิด'}
+        </span>
+        {lastAutoRefreshError ? (
+          <span className="w-full text-[11px] text-rose-300">{lastAutoRefreshError}</span>
+        ) : null}
       </div>
 
       <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-5">
