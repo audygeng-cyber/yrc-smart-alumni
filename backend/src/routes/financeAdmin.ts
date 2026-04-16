@@ -135,6 +135,125 @@ financeAdminRouter.get('/overview', async (_req, res) => {
   }
 })
 
+financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
+  try {
+    const legalEntityCode =
+      typeof req.query.legal_entity_code === 'string' ? req.query.legal_entity_code.trim() : ''
+    const fromDate = typeof req.query.from === 'string' ? req.query.from.trim() : ''
+    const toDate = typeof req.query.to === 'string' ? req.query.to.trim() : ''
+    const supabase = getServiceSupabase()
+
+    let legalEntityId: string | null = null
+    if (legalEntityCode) {
+      const entity = await getLegalEntity(supabase, legalEntityCode)
+      if (!entity) {
+        res.status(400).json({ error: 'Unknown legal_entity_code' })
+        return
+      }
+      legalEntityId = String(entity.id)
+    }
+
+    let entriesQ = supabase.from('journal_entries').select('id,legal_entity_id,entry_date')
+    if (legalEntityId) entriesQ = entriesQ.eq('legal_entity_id', legalEntityId)
+    if (fromDate) entriesQ = entriesQ.gte('entry_date', fromDate)
+    if (toDate) entriesQ = entriesQ.lte('entry_date', toDate)
+
+    const { data: entries, error: eErr } = await entriesQ
+    if (eErr) {
+      res.status(500).json({ error: 'Load journal_entries failed', details: eErr })
+      return
+    }
+
+    const entryIds = (entries ?? []).map((e) => String(e.id))
+    if (entryIds.length === 0) {
+      res.json({
+        ok: true,
+        accountSummaries: [],
+        totals: { revenue: 0, expense: 0, netIncome: 0 },
+      })
+      return
+    }
+
+    const { data: lines, error: lErr } = await supabase
+      .from('journal_lines')
+      .select('account_id,debit,credit,journal_entry_id')
+      .in('journal_entry_id', entryIds)
+    if (lErr) {
+      res.status(500).json({ error: 'Load journal_lines failed', details: lErr })
+      return
+    }
+
+    let chartQ = supabase.from('account_chart').select('id,legal_entity_id,account_code,account_name,account_type')
+    if (legalEntityId) chartQ = chartQ.eq('legal_entity_id', legalEntityId)
+    const { data: chart, error: cErr } = await chartQ
+    if (cErr) {
+      res.status(500).json({ error: 'Load account_chart failed', details: cErr })
+      return
+    }
+
+    const accountMap = new Map<string, { code: string; name: string; type: string }>()
+    for (const a of chart ?? []) {
+      accountMap.set(String(a.id), {
+        code: String(a.account_code ?? ''),
+        name: String(a.account_name ?? ''),
+        type: String(a.account_type ?? ''),
+      })
+    }
+
+    const byAccount = new Map<
+      string,
+      { accountCode: string; accountName: string; accountType: string; debit: number; credit: number; net: number }
+    >()
+    for (const ln of lines ?? []) {
+      const accountId = String(ln.account_id)
+      const meta = accountMap.get(accountId)
+      if (!meta) continue
+      const d = Number(ln.debit ?? 0)
+      const c = Number(ln.credit ?? 0)
+      const key = accountId
+      const cur = byAccount.get(key) ?? {
+        accountCode: meta.code,
+        accountName: meta.name,
+        accountType: meta.type,
+        debit: 0,
+        credit: 0,
+        net: 0,
+      }
+      cur.debit += d
+      cur.credit += c
+      byAccount.set(key, cur)
+    }
+
+    const accountSummaries = Array.from(byAccount.values()).map((x) => {
+      let net = x.credit - x.debit
+      if (x.accountType === 'expense' || x.accountType === 'asset') {
+        net = x.debit - x.credit
+      }
+      return { ...x, net }
+    })
+
+    const revenue = accountSummaries
+      .filter((x) => x.accountType === 'revenue')
+      .reduce((s, x) => s + x.net, 0)
+    const expense = accountSummaries
+      .filter((x) => x.accountType === 'expense')
+      .reduce((s, x) => s + x.net, 0)
+
+    res.json({
+      ok: true,
+      accountSummaries,
+      totals: {
+        revenue,
+        expense,
+        netIncome: revenue - expense,
+      },
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
 financeAdminRouter.post('/payment-requests', async (req, res) => {
   try {
     const legal_entity_code =

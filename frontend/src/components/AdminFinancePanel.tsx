@@ -38,6 +38,18 @@ type OverviewPayload = {
   donationByEntity: Record<string, number>
 }
 
+type PlSummaryPayload = {
+  totals: { revenue: number; expense: number; netIncome: number }
+  accountSummaries: {
+    accountCode: string
+    accountName: string
+    accountType: string
+    debit: number
+    credit: number
+    net: number
+  }[]
+}
+
 function normalizeApiBase(base: string): string {
   return base.trim().replace(/\/+$/, '')
 }
@@ -74,6 +86,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [msg, setMsg] = useState<string | null>(null)
   const [overview, setOverview] = useState<OverviewPayload | null>(null)
   const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [plSummary, setPlSummary] = useState<PlSummaryPayload | null>(null)
 
   const [meetingEntity, setMeetingEntity] = useState<'association' | 'cram_school'>('association')
   const [meetingTitle, setMeetingTitle] = useState('ประชุมพิจารณารายการจ่ายเงิน')
@@ -139,6 +152,25 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const data = (p2.payload ?? {}) as { accounts?: BankAccount[] }
       setAccounts(Array.isArray(data.accounts) ? data.accounts : [])
       setMsg('โหลดภาพรวมและบัญชีธนาคารแล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadPlSummary() {
+    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/reports/pl-summary`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลด P/L summary', p.status, p.payload, p.rawText))
+      setPlSummary((p.payload ?? null) as PlSummaryPayload | null)
+      setMsg('โหลดรายงาน P/L แล้ว')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
     } finally {
@@ -311,12 +343,34 @@ export function AdminFinancePanel({ apiBase }: Props) {
         >
           โหลด Overview + Bank Accounts
         </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={loadPlSummary}
+          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+        >
+          โหลด P/L Summary
+        </button>
       </div>
 
       <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
         <p>Bank Accounts: {accounts.length}</p>
         {overview ? (
-          <p className="mt-1">Pending payments: {overview.pendingPayments.length}</p>
+          <>
+            <p className="mt-1">Pending payments: {overview.pendingPayments.length}</p>
+            <p className="mt-1">
+              Donation batches: {Object.keys(overview.donationByBatch).length} | Donation total:{' '}
+              {Object.values(overview.donationByBatch)
+                .reduce((s, n) => s + n, 0)
+                .toLocaleString()}
+            </p>
+          </>
+        ) : null}
+        {plSummary ? (
+          <p className="mt-1">
+            P/L: Revenue {plSummary.totals.revenue.toLocaleString()} | Expense{' '}
+            {plSummary.totals.expense.toLocaleString()} | Net {plSummary.totals.netIncome.toLocaleString()}
+          </p>
         ) : null}
       </div>
 
