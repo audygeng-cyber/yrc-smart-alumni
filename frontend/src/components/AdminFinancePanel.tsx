@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 const STORAGE_KEY = 'yrc_admin_upload_key'
+const PAGE_SIZE = 20
 
 type Props = { apiBase: string }
 
@@ -88,6 +89,18 @@ function formatFetchError(label: string, status: number, payload: unknown, rawTe
   return `${label} ไม่สำเร็จ — HTTP ${status}\n${jsonPart}\n\nดิบจากเซิร์ฟเวอร์:\n${rawText || '(ไม่มี body)'}`
 }
 
+function paginateRows<T>(rows: T[], page: number, pageSize: number) {
+  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
+  const activePage = Math.min(safePage, totalPages)
+  const start = (activePage - 1) * pageSize
+  return {
+    pageRows: rows.slice(start, start + pageSize),
+    page: activePage,
+    totalPages,
+  }
+}
+
 export function AdminFinancePanel({ apiBase }: Props) {
   const base = normalizeApiBase(apiBase)
   const [adminKey, setAdminKey] = useState('')
@@ -100,6 +113,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [reportEntity, setReportEntity] = useState<ReportFilterEntity>('')
   const [reportFrom, setReportFrom] = useState('')
   const [reportTo, setReportTo] = useState('')
+  const [plPage, setPlPage] = useState(1)
+  const [donorPage, setDonorPage] = useState(1)
+  const [batchPage, setBatchPage] = useState(1)
+  const [entityPage, setEntityPage] = useState(1)
 
   const [meetingEntity, setMeetingEntity] = useState<'association' | 'cram_school'>('association')
   const [meetingTitle, setMeetingTitle] = useState('ประชุมพิจารณารายการจ่ายเงิน')
@@ -136,6 +153,24 @@ export function AdminFinancePanel({ apiBase }: Props) {
     [accounts, paymentBankAccountId],
   )
 
+  const plRows = useMemo(
+    () =>
+      (plSummary?.accountSummaries ?? [])
+        .slice()
+        .sort((a, b) => Math.abs(b.net) - Math.abs(a.net) || a.accountCode.localeCompare(b.accountCode)),
+    [plSummary?.accountSummaries],
+  )
+  const plPaged = useMemo(() => paginateRows(plRows, plPage, PAGE_SIZE), [plRows, plPage])
+
+  const donorRows = useMemo(() => (donationsReport?.byDonor ?? []).slice(), [donationsReport?.byDonor])
+  const donorPaged = useMemo(() => paginateRows(donorRows, donorPage, PAGE_SIZE), [donorRows, donorPage])
+
+  const batchRows = useMemo(() => (donationsReport?.byBatch ?? []).slice(), [donationsReport?.byBatch])
+  const batchPaged = useMemo(() => paginateRows(batchRows, batchPage, PAGE_SIZE), [batchRows, batchPage])
+
+  const entityRows = useMemo(() => (donationsReport?.byEntity ?? []).slice(), [donationsReport?.byEntity])
+  const entityPaged = useMemo(() => paginateRows(entityRows, entityPage, PAGE_SIZE), [entityRows, entityPage])
+
   function buildReportQueryString() {
     const q = new URLSearchParams()
     if (reportEntity) q.set('legal_entity_code', reportEntity)
@@ -143,6 +178,32 @@ export function AdminFinancePanel({ apiBase }: Props) {
     if (reportTo.trim()) q.set('to', reportTo.trim())
     const s = q.toString()
     return s ? `?${s}` : ''
+  }
+
+  function renderPager(page: number, totalPages: number, onPage: (next: number) => void) {
+    return (
+      <div className="mt-2 flex items-center justify-end gap-2 text-[11px] text-slate-400">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onPage(Math.max(1, page - 1))}
+          className="rounded bg-slate-800 px-2 py-1 text-slate-200 disabled:opacity-40"
+        >
+          Prev
+        </button>
+        <span>
+          Page {page}/{totalPages}
+        </span>
+        <button
+          type="button"
+          disabled={page >= totalPages}
+          onClick={() => onPage(Math.min(totalPages, page + 1))}
+          className="rounded bg-slate-800 px-2 py-1 text-slate-200 disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+    )
   }
 
   async function loadOverviewAndAccounts() {
@@ -192,6 +253,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลด P/L summary', p.status, p.payload, p.rawText))
       setPlSummary((p.payload ?? null) as PlSummaryPayload | null)
+      setPlPage(1)
       setMsg('โหลดรายงาน P/L แล้ว')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
@@ -211,6 +273,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลด donations dashboard', p.status, p.payload, p.rawText))
       setDonationsReport((p.payload ?? null) as DonationsReportPayload | null)
+      setDonorPage(1)
+      setBatchPage(1)
+      setEntityPage(1)
       setMsg('โหลด donations dashboard แล้ว')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
@@ -525,14 +590,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
       {plSummary ? (
         <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
-          <p className="mb-2 font-medium">P/L Accounts (Top 10)</p>
+          <p className="mb-2 font-medium">P/L Accounts (ทั้งหมด)</p>
           <div className="grid grid-cols-4 gap-2 font-semibold text-slate-400">
             <span>Code</span>
             <span>Name</span>
             <span>Type</span>
             <span className="text-right">Net</span>
           </div>
-          {plSummary.accountSummaries.slice(0, 10).map((r) => (
+          {plPaged.pageRows.map((r) => (
             <div key={`${r.accountCode}:${r.accountName}`} className="grid grid-cols-4 gap-2 py-1">
               <span>{r.accountCode}</span>
               <span>{r.accountName}</span>
@@ -540,24 +605,58 @@ export function AdminFinancePanel({ apiBase }: Props) {
               <span className="text-right">{r.net.toLocaleString()}</span>
             </div>
           ))}
+          {renderPager(plPaged.page, plPaged.totalPages, setPlPage)}
         </div>
       ) : null}
 
       {donationsReport ? (
-        <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
-          <p className="mb-2 font-medium">Top Donors (Top 10)</p>
-          <div className="grid grid-cols-3 gap-2 font-semibold text-slate-400">
-            <span>Donor</span>
-            <span className="text-right">Count</span>
-            <span className="text-right">Amount</span>
-          </div>
-          {donationsReport.byDonor.slice(0, 10).map((r) => (
-            <div key={r.donorLabel} className="grid grid-cols-3 gap-2 py-1">
-              <span>{r.donorLabel}</span>
-              <span className="text-right">{r.count.toLocaleString()}</span>
-              <span className="text-right">{r.totalAmount.toLocaleString()}</span>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
+            <p className="mb-2 font-medium">Donors (ทั้งหมด)</p>
+            <div className="grid grid-cols-3 gap-2 font-semibold text-slate-400">
+              <span>Donor</span>
+              <span className="text-right">Count</span>
+              <span className="text-right">Amount</span>
             </div>
-          ))}
+            {donorPaged.pageRows.map((r) => (
+              <div key={r.donorLabel} className="grid grid-cols-3 gap-2 py-1">
+                <span>{r.donorLabel}</span>
+                <span className="text-right">{r.count.toLocaleString()}</span>
+                <span className="text-right">{r.totalAmount.toLocaleString()}</span>
+              </div>
+            ))}
+            {renderPager(donorPaged.page, donorPaged.totalPages, setDonorPage)}
+          </div>
+
+          <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
+            <p className="mb-2 font-medium">Donations by Batch</p>
+            <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
+              <span>Batch</span>
+              <span className="text-right">Amount</span>
+            </div>
+            {batchPaged.pageRows.map((r) => (
+              <div key={r.batch} className="grid grid-cols-2 gap-2 py-1">
+                <span>{r.batch}</span>
+                <span className="text-right">{r.totalAmount.toLocaleString()}</span>
+              </div>
+            ))}
+            {renderPager(batchPaged.page, batchPaged.totalPages, setBatchPage)}
+          </div>
+
+          <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200 md:col-span-2">
+            <p className="mb-2 font-medium">Donations by Legal Entity</p>
+            <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
+              <span>Entity</span>
+              <span className="text-right">Amount</span>
+            </div>
+            {entityPaged.pageRows.map((r) => (
+              <div key={r.legalEntityCode} className="grid grid-cols-2 gap-2 py-1">
+                <span>{r.legalEntityCode}</span>
+                <span className="text-right">{r.totalAmount.toLocaleString()}</span>
+              </div>
+            ))}
+            {renderPager(entityPaged.page, entityPaged.totalPages, setEntityPage)}
+          </div>
         </div>
       ) : null}
 
