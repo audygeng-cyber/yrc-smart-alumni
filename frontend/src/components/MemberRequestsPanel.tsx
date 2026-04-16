@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 const STORAGE_ADMIN = 'yrc_admin_upload_key'
 const STORAGE_PRESIDENT = 'yrc_president_upload_key'
+const STORAGE_AUTO_REFRESH = 'yrc_member_requests_auto_refresh'
+const STORAGE_AUTO_REFRESH_MS = 'yrc_member_requests_auto_refresh_ms'
 
 type RequestRow = {
   id: string
@@ -25,6 +27,9 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [filter, setFilter] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [autoRefreshMs, setAutoRefreshMs] = useState(30000)
+  const [lastLoadedAt, setLastLoadedAt] = useState<string | null>(null)
 
   const summary = useMemo(() => {
     const counts = {
@@ -59,9 +64,17 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     return counts
   }, [rows])
 
+  const pendingTotal = summary.pending_president + summary.pending_admin
+
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
     setPresidentKey(sessionStorage.getItem(STORAGE_PRESIDENT) ?? '')
+    setAutoRefresh(sessionStorage.getItem(STORAGE_AUTO_REFRESH) === 'true')
+
+    const savedMs = Number(sessionStorage.getItem(STORAGE_AUTO_REFRESH_MS) ?? '30000')
+    if (Number.isFinite(savedMs) && savedMs >= 5000) {
+      setAutoRefreshMs(savedMs)
+    }
   }, [])
 
   useEffect(() => {
@@ -71,6 +84,14 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_PRESIDENT, presidentKey)
   }, [presidentKey])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_AUTO_REFRESH, autoRefresh ? 'true' : 'false')
+  }, [autoRefresh])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_AUTO_REFRESH_MS, String(autoRefreshMs))
+  }, [autoRefreshMs])
 
   const load = useCallback(async () => {
     if (!adminKey.trim()) {
@@ -90,12 +111,25 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         return
       }
       setRows(j.requests ?? [])
+      setLastLoadedAt(new Date().toISOString())
     } catch {
       setMsg('โหลดไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
   }, [apiBase, adminKey, filter])
+
+  useEffect(() => {
+    if (!autoRefresh || !adminKey.trim()) return
+
+    const timer = window.setInterval(() => {
+      void load()
+    }, autoRefreshMs)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [adminKey, autoRefresh, autoRefreshMs, load])
 
   function headersAdminOnly(): Record<string, string> | null {
     if (!adminKey.trim()) return null
@@ -152,6 +186,21 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       <h2 className="text-sm font-medium uppercase tracking-wide text-violet-200/90">
         คำร้องสมาชิก (ประธานรุ่น → Admin)
       </h2>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        <span className="rounded bg-amber-900/40 px-2 py-1 text-amber-200">
+          pending รวม: {pendingTotal}
+        </span>
+        <span className="rounded bg-slate-900 px-2 py-1 text-slate-300">
+          last updated: {lastLoadedAt ? new Date(lastLoadedAt).toLocaleString() : '-'}
+        </span>
+        <span
+          className={`rounded px-2 py-1 ${
+            autoRefresh ? 'bg-emerald-900/40 text-emerald-200' : 'bg-slate-900 text-slate-300'
+          }`}
+        >
+          auto refresh: {autoRefresh ? 'on' : 'off'}
+        </span>
+      </div>
       <p className="mt-2 text-xs text-slate-500">
         Admin ดูรายการด้วย x-admin-key — ประธานรุ่นอนุมัติขั้นแรกได้ด้วย x-president-key (ตั้ง PRESIDENT_UPLOAD_KEY
         ใน backend) หรือให้ Admin ใช้ x-admin-key แทนได้
@@ -188,6 +237,26 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             placeholder="เช่น pending_president"
             className="mt-1 block w-56 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none focus:border-violet-600"
           />
+        </label>
+        <label className="text-sm text-slate-300">
+          Auto refresh ทุก
+          <select
+            value={String(autoRefreshMs)}
+            onChange={(e) => setAutoRefreshMs(Number(e.target.value))}
+            className="mt-1 block rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-violet-600"
+          >
+            <option value="10000">10 วินาที</option>
+            <option value="30000">30 วินาที</option>
+            <option value="60000">60 วินาที</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2 rounded-lg border border-slate-800 px-3 py-2 text-sm text-slate-300">
+          <input
+            type="checkbox"
+            checked={autoRefresh}
+            onChange={(e) => setAutoRefresh(e.target.checked)}
+          />
+          เปิด auto refresh
         </label>
         <button
           type="button"
