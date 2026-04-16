@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AdminImportPanel } from './components/AdminImportPanel'
 import { AdminFinancePanel } from './components/AdminFinancePanel'
 import { MemberLinkPanel } from './components/MemberLinkPanel'
@@ -194,9 +194,9 @@ export default function App() {
         <nav className="mt-4 flex flex-wrap gap-2">
           <NavPill to="/" label="หน้าหลัก" active={location.pathname === '/'} />
           <NavPill to="/auth/link" label="ผูกบัญชี" active={location.pathname.startsWith('/auth/link')} />
-          <NavPill to="/member" label="สมาชิก" active={location.pathname.startsWith('/member')} />
-          <NavPill to="/committee" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} />
-          <NavPill to="/academy" label="โรงเรียนกวดวิชา" active={location.pathname.startsWith('/academy')} />
+          <NavPill to="/member/dashboard" label="สมาชิก" active={location.pathname.startsWith('/member')} />
+          <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} />
+          <NavPill to="/academy/dashboard" label="โรงเรียนกวดวิชา" active={location.pathname.startsWith('/academy')} />
           <NavPill to="/requests" label="คำร้อง" active={location.pathname.startsWith('/requests')} />
           <NavPill to="/admin" label="Admin" active={location.pathname.startsWith('/admin')} />
         </nav>
@@ -232,7 +232,7 @@ export default function App() {
             path="/member/*"
             element={
               showMemberPortal ? (
-                <MemberPortal
+                <MemberArea
                   apiBase={apiBase}
                   lineUid={lineUid}
                   member={verifiedMember!}
@@ -327,7 +327,7 @@ function LinkPage(props: {
             )}
           </div>
           {hasMember ? (
-            <Link to="/member" className="rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700">
+            <Link to="/member/dashboard" className="rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700">
               ไปหน้าสมาชิก
             </Link>
           ) : null}
@@ -363,24 +363,266 @@ function MissingMemberSession() {
   )
 }
 
-function CommitteeDashboard() {
+function MemberArea(props: {
+  apiBase: string
+  lineUid: string
+  member: Record<string, unknown>
+  lineDisplayName: string
+  onMemberUpdated: (member: Record<string, unknown>) => void
+}) {
+  const memberNav = [
+    { to: '/member/dashboard', label: 'Dashboard' },
+    { to: '/member/card', label: 'บัตรสมาชิก' },
+    { to: '/member/profile', label: 'ข้อมูลส่วนตัว' },
+    { to: '/member/statistics', label: 'สถิติสมาชิก' },
+    { to: '/member/donations', label: 'สนับสนุนกิจกรรม' },
+    { to: '/member/meetings', label: 'ประชุมและการเงิน' },
+  ]
+
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-slate-300">Committee Portal</h2>
-      <p className="mt-3 text-sm text-slate-400">
-        หน้านี้คือโครงสำหรับคณะกรรมการ (dashboard/ทะเบียนสมาชิก/การเงิน/ประชุม/ลงมติ) — ขั้นถัดไปเราจะเติมเมนู sidebar และหน้าจริงตาม sitemap
-      </p>
-    </section>
+    <PortalShell
+      title="Member Portal"
+      subtitle="เมนูสมาชิก · บัตรสมาชิก · ข้อมูลส่วนตัว · สถิติ · การสนับสนุน"
+      navItems={memberNav}
+    >
+      <Routes>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route
+          path="dashboard"
+          element={
+            <MemberPortal
+              apiBase={props.apiBase}
+              lineUid={props.lineUid}
+              member={props.member}
+              onMemberUpdated={props.onMemberUpdated}
+              lineDisplayName={props.lineDisplayName}
+            />
+          }
+        />
+        <Route path="card" element={<MemberCardPage member={props.member} />} />
+        <Route path="profile" element={<MemberProfilePage member={props.member} />} />
+        <Route path="statistics" element={<MemberStatisticsPage />} />
+        <Route path="donations" element={<MemberDonationsPage />} />
+        <Route path="meetings" element={<MemberMeetingsPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </PortalShell>
+  )
+}
+
+function CommitteeDashboard() {
+  const navItems = [
+    { to: '/committee/dashboard', label: 'Dashboard' },
+    { to: '/committee/members', label: 'ทะเบียนสมาชิก' },
+    { to: '/committee/finance', label: 'การเงินละเอียด' },
+    { to: '/committee/meetings', label: 'วาระ/รายงานประชุม' },
+    { to: '/committee/attendance', label: 'ลงทะเบียน/ลงชื่อประชุม' },
+    { to: '/committee/voting', label: 'ลงมติ' },
+  ]
+
+  return (
+    <PortalShell
+      title="Committee Portal"
+      subtitle="คณะกรรมการ 35 คน · ทะเบียนสมาชิก · การเงินละเอียด · ประชุม · ลงมติ"
+      navItems={navItems}
+    >
+      <Routes>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<CommitteeDashboardPage />} />
+        <Route path="members" element={<SectionPlaceholder title="ทะเบียนสมาชิก" description="ค้นหา/กรองสมาชิก, ดูข้อมูลเชิงลึก และสถิติสมาชิกสำหรับคณะกรรมการ" />} />
+        <Route path="finance" element={<SectionPlaceholder title="การเงินแบบละเอียด" description="รายรับรายจ่ายสมาคมและโรงเรียนกวดวิชาแบบละเอียด พร้อมเอกสารประกอบ" />} />
+        <Route path="meetings" element={<SectionPlaceholder title="วาระและรายงานการประชุม" description="จัดการวาระประชุม, รายงานการประชุม และสรุปผลแต่ละครั้ง" />} />
+        <Route path="attendance" element={<SectionPlaceholder title="ลงทะเบียนและลงชื่อประชุม" description="ระบบลงทะเบียนเข้าร่วมประชุม, เช็กชื่อ, และติดตาม quorum" />} />
+        <Route path="voting" element={<SectionPlaceholder title="การลงมติ" description="เปิดวาระลงมติ, ลงคะแนน, และดูผลการลงมติในแต่ละหัวข้อ" />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </PortalShell>
   )
 }
 
 function AcademyDashboard() {
+  const navItems = [
+    { to: '/academy/dashboard', label: 'Dashboard' },
+    { to: '/academy/students', label: 'นักเรียน/ห้องเรียน' },
+    { to: '/academy/courses', label: 'คอร์สเรียน' },
+    { to: '/academy/enrollment', label: 'สมัครเรียน' },
+    { to: '/academy/results', label: 'ผลการเรียน/คะแนน' },
+    { to: '/academy/reports', label: 'รายงาน infographic' },
+  ]
+
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-slate-300">Academy Portal</h2>
-      <p className="mt-3 text-sm text-slate-400">
-        หน้านี้คือโครงสำหรับโรงเรียนกวดวิชา (admin/teacher/student/parent dashboards) — ขั้นถัดไปเราจะทำ role-based menu และ infographic widgets
-      </p>
+    <PortalShell
+      title="Academy Portal"
+      subtitle="ผู้บริหาร · ผู้ปกครอง · นักเรียน · ครู · dashboard infographic"
+      navItems={navItems}
+    >
+      <Routes>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AcademyDashboardPage />} />
+        <Route path="students" element={<SectionPlaceholder title="ข้อมูลนักเรียนและห้องเรียน" description="ภาพรวมจำนวนนักเรียนรายห้อง, รายชื่อนักเรียนรายคน, และการกระจายระดับชั้น" />} />
+        <Route path="courses" element={<SectionPlaceholder title="คอร์สเรียน" description="จัดการรายการคอร์สเรียน, รอบเรียน, และข้อมูลครูผู้สอนแต่ละคอร์ส" />} />
+        <Route path="enrollment" element={<SectionPlaceholder title="สมัครเรียน" description="ระบบสมัครเรียน, ตรวจเอกสาร, และติดตามสถานะการสมัคร" />} />
+        <Route path="results" element={<SectionPlaceholder title="ผลการเรียนและคะแนน" description="ผลการเรียนรายบุคคล, คะแนนรายวิชา, และสรุปผลสัมฤทธิ์" />} />
+        <Route path="reports" element={<SectionPlaceholder title="รายงานเชิง infographic" description="dashboard สำหรับผู้บริหาร ครู นักเรียน และผู้ปกครองตามสิทธิ์การเข้าถึง" />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </PortalShell>
+  )
+}
+
+function PortalShell(props: {
+  title: string
+  subtitle: string
+  navItems: Array<{ to: string; label: string }>
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 md:p-5">
+      <div className="mb-4 border-b border-slate-800 pb-4">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-300">{props.title}</h2>
+        <p className="mt-2 text-sm text-slate-400">{props.subtitle}</p>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">เมนูพอร์ทัล</p>
+          <nav className="space-y-1.5">
+            {props.navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `block rounded px-3 py-2 text-sm ${
+                    isActive ? 'bg-emerald-800 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </aside>
+        <div className="min-w-0">{props.children}</div>
+      </div>
+    </section>
+  )
+}
+
+function MetricCards(props: { items: Array<{ label: string; value: string; hint: string }> }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {props.items.map((item) => (
+        <div key={item.label} className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+          <p className="text-xs uppercase tracking-wide text-slate-500">{item.label}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-100">{item.value}</p>
+          <p className="mt-2 text-xs text-slate-400">{item.hint}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function CommitteeDashboardPage() {
+  return (
+    <div className="space-y-4">
+      <MetricCards
+        items={[
+          { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'อัปเดตล่าสุดตามทะเบียนสมาชิก' },
+          { label: 'คำร้องรอดำเนินการ', value: '18', hint: 'pending_president + pending_admin' },
+          { label: 'ผู้ลงทะเบียนประชุม', value: '29/35', hint: 'เทียบกับ quorum ที่กำหนด' },
+          { label: 'วาระรอลงมติ', value: '6', hint: 'พร้อมเปิด vote ในที่ประชุม' },
+        ]}
+      />
+      <SectionPlaceholder
+        title="Dashboard คณะกรรมการ"
+        description="พื้นที่นี้เตรียมไว้สำหรับกราฟแนวโน้มสมาชิก, การเงินรายเดือน, attendance trend, และผลลงมติ"
+      />
+    </div>
+  )
+}
+
+function AcademyDashboardPage() {
+  return (
+    <div className="space-y-4">
+      <MetricCards
+        items={[
+          { label: 'นักเรียนทั้งหมด', value: '862', hint: 'รวมทุกห้องและทุกระดับ' },
+          { label: 'ห้องเรียนที่เปิด', value: '24', hint: 'ห้องที่มี active schedule' },
+          { label: 'คอร์สที่เปิด', value: '31', hint: 'คอร์สที่เปิดรับสมัครอยู่' },
+          { label: 'ค่าเฉลี่ยผลการเรียน', value: '82.4', hint: 'คะแนนเฉลี่ยรวมทุกวิชา' },
+        ]}
+      />
+      <SectionPlaceholder
+        title="Dashboard โรงเรียนกวดวิชา"
+        description="พื้นที่นี้เตรียมไว้สำหรับ infographic แยกตาม role: ผู้บริหาร/ครู/นักเรียน/ผู้ปกครอง"
+      />
+    </div>
+  )
+}
+
+function MemberCardPage(props: { member: Record<string, unknown> }) {
+  const fullName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || '-'
+  const batch = props.member.batch != null ? String(props.member.batch) : '-'
+  const lineUid = props.member.line_uid != null ? String(props.member.line_uid) : '-'
+  return (
+    <SectionPlaceholder
+      title="บัตรสมาชิกดิจิทัล"
+      description={`เตรียมหน้าบัตรสมาชิกสำหรับ ${fullName} · รุ่น ${batch} · LINE UID ${lineUid}`}
+    />
+  )
+}
+
+function MemberProfilePage(props: { member: Record<string, unknown> }) {
+  const fullName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || '-'
+  return (
+    <SectionPlaceholder
+      title="ข้อมูลส่วนตัวสมาชิก"
+      description={`เตรียมหน้าจัดการข้อมูลส่วนตัวและประวัติคำขอแก้ไขข้อมูลของ ${fullName}`}
+    />
+  )
+}
+
+function MemberStatisticsPage() {
+  return (
+    <div className="space-y-4">
+      <MetricCards
+        items={[
+          { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'ภาพรวมทั้งสมาคมศิษย์เก่า' },
+          { label: 'จำนวนรุ่น', value: '58', hint: 'รุ่นที่มีข้อมูลในทะเบียน' },
+          { label: 'สมาชิก active', value: '1,019', hint: 'มี session/การใช้งานล่าสุด' },
+          { label: 'คำร้องเดือนนี้', value: '42', hint: 'คำร้องอัปเดตข้อมูลทั้งหมด' },
+        ]}
+      />
+      <SectionPlaceholder
+        title="สถิติสมาชิก"
+        description="พื้นที่นี้เตรียมสำหรับกราฟสมาชิกแยกรุ่น, สมาชิกใหม่รายเดือน, และการมีส่วนร่วมกิจกรรม"
+      />
+    </div>
+  )
+}
+
+function MemberDonationsPage() {
+  return (
+    <SectionPlaceholder
+      title="สนับสนุนกิจกรรมโรงเรียน"
+      description="พื้นที่นี้เตรียมสำหรับบริจาคเงิน, แนบสลิป, และดูประวัติการสนับสนุนกิจกรรมของสมาชิก"
+    />
+  )
+}
+
+function MemberMeetingsPage() {
+  return (
+    <SectionPlaceholder
+      title="สาระประชุมและรายรับรายจ่าย"
+      description="พื้นที่นี้เตรียมสำหรับอ่านสาระการประชุม, รายงานประชุม, และรายรับรายจ่ายในระดับสมาชิก"
+    />
+  )
+}
+
+function SectionPlaceholder(props: { title: string; description: string }) {
+  return (
+    <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">{props.title}</h3>
+      <p className="mt-3 text-sm text-slate-400">{props.description}</p>
     </section>
   )
 }
