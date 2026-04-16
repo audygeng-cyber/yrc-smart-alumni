@@ -47,12 +47,14 @@ type ActionHistoryEntry = {
 type ActivityFilter = 'all' | ActionHistoryEntry['action']
 type ActivityPreset = 'manual' | 'rejected_recent' | 'pending_approvals' | 'today'
 type ActivitySeverityFilter = 'all' | 'critical' | 'warning' | 'info'
+type ReviewIntent = 'approve' | 'reject'
 
 type RequestActivityRow = ActionHistoryEntry & {
   requestId: string
   lineUid: string
   batch: string
   fullName: string
+  currentStatus: string
   severity: ActivitySeverityFilter
   isToday: boolean
 }
@@ -81,6 +83,10 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [viewPreset, setViewPreset] = useState<ViewPreset>('manual')
   const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null)
   const [decisionCommentDraft, setDecisionCommentDraft] = useState('')
+  const [reviewIntent, setReviewIntent] = useState<ReviewIntent | null>(null)
+  const [pendingReviewDraft, setPendingReviewDraft] = useState<{ requestId: string; intent: ReviewIntent; comment: string } | null>(
+    null,
+  )
   const [activityActionFilter, setActivityActionFilter] = useState<ActivityFilter>('all')
   const [activitySearch, setActivitySearch] = useState('')
   const [activityLimit, setActivityLimit] = useState(20)
@@ -171,6 +177,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         lineUid: row.line_uid ?? '',
         batch,
         fullName,
+        currentStatus: row.status,
         severity: getActivitySeverity(entry),
         isToday: isSameLocalDay(entry.at, now),
       }))
@@ -309,8 +316,22 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   }, [activityPreset])
 
   useEffect(() => {
+    if (!selectedRequest) {
+      setDecisionCommentDraft('')
+      setReviewIntent(null)
+      return
+    }
+
+    if (pendingReviewDraft && pendingReviewDraft.requestId === selectedRequest.id) {
+      setDecisionCommentDraft(pendingReviewDraft.comment)
+      setReviewIntent(pendingReviewDraft.intent)
+      setPendingReviewDraft(null)
+      return
+    }
+
     setDecisionCommentDraft('')
-  }, [selectedRequest?.id])
+    setReviewIntent(null)
+  }, [pendingReviewDraft, selectedRequest])
 
   useEffect(() => {
     if (!highlightedRequestId) return
@@ -489,11 +510,27 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setMsg('บันทึก activity view ปัจจุบันเป็น manual preset แล้ว')
   }
 
-  function openRequestDetailFromActivity(requestId: string) {
+  function openRequestDetailFromActivity(requestId: string, intent?: ReviewIntent) {
     const match = rows.find((row) => row.id === requestId)
     if (!match) {
       setMsg(`ไม่พบคำร้อง ${requestId} ในรายการปัจจุบัน`)
       return
+    }
+
+    if (intent) {
+      if (!isPendingRequestStatus(match.status)) {
+        setMsg(`คำร้อง ${requestId} ไม่ได้อยู่ในสถานะรอตรวจแล้ว`)
+        return
+      }
+
+      setPendingReviewDraft({
+        requestId,
+        intent,
+        comment: buildSuggestedReviewComment(match, intent),
+      })
+      setMsg(`เปิด review mode สำหรับ ${requestId}: ${intent === 'approve' ? 'approve' : 'reject'}`)
+    } else {
+      setPendingReviewDraft(null)
     }
 
     setSelectedRequest(match)
@@ -1166,6 +1203,30 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                 โดย {entry.actor || '-'} | {entry.from_status ?? '-'} {'->'} {entry.to_status ?? '-'}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
+                {isPendingRequestStatus(entry.currentStatus) ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openRequestDetailFromActivity(entry.requestId, 'approve')
+                    }}
+                    className="rounded border border-emerald-800 px-2.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-950/30"
+                  >
+                    review approve
+                  </button>
+                ) : null}
+                {isPendingRequestStatus(entry.currentStatus) ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openRequestDetailFromActivity(entry.requestId, 'reject')
+                    }}
+                    className="rounded border border-red-800 px-2.5 py-1 text-[11px] text-red-200 hover:bg-red-950/30"
+                  >
+                    review reject
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1423,6 +1484,23 @@ export function MemberRequestsPanel({ apiBase }: Props) {
 
           <div className="mt-5 rounded-lg border border-amber-900/40 bg-amber-950/20 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-amber-200/80">Reject Reason Templates</p>
+            {reviewIntent ? (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sky-900/40 bg-sky-950/30 p-3">
+                <p className="text-xs text-sky-100">
+                  review mode: {reviewIntent === 'approve' ? 'approve' : 'reject'}{' '}
+                  {reviewIntent === 'approve'
+                    ? '(draft พร้อมสำหรับการอนุมัติ)'
+                    : '(draft พร้อมสำหรับการปฏิเสธ/ขอข้อมูลเพิ่ม)'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setReviewIntent(null)}
+                  className="rounded border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                >
+                  clear review mode
+                </button>
+              </div>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               {REJECT_REASON_TEMPLATES.map((reason) => (
                 <button
@@ -1739,6 +1817,32 @@ function buildActivityIdentityText(entry: RequestActivityRow): string {
     `batch: ${entry.batch || '-'}`,
     `name: ${entry.fullName || '-'}`,
   ].join('\n')
+}
+
+function isPendingRequestStatus(status: string): boolean {
+  return status === 'pending_president' || status === 'pending_admin'
+}
+
+function buildSuggestedReviewComment(row: RequestRow, intent: ReviewIntent): string {
+  const identity = buildRequestIdentityLabel(row)
+  if (intent === 'reject') {
+    return `${REJECT_REASON_TEMPLATES[0]}${identity ? ` (${identity})` : ''}`
+  }
+
+  if (row.status === 'pending_president') {
+    return `ตรวจสอบข้อมูลสมาชิก${identity ? ` ${identity}` : ''} แล้ว พร้อมอนุมัติขั้นประธานรุ่น`
+  }
+
+  return `ตรวจสอบข้อมูลสมาชิก${identity ? ` ${identity}` : ''} แล้ว พร้อมอนุมัติขั้น Admin`
+}
+
+function buildRequestIdentityLabel(row: RequestRow): string {
+  const batch = pickRequestedText(row.requested_data, 'batch')
+  const fullName = [pickRequestedText(row.requested_data, 'first_name'), pickRequestedText(row.requested_data, 'last_name')]
+    .filter(Boolean)
+    .join(' ')
+
+  return [fullName, batch ? `รุ่น ${batch}` : ''].filter(Boolean).join(' | ')
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
