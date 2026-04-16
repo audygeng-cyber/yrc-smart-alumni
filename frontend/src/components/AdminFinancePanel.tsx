@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 const STORAGE_KEY = 'yrc_admin_upload_key'
 const PAGE_SIZE = 20
 const REPORT_PRESETS_KEY = 'yrc_finance_report_presets_v1'
+const ACTIVITY_LOG_KEY = 'yrc_finance_activity_log_v1'
 const AUTO_REFRESH_MAX_FAILURES = 3
 
 type Props = { apiBase: string }
@@ -254,11 +255,33 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
-    const raw = sessionStorage.getItem(REPORT_PRESETS_KEY)
-    if (!raw) return
+    const rawPresets = sessionStorage.getItem(REPORT_PRESETS_KEY)
+    const rawActivity = sessionStorage.getItem(ACTIVITY_LOG_KEY)
+    if (rawPresets) {
+      try {
+        const parsed = JSON.parse(rawPresets) as ReportPreset[]
+        if (Array.isArray(parsed)) setCustomPresets(parsed)
+      } catch {
+        // ignore broken session storage payload
+      }
+    }
     try {
-      const parsed = JSON.parse(raw) as ReportPreset[]
-      if (Array.isArray(parsed)) setCustomPresets(parsed)
+      if (!rawActivity) return
+      const parsed = JSON.parse(rawActivity) as ActivityItem[]
+      if (Array.isArray(parsed)) {
+        setActivityLog(
+          parsed
+            .filter(
+              (item): item is ActivityItem =>
+                !!item &&
+                typeof item.id === 'string' &&
+                typeof item.at === 'string' &&
+                (item.level === 'info' || item.level === 'warn' || item.level === 'error') &&
+                typeof item.message === 'string',
+            )
+            .slice(0, 20),
+        )
+      }
     } catch {
       // ignore broken session storage payload
     }
@@ -267,6 +290,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(REPORT_PRESETS_KEY, JSON.stringify(customPresets))
   }, [customPresets])
+
+  useEffect(() => {
+    sessionStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(activityLog))
+  }, [activityLog])
 
   useEffect(() => {
     if (!allPresets.some((p) => p.id === selectedPresetId)) {
