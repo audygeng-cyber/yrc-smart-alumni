@@ -591,6 +591,54 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
   }
 
+  async function loadAllReports() {
+    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const q = buildReportQueryString()
+      const [plResp, donationsResp] = await Promise.all([
+        fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
+          headers: { 'x-admin-key': adminKey.trim() },
+        }),
+        fetch(`${base}/api/admin/finance/reports/donations${q}`, {
+          headers: { 'x-admin-key': adminKey.trim() },
+        }),
+      ])
+      const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])
+
+      const errors: string[] = []
+      if (pl.ok) {
+        setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
+        setPlPage(1)
+      } else {
+        errors.push(formatFetchError('โหลด P/L summary', pl.status, pl.payload, pl.rawText))
+      }
+
+      if (donations.ok) {
+        setDonationsReport((donations.payload ?? null) as DonationsReportPayload | null)
+        setDonorPage(1)
+        setBatchPage(1)
+        setEntityPage(1)
+      } else {
+        errors.push(
+          formatFetchError('โหลด donations dashboard', donations.status, donations.payload, donations.rawText),
+        )
+      }
+
+      if (errors.length > 0) {
+        setMsg(errors.join('\n\n------------------------------\n\n'))
+        return
+      }
+
+      setMsg('โหลดรายงานทั้งหมดแล้ว (P/L + Donations)')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function downloadCsv(path: string, filename: string) {
     if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
     setLoading(true)
@@ -801,6 +849,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
           className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
         >
           โหลด Donations Dashboard
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={loadAllReports}
+          className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+        >
+          โหลดรายงานทั้งหมด
         </button>
         <button
           type="button"
