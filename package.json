@@ -11,7 +11,8 @@
     "lint": "npm run lint -w frontend && npm run lint -w backend",
     "test": "npm run test -w backend",
     "ci": "npm run build && npm run lint && npm run test",
-    "verify:deploy": "node scripts/verify-deployment.mjs"
+    "verify:deploy": "node scripts/verify-deployment.mjs",
+    "verify:deploy:deep": "node scripts/verify-deployment.mjs --deep"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

@@ -24,9 +24,15 @@ PowerShell:
 $env:VERIFY_API_BASE="https://xxx.run.app"; $env:VERIFY_FRONTEND_ORIGIN="https://yyy.vercel.app"; npm run verify:deploy
 ```
 
-คำสั่งนี้เรียก `GET /health` และถ้ามี origin ของ Vercel จะตรวจว่า response มี `Access-Control-Allow-Origin` ตรงกับ origin หรือไม่
+คำสั่งนี้เรียก `GET /health` ตรวจว่า `GET /api/admin/members/summary` มีอยู่ (probe ไม่ใส่ key) และถ้ามี origin ของ Vercel จะตรวจ CORS
 
-**จาก GitHub:** ไปที่ **Actions** → workflow **Verify production** → **Run workflow** แล้วใส่ URL ทั้งสอง (ไฟล์ `.github/workflows/verify-production.yml`)
+**ตรวจแบบละเอียด** (เทมเพลตนำเข้า, VAPID, CORS preflight, และว่า bundle หน้าเว็บฝัง host ของ API ตรงกับ URL ที่ให้):
+
+```bash
+npm run verify:deploy:deep -- https://<CLOUD_RUN_URL> https://<VERCEL_FRONTEND_URL>
+```
+
+**จาก GitHub:** ไปที่ **Actions** → workflow **Verify production** → **Run workflow** แล้วใส่ URL ทั้งสอง (ไฟล์ `.github/workflows/verify-production.yml`) — workflow นี้ยังเป็นแบบเบื้องต้น ไม่รวมโหมด deep
 
 ---
 

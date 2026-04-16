@@ -1,25 +1,43 @@
 #!/usr/bin/env node
 /**
- * Post-deploy smoke test: GET /health and optional CORS header check.
+ * Post-deploy smoke test: GET /health, optional CORS, admin summary probe.
+ * With --deep: API root, templates, VAPID, CORS preflight, frontend bundle vs API URL.
  *
  * Usage:
- *   node scripts/verify-deployment.mjs <API_BASE_URL> [FRONTEND_ORIGIN]
- *   VERIFY_API_BASE=https://xxx.run.app VERIFY_FRONTEND_ORIGIN=https://yyy.vercel.app node scripts/verify-deployment.mjs
+ *   node scripts/verify-deployment.mjs <API_BASE_URL> [FRONTEND_ORIGIN] [--deep]
+ *   VERIFY_DEEP=1 VERIFY_API_BASE=... VERIFY_FRONTEND_ORIGIN=... node scripts/verify-deployment.mjs
  */
 
-const apiBase = process.env.VERIFY_API_BASE || process.argv[2]
-const frontendOrigin = process.env.VERIFY_FRONTEND_ORIGIN || process.argv[3]
+const argv = process.argv.slice(2).filter((a) => a !== '--deep')
+const deep =
+  process.env.VERIFY_DEEP === '1' ||
+  process.env.VERIFY_DEEP === 'true' ||
+  process.argv.includes('--deep')
+
+const apiBase = process.env.VERIFY_API_BASE || argv[0]
+const frontendOrigin = process.env.VERIFY_FRONTEND_ORIGIN || argv[1]
 
 if (!apiBase?.trim()) {
   console.error(
     'Missing API base URL.\n' +
       '  Example: node scripts/verify-deployment.mjs https://xxx.run.app https://yyy.vercel.app\n' +
+      '  Add --deep for template/VAPID/CORS-preflight/frontend bundle checks.\n' +
       '  Or set VERIFY_API_BASE and optionally VERIFY_FRONTEND_ORIGIN',
   )
   process.exit(1)
 }
 
 const base = apiBase.replace(/\/$/, '')
+
+function expectCors(origin, res, label) {
+  const allow = res.headers.get('access-control-allow-origin')
+  if (!allow) {
+    throw new Error(`${label}: no Access-Control-Allow-Origin for Origin "${origin}"`)
+  }
+  if (allow !== '*' && allow !== origin) {
+    throw new Error(`${label}: Access-Control-Allow-Origin is "${allow}", expected "${origin}"`)
+  }
+}
 
 async function main() {
   const healthUrl = `${base}/health`
@@ -50,24 +68,115 @@ async function main() {
 
   if (!frontendOrigin?.trim()) {
     console.log('Skip: CORS check (pass 2nd arg or VERIFY_FRONTEND_ORIGIN)')
+    if (deep) {
+      console.warn('Skip: --deep frontend checks need FRONTEND_ORIGIN (2nd arg)')
+    }
     return
   }
 
   const origin = frontendOrigin.trim()
+
   const r2 = await fetch(healthUrl, { headers: { Origin: origin } })
-  const allow = r2.headers.get('access-control-allow-origin')
-  if (!allow) {
+  expectCors(origin, r2, 'GET /health')
+  console.log('OK: CORS for Origin', origin, '→', r2.headers.get('access-control-allow-origin'))
+
+  if (!deep) {
+    return
+  }
+
+  console.log('\n--- Deep checks ---\n')
+
+  const rRoot = await fetch(`${base}/`)
+  if (!rRoot.ok) {
+    throw new Error(`GET ${base}/ → HTTP ${rRoot.status}`)
+  }
+  const rootJson = await rRoot.json().catch(() => null)
+  if (!rootJson?.ok || !rootJson?.paths) {
+    throw new Error(`GET / expected { ok, paths }: got ${JSON.stringify(rootJson)?.slice(0, 200)}`)
+  }
+  console.log('OK: GET / → API root JSON (paths.health =', rootJson.paths?.health ?? 'n/a', ')')
+
+  const csvUrl = `${base}/api/admin/members/import-template.csv`
+  const rCsv = await fetch(csvUrl)
+  if (!rCsv.ok) {
+    throw new Error(`GET import-template.csv → HTTP ${rCsv.status}`)
+  }
+  const csvText = await rCsv.text()
+  if (!csvText.includes('รุ่น') || !csvText.includes('ชื่อ')) {
+    throw new Error('import-template.csv: expected Thai headers รุ่น / ชื่อ in body')
+  }
+  console.log('OK: import-template.csv (Thai headers present, length', csvText.length, ')')
+
+  const xlsxUrl = `${base}/api/admin/members/import-template.xlsx`
+  const rXlsx = await fetch(xlsxUrl)
+  if (!rXlsx.ok) {
+    throw new Error(`GET import-template.xlsx → HTTP ${rXlsx.status}`)
+  }
+  const xlsxBuf = await rXlsx.arrayBuffer()
+  const u8 = new Uint8Array(xlsxBuf.slice(0, 4))
+  const zipSig = u8[0] === 0x50 && u8[1] === 0x4b
+  if (!zipSig) {
+    throw new Error('import-template.xlsx: expected ZIP signature (xlsx)')
+  }
+  console.log('OK: import-template.xlsx (ZIP/xlsx signature, bytes', xlsxBuf.byteLength, ')')
+
+  const vapidUrl = `${base}/api/push/vapid-public`
+  const rV = await fetch(vapidUrl)
+  const vj = await rV.json().catch(() => null)
+  if (rV.ok && vj?.publicKey && typeof vj.publicKey === 'string') {
+    console.log('OK: VAPID public key exposed (push opt-in can work)')
+  } else if (rV.status === 503 && vj?.error) {
+    console.log('WARN: VAPID not configured (503) — Web Push opt-in will show error until env set on API')
+  } else {
     throw new Error(
-      `CORS: no Access-Control-Allow-Origin for Origin "${origin}". ` +
-        `Set FRONTEND_ORIGINS on Cloud Run to include this URL.`,
+      `GET /api/push/vapid-public → unexpected HTTP ${rV.status}: ${JSON.stringify(vj)?.slice(0, 120)}`,
     )
   }
-  if (allow !== '*' && allow !== origin) {
+
+  const preUrl = `${base}/api/members/verify-link`
+  const rOpt = await fetch(preUrl, {
+    method: 'OPTIONS',
+    headers: {
+      Origin: origin,
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Headers': 'content-type',
+    },
+  })
+  expectCors(origin, rOpt, 'OPTIONS /api/members/verify-link')
+  const optAllowMethods = rOpt.headers.get('access-control-allow-methods')
+  if (optAllowMethods && !optAllowMethods.toUpperCase().includes('POST')) {
+    console.warn('WARN: CORS allow-methods may omit POST:', optAllowMethods)
+  } else {
+    console.log('OK: CORS preflight OPTIONS verify-link →', rOpt.status, {
+      allowMethods: optAllowMethods ?? '(not sent)',
+    })
+  }
+
+  const fe = origin.replace(/\/$/, '')
+  const rHtml = await fetch(fe + '/')
+  if (!rHtml.ok) {
+    throw new Error(`GET ${fe}/ → HTTP ${rHtml.status}`)
+  }
+  const html = await rHtml.text()
+  const m = html.match(/src="(\/assets\/[^"]+\.js)"/)
+  if (!m) {
+    throw new Error('Frontend index: no /assets/*.js script tag (not a Vite production build?)')
+  }
+  const jsPath = m[1]
+  const rJs = await fetch(fe + jsPath)
+  if (!rJs.ok) {
+    throw new Error(`GET ${jsPath} → HTTP ${rJs.status}`)
+  }
+  const jsText = await rJs.text()
+  const apiHost = base.replace(/^https?:\/\//, '')
+  if (!jsText.includes(apiHost)) {
     throw new Error(
-      `CORS: Access-Control-Allow-Origin is "${allow}", expected "${origin}"`,
+      `Frontend bundle does not contain API host "${apiHost}". ` +
+        `Rebuild Vercel with VITE_API_URL=${base} (Settings → Env → Production).`,
     )
   }
-  console.log('OK: CORS for Origin', origin, '→', allow)
+  console.log('OK: production JS contains API host', apiHost)
+  console.log('\n--- Deep checks passed ---')
 }
 
 main().catch((e) => {
