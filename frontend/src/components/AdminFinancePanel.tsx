@@ -59,6 +59,11 @@ type DonationsReportPayload = {
 }
 
 type ReportFilterEntity = '' | 'association' | 'cram_school'
+type SortDirection = 'asc' | 'desc'
+type PlSortKey = 'absNet' | 'accountCode' | 'accountName' | 'accountType' | 'net'
+type DonorSortKey = 'donorLabel' | 'count' | 'totalAmount'
+type BatchSortKey = 'batch' | 'totalAmount'
+type EntitySortKey = 'legalEntityCode' | 'totalAmount'
 
 function normalizeApiBase(base: string): string {
   return base.trim().replace(/\/+$/, '')
@@ -114,6 +119,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [reportFrom, setReportFrom] = useState('')
   const [reportTo, setReportTo] = useState('')
   const [reportKeyword, setReportKeyword] = useState('')
+  const [plSortKey, setPlSortKey] = useState<PlSortKey>('absNet')
+  const [plSortDir, setPlSortDir] = useState<SortDirection>('desc')
+  const [donorSortKey, setDonorSortKey] = useState<DonorSortKey>('totalAmount')
+  const [donorSortDir, setDonorSortDir] = useState<SortDirection>('desc')
+  const [batchSortKey, setBatchSortKey] = useState<BatchSortKey>('totalAmount')
+  const [batchSortDir, setBatchSortDir] = useState<SortDirection>('desc')
+  const [entitySortKey, setEntitySortKey] = useState<EntitySortKey>('totalAmount')
+  const [entitySortDir, setEntitySortDir] = useState<SortDirection>('desc')
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -154,37 +167,66 @@ export function AdminFinancePanel({ apiBase }: Props) {
     [accounts, paymentBankAccountId],
   )
   const reportKeywordNorm = useMemo(() => reportKeyword.trim().toLowerCase(), [reportKeyword])
+  const sortArrow = (active: boolean, dir: SortDirection) => (active ? (dir === 'asc' ? ' ↑' : ' ↓') : '')
 
   const plRows = useMemo(() => {
     const rows = (plSummary?.accountSummaries ?? [])
       .slice()
-      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net) || a.accountCode.localeCompare(b.accountCode))
+      .sort((a, b) => {
+        if (plSortKey === 'accountCode') return plSortDir === 'asc' ? a.accountCode.localeCompare(b.accountCode) : b.accountCode.localeCompare(a.accountCode)
+        if (plSortKey === 'accountName') return plSortDir === 'asc' ? a.accountName.localeCompare(b.accountName) : b.accountName.localeCompare(a.accountName)
+        if (plSortKey === 'accountType') return plSortDir === 'asc' ? a.accountType.localeCompare(b.accountType) : b.accountType.localeCompare(a.accountType)
+        if (plSortKey === 'net') return plSortDir === 'asc' ? a.net - b.net : b.net - a.net
+        const diff = Math.abs(a.net) - Math.abs(b.net)
+        return plSortDir === 'asc' ? diff : -diff
+      })
     if (!reportKeywordNorm) return rows
     return rows.filter((r) =>
       `${r.accountCode} ${r.accountName} ${r.accountType}`.toLowerCase().includes(reportKeywordNorm),
     )
-  }, [plSummary?.accountSummaries, reportKeywordNorm])
+  }, [plSummary?.accountSummaries, reportKeywordNorm, plSortDir, plSortKey])
   const plPaged = useMemo(() => paginateRows(plRows, plPage, PAGE_SIZE), [plRows, plPage])
 
   const donorRows = useMemo(() => {
     const rows = (donationsReport?.byDonor ?? []).slice()
+    rows.sort((a, b) => {
+      if (donorSortKey === 'donorLabel') {
+        return donorSortDir === 'asc'
+          ? a.donorLabel.localeCompare(b.donorLabel)
+          : b.donorLabel.localeCompare(a.donorLabel)
+      }
+      if (donorSortKey === 'count') return donorSortDir === 'asc' ? a.count - b.count : b.count - a.count
+      return donorSortDir === 'asc' ? a.totalAmount - b.totalAmount : b.totalAmount - a.totalAmount
+    })
     if (!reportKeywordNorm) return rows
     return rows.filter((r) => r.donorLabel.toLowerCase().includes(reportKeywordNorm))
-  }, [donationsReport?.byDonor, reportKeywordNorm])
+  }, [donationsReport?.byDonor, donorSortDir, donorSortKey, reportKeywordNorm])
   const donorPaged = useMemo(() => paginateRows(donorRows, donorPage, PAGE_SIZE), [donorRows, donorPage])
 
   const batchRows = useMemo(() => {
     const rows = (donationsReport?.byBatch ?? []).slice()
+    rows.sort((a, b) => {
+      if (batchSortKey === 'batch') return batchSortDir === 'asc' ? a.batch.localeCompare(b.batch) : b.batch.localeCompare(a.batch)
+      return batchSortDir === 'asc' ? a.totalAmount - b.totalAmount : b.totalAmount - a.totalAmount
+    })
     if (!reportKeywordNorm) return rows
     return rows.filter((r) => r.batch.toLowerCase().includes(reportKeywordNorm))
-  }, [donationsReport?.byBatch, reportKeywordNorm])
+  }, [batchSortDir, batchSortKey, donationsReport?.byBatch, reportKeywordNorm])
   const batchPaged = useMemo(() => paginateRows(batchRows, batchPage, PAGE_SIZE), [batchRows, batchPage])
 
   const entityRows = useMemo(() => {
     const rows = (donationsReport?.byEntity ?? []).slice()
+    rows.sort((a, b) => {
+      if (entitySortKey === 'legalEntityCode') {
+        return entitySortDir === 'asc'
+          ? a.legalEntityCode.localeCompare(b.legalEntityCode)
+          : b.legalEntityCode.localeCompare(a.legalEntityCode)
+      }
+      return entitySortDir === 'asc' ? a.totalAmount - b.totalAmount : b.totalAmount - a.totalAmount
+    })
     if (!reportKeywordNorm) return rows
     return rows.filter((r) => r.legalEntityCode.toLowerCase().includes(reportKeywordNorm))
-  }, [donationsReport?.byEntity, reportKeywordNorm])
+  }, [donationsReport?.byEntity, entitySortDir, entitySortKey, reportKeywordNorm])
   const entityPaged = useMemo(() => paginateRows(entityRows, entityPage, PAGE_SIZE), [entityRows, entityPage])
 
   useEffect(() => {
@@ -193,6 +235,42 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setBatchPage(1)
     setEntityPage(1)
   }, [reportKeywordNorm])
+
+  function togglePlSort(nextKey: PlSortKey) {
+    if (plSortKey === nextKey) {
+      setPlSortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setPlSortKey(nextKey)
+    setPlSortDir(nextKey === 'absNet' || nextKey === 'net' ? 'desc' : 'asc')
+  }
+
+  function toggleDonorSort(nextKey: DonorSortKey) {
+    if (donorSortKey === nextKey) {
+      setDonorSortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setDonorSortKey(nextKey)
+    setDonorSortDir(nextKey === 'donorLabel' ? 'asc' : 'desc')
+  }
+
+  function toggleBatchSort(nextKey: BatchSortKey) {
+    if (batchSortKey === nextKey) {
+      setBatchSortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setBatchSortKey(nextKey)
+    setBatchSortDir(nextKey === 'batch' ? 'asc' : 'desc')
+  }
+
+  function toggleEntitySort(nextKey: EntitySortKey) {
+    if (entitySortKey === nextKey) {
+      setEntitySortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setEntitySortKey(nextKey)
+    setEntitySortDir(nextKey === 'legalEntityCode' ? 'asc' : 'desc')
+  }
 
   function buildReportQueryString() {
     const q = new URLSearchParams()
@@ -623,10 +701,22 @@ export function AdminFinancePanel({ apiBase }: Props) {
         <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
           <p className="mb-2 font-medium">P/L Accounts (ทั้งหมด)</p>
           <div className="grid grid-cols-4 gap-2 font-semibold text-slate-400">
-            <span>Code</span>
-            <span>Name</span>
-            <span>Type</span>
-            <span className="text-right">Net</span>
+            <button type="button" onClick={() => togglePlSort('accountCode')} className="text-left hover:text-slate-200">
+              Code{sortArrow(plSortKey === 'accountCode', plSortDir)}
+            </button>
+            <button type="button" onClick={() => togglePlSort('accountName')} className="text-left hover:text-slate-200">
+              Name{sortArrow(plSortKey === 'accountName', plSortDir)}
+            </button>
+            <button type="button" onClick={() => togglePlSort('accountType')} className="text-left hover:text-slate-200">
+              Type{sortArrow(plSortKey === 'accountType', plSortDir)}
+            </button>
+            <button
+              type="button"
+              onClick={() => togglePlSort('net')}
+              className="text-right hover:text-slate-200"
+            >
+              Net{sortArrow(plSortKey === 'net', plSortDir)}
+            </button>
           </div>
           {plPaged.pageRows.map((r) => (
             <div key={`${r.accountCode}:${r.accountName}`} className="grid grid-cols-4 gap-2 py-1">
@@ -645,9 +735,27 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
             <p className="mb-2 font-medium">Donors (ทั้งหมด)</p>
             <div className="grid grid-cols-3 gap-2 font-semibold text-slate-400">
-              <span>Donor</span>
-              <span className="text-right">Count</span>
-              <span className="text-right">Amount</span>
+              <button
+                type="button"
+                onClick={() => toggleDonorSort('donorLabel')}
+                className="text-left hover:text-slate-200"
+              >
+                Donor{sortArrow(donorSortKey === 'donorLabel', donorSortDir)}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleDonorSort('count')}
+                className="text-right hover:text-slate-200"
+              >
+                Count{sortArrow(donorSortKey === 'count', donorSortDir)}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleDonorSort('totalAmount')}
+                className="text-right hover:text-slate-200"
+              >
+                Amount{sortArrow(donorSortKey === 'totalAmount', donorSortDir)}
+              </button>
             </div>
             {donorPaged.pageRows.map((r) => (
               <div key={r.donorLabel} className="grid grid-cols-3 gap-2 py-1">
@@ -662,8 +770,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
             <p className="mb-2 font-medium">Donations by Batch</p>
             <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
-              <span>Batch</span>
-              <span className="text-right">Amount</span>
+              <button type="button" onClick={() => toggleBatchSort('batch')} className="text-left hover:text-slate-200">
+                Batch{sortArrow(batchSortKey === 'batch', batchSortDir)}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleBatchSort('totalAmount')}
+                className="text-right hover:text-slate-200"
+              >
+                Amount{sortArrow(batchSortKey === 'totalAmount', batchSortDir)}
+              </button>
             </div>
             {batchPaged.pageRows.map((r) => (
               <div key={r.batch} className="grid grid-cols-2 gap-2 py-1">
@@ -677,8 +793,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200 md:col-span-2">
             <p className="mb-2 font-medium">Donations by Legal Entity</p>
             <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
-              <span>Entity</span>
-              <span className="text-right">Amount</span>
+              <button
+                type="button"
+                onClick={() => toggleEntitySort('legalEntityCode')}
+                className="text-left hover:text-slate-200"
+              >
+                Entity{sortArrow(entitySortKey === 'legalEntityCode', entitySortDir)}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleEntitySort('totalAmount')}
+                className="text-right hover:text-slate-200"
+              >
+                Amount{sortArrow(entitySortKey === 'totalAmount', entitySortDir)}
+              </button>
             </div>
             {entityPaged.pageRows.map((r) => (
               <div key={r.legalEntityCode} className="grid grid-cols-2 gap-2 py-1">
