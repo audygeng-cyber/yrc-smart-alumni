@@ -312,6 +312,53 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setMsg('บันทึกมุมมองปัจจุบันเป็น manual preset แล้ว')
   }
 
+  function exportCurrentViewCsv() {
+    if (sortedRows.length === 0) {
+      setMsg('ยังไม่มีรายการในมุมมองปัจจุบันให้ export')
+      return
+    }
+
+    const headers = [
+      'id',
+      'status',
+      'request_type',
+      'line_uid',
+      'batch',
+      'first_name',
+      'last_name',
+      'created_at',
+      'is_new',
+    ]
+
+    const lines = [
+      headers.join(','),
+      ...sortedRows.map((row) =>
+        [
+          csvCell(row.id),
+          csvCell(row.status),
+          csvCell(row.request_type),
+          csvCell(row.line_uid ?? ''),
+          csvCell(pickRequestedText(row.requested_data, 'batch')),
+          csvCell(pickRequestedText(row.requested_data, 'first_name')),
+          csvCell(pickRequestedText(row.requested_data, 'last_name')),
+          csvCell(row.created_at),
+          csvCell(newRowIdSet.has(row.id) ? 'yes' : 'no'),
+        ].join(','),
+      ),
+    ]
+
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `member-requests-${viewPreset}-${sortMode}-${Date.now()}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    setMsg(`exported ${sortedRows.length} rows from current view`)
+  }
+
   return (
     <section className="rounded-xl border border-violet-900/40 bg-violet-950/20 p-6">
       <h2 className="text-sm font-medium uppercase tracking-wide text-violet-200/90">
@@ -442,6 +489,14 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           className="rounded-lg border border-emerald-800 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-950/30 disabled:opacity-50"
         >
           mark all as seen
+        </button>
+        <button
+          type="button"
+          disabled={sortedRows.length === 0}
+          onClick={exportCurrentViewCsv}
+          className="rounded-lg border border-sky-800 px-4 py-2 text-sm font-medium text-sky-200 hover:bg-sky-950/30 disabled:opacity-50"
+        >
+          export current view
         </button>
       </div>
 
@@ -705,6 +760,10 @@ function getPendingPriority(status: string): number {
 function pickRequestedText(requested: Record<string, unknown>, key: string): string {
   const value = requested[key]
   return typeof value === 'string' ? value : ''
+}
+
+function csvCell(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`
 }
 
 function SummaryCard({
