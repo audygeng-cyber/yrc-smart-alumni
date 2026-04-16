@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+# Workspaces: ใช้แค่ package-lock.json ที่ราก — อย่า commit lock ซ้อนใน frontend
+frontend/package-lock.json
 
 # Environment & secrets
 .env
