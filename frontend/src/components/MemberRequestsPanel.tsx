@@ -7,6 +7,12 @@ const STORAGE_AUTO_REFRESH_MS = 'yrc_member_requests_auto_refresh_ms'
 const STORAGE_LAST_PENDING = 'yrc_member_requests_last_pending'
 const STORAGE_LAST_REQUEST_IDS = 'yrc_member_requests_last_ids'
 const STORAGE_VIEW_PRESET = 'yrc_member_requests_view_preset'
+const REJECT_REASON_TEMPLATES = [
+  'ข้อมูลไม่ครบถ้วน กรุณาแนบ/กรอกข้อมูลเพิ่มเติม',
+  'ไม่พบข้อมูลยืนยันตัวตนตามทะเบียน กรุณาตรวจสอบชื่อ-นามสกุล-รุ่น',
+  'ข้อมูลซ้ำกับสมาชิกที่มีอยู่แล้ว กรุณาติดต่อผู้ดูแล',
+  'รายละเอียดคำร้องไม่ตรงตามเงื่อนไข กรุณาแก้ไขแล้วส่งใหม่',
+] as const
 
 type RequestRow = {
   id: string
@@ -44,6 +50,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>('newest')
   const [viewPreset, setViewPreset] = useState<ViewPreset>('manual')
   const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null)
+  const [rejectReasonDraft, setRejectReasonDraft] = useState('')
 
   const summary = useMemo(() => {
     const counts = {
@@ -151,6 +158,10 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_VIEW_PRESET, viewPreset)
   }, [viewPreset])
+
+  useEffect(() => {
+    setRejectReasonDraft('')
+  }, [selectedRequest?.id])
 
   useEffect(() => {
     const savedPending = Number(sessionStorage.getItem(STORAGE_LAST_PENDING) ?? '0')
@@ -273,6 +284,10 @@ export function MemberRequestsPanel({ apiBase }: Props) {
     setNewRowIds([])
     setPendingIncrease(0)
     setMsg('ทำเครื่องหมายคำร้องปัจจุบันทั้งหมดว่าเห็นแล้ว')
+  }
+
+  function applyRejectReasonTemplate(reason: string) {
+    setRejectReasonDraft(reason)
   }
 
   function applyPreset(preset: ViewPreset) {
@@ -700,7 +715,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     onClick={() =>
                       void callAction(
                         `/${r.id}/reject`,
-                        { rejected_by: 'ประธานรุ่น', reason: 'ปฏิเสธ' },
+                        { rejected_by: 'ประธานรุ่น', reason: rejectReasonDraft.trim() || 'ปฏิเสธ' },
                         'president-or-admin',
                       )
                     }
@@ -728,7 +743,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                     onClick={() =>
                       void callAction(
                         `/${r.id}/reject`,
-                        { rejected_by: 'Admin', reason: 'ปฏิเสธ' },
+                        { rejected_by: 'Admin', reason: rejectReasonDraft.trim() || 'ปฏิเสธ' },
                         'president-or-admin',
                       )
                     }
@@ -805,6 +820,33 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                 <DetailField key={key} label={key} value={value} />
               ))}
             </div>
+          </div>
+
+          <div className="mt-5 rounded-lg border border-amber-900/40 bg-amber-950/20 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-amber-200/80">Reject Reason Templates</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {REJECT_REASON_TEMPLATES.map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => applyRejectReasonTemplate(reason)}
+                  className="rounded border border-amber-800 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-950/30"
+                  title={reason}
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <label className="mt-4 block text-sm text-slate-300">
+              เหตุผลสำหรับการปฏิเสธ
+              <textarea
+                value={rejectReasonDraft}
+                onChange={(e) => setRejectReasonDraft(e.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-700"
+                placeholder="เลือก template หรือพิมพ์เหตุผลเอง"
+              />
+            </label>
           </div>
 
           <details className="mt-5 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
