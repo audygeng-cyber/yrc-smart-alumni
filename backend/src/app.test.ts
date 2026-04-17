@@ -53,6 +53,8 @@ describe.sequential('createApp', () => {
     expect(Object.prototype.hasOwnProperty.call(res.body, 'associationMonthlyPl')).toBe(true)
     expect(Object.prototype.hasOwnProperty.call(res.body, 'cramSchoolMonthlyPl')).toBe(true)
     expect(typeof res.body.paymentRequestsPending).toBe('number')
+    expect(Array.isArray(res.body.requestTrend)).toBe(true)
+    expect(res.body.requestTrend?.length).toBe(7)
   })
 
   it('GET /api/portal/academy returns dashboard snapshot', async () => {

@@ -127,6 +127,43 @@ function topBatchesByCount(rows: Array<{ batch: string | null }>, limit: number)
     .map(([label, value]) => ({ label: `รุ่น ${label}`, value }))
 }
 
+/** คีย์วันที่ UTC แบบ YYYY-MM-DD ย้อนหลัง 7 วัน (วันแรก = ย้อน 6 วัน) */
+function last7UtcDateKeys(): string[] {
+  const keys: string[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - i)
+    const y = d.getUTCFullYear()
+    const m = d.getUTCMonth() + 1
+    const day = d.getUTCDate()
+    keys.push(`${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+  }
+  return keys
+}
+
+function thaiWeekdayShortFromUtcDateKey(isoDateKey: string): string {
+  const d = new Date(`${isoDateKey}T12:00:00.000Z`)
+  const w = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.']
+  return w[d.getUTCDay()] ?? isoDateKey
+}
+
+/** จำนวนคำร้อง member_update_requests ต่อวัน (UTC) — 7 แท่ง */
+async function tryCommitteeRequestTrendLast7Days(supabase: SupabaseClient): Promise<TrendItem[] | null> {
+  const keys = last7UtcDateKeys()
+  if (keys.length !== 7) return null
+  const startIso = `${keys[0]!}T00:00:00.000Z`
+  const { data, error } = await supabase.from('member_update_requests').select('created_at').gte('created_at', startIso)
+  if (error) return null
+  const counts = new Map<string, number>()
+  for (const k of keys) counts.set(k, 0)
+  for (const row of data ?? []) {
+    const ca = String((row as { created_at: string }).created_at)
+    const day = ca.slice(0, 10)
+    if (counts.has(day)) counts.set(day, (counts.get(day) ?? 0) + 1)
+  }
+  return keys.map((k) => ({ label: thaiWeekdayShortFromUtcDateKey(k), value: counts.get(k) ?? 0 }))
+}
+
 export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
   const base = cloneMemberPayload()
 
@@ -424,6 +461,11 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
     .eq('status', 'pending')
   if (!ePay && typeof payPending === 'number') {
     base.paymentRequestsPending = payPending
+  }
+
+  const reqTrend = await tryCommitteeRequestTrendLast7Days(supabase)
+  if (reqTrend && reqTrend.length === 7) {
+    base.requestTrend = reqTrend
   }
 
   return base

@@ -503,7 +503,9 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalData
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">แนวโน้มคำร้อง 7 วัน</h3>
-          <p className="mt-2 text-sm text-slate-400">ใช้ติดตาม backlog ของคำร้องและคาดการณ์ภาระงานทีมอนุมัติ</p>
+          <p className="mt-2 text-sm text-slate-400">
+            จำนวนคำร้องใหม่ต่อวัน (UTC) จาก <code className="text-slate-500">member_update_requests</code> — ใช้ติดตาม backlog
+          </p>
           <TrendBars items={props.portalData.requestTrend} />
         </section>
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
