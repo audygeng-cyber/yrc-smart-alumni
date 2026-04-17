@@ -4,6 +4,9 @@ export type MeetingItem = { topic: string; time: string; status: 'ready' | 'pend
 export type DonationCampaign = { title: string; progress: number; target: string; raised: string }
 export type MeetingReportItem = { title: string; date: string }
 export type AcademyClassItem = { room: string; students: number; avgScore: number }
+export type AcademyCramRosterRow = { name: string; avgScore: number | null }
+export type AcademyCramClassRoster = { room: string; roster: AcademyCramRosterRow[] }
+export type AcademySchoolCourseItem = { id: string; title: string; category: string; description: string | null }
 
 export const memberStatsCards: MetricItem[] = [
   { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'ภาพรวมทั้งสมาคมศิษย์เก่า' },
@@ -83,6 +86,48 @@ export const academyClasses: AcademyClassItem[] = [
   { room: 'ม.4 ห้อง A', students: 38, avgScore: 84.2 },
   { room: 'ม.5 ห้อง B', students: 42, avgScore: 81.5 },
   { room: 'ม.6 ห้อง C', students: 34, avgScore: 86.7 },
+]
+
+export const academyCramClassRoster: AcademyCramClassRoster[] = [
+  {
+    room: 'ม.4 ห้อง A',
+    roster: [
+      { name: 'สมชาย ใจดี', avgScore: 85 },
+      { name: 'สมหญิง รักเรียน', avgScore: 83.4 },
+    ],
+  },
+  {
+    room: 'ม.5 ห้อง B',
+    roster: [
+      { name: 'วิชัย ขยัน', avgScore: 80 },
+      { name: 'วิไล เก่งมาก', avgScore: 83 },
+    ],
+  },
+  {
+    room: 'ม.6 ห้อง C',
+    roster: [{ name: 'ณัฐพล สอบติด', avgScore: 86.7 }],
+  },
+]
+
+export const academySchoolCourses: AcademySchoolCourseItem[] = [
+  {
+    id: 'mock-course-1',
+    title: 'คณิตศาสตร์เสริม ม.4-6',
+    category: 'วิชาหลัก',
+    description: 'เน้นโจทย์ข้อสอบเข้ามหาวิทยาลัย',
+  },
+  {
+    id: 'mock-course-2',
+    title: 'ภาษาอังกฤษสื่อสาร',
+    category: 'ภาษา',
+    description: null,
+  },
+  {
+    id: 'mock-course-3',
+    title: 'ฟิสิกส์เข้ม',
+    category: 'วิชาหลัก',
+    description: 'พื้นฐานและตัวอย่างข้อสอบ',
+  },
 ]
 
 export const academyEnrollmentFunnel: TrendItem[] = [

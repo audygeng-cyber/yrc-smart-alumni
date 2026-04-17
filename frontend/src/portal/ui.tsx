@@ -51,6 +51,18 @@ export function MetricCards(props: { items: Array<{ label: string; value: string
   )
 }
 
+/** แสดงว่า snapshot มาจาก API หรือข้อมูลจำลอง (ตอนโหลดไม่สำเร็จ) */
+export function PortalDataSourceBadge(props: { loading: boolean; source: 'api' | 'mock' }) {
+  return (
+    <span
+      className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-400"
+      title="แหล่งข้อมูลของ snapshot พอร์ทัล"
+    >
+      data: {props.loading ? 'loading...' : props.source}
+    </span>
+  )
+}
+
 export function SectionPlaceholder(props: { title: string; description: string }) {
   return (
     <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">

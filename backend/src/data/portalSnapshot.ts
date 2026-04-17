@@ -1,5 +1,6 @@
 /**
  * Portal dashboard payloads — ต้องคงรูปแบบให้ตรงกับ frontend `src/portal/dataAdapter.ts` / `mockData.ts`
+ * (รวมฟิลด์ academy เช่น cramClassRoster, schoolCourses)
  * (เมื่อมีข้อมูลจริงจาก DB ค่อยแทนที่การประกอบใน routes)
  */
 
@@ -115,4 +116,8 @@ export const academyPortalPayload = {
   ],
   /** มีเมื่อมี journal เดือนนี้ของนิติบุคคล cram_school */
   cramSchoolMonthlyPl: null,
+  /** รายชื่อนักเรียนตามห้องจาก cram_students — [] เมื่อไม่มีข้อมูล */
+  cramClassRoster: [],
+  /** คอร์ส/กิจกรรมจาก school_activities (active) — [] เมื่อไม่มีข้อมูล */
+  schoolCourses: [],
 } as const

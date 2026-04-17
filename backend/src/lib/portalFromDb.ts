@@ -40,6 +40,8 @@ type AcademyPortalMerged = {
   classes: { room: string; students: number; avgScore: number }[]
   enrollmentFunnel: TrendItem[]
   cramSchoolMonthlyPl: { revenue: number; expense: number; netIncome: number } | null
+  cramClassRoster: Array<{ room: string; roster: Array<{ name: string; avgScore: number | null }> }>
+  schoolCourses: Array<{ id: string; title: string; category: string; description: string | null }>
 }
 
 function cloneMemberPayload(): MemberPortalMerged {
@@ -320,13 +322,24 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
   const cramPl = await tryCramSchoolMonthlyPlFromJournal(supabase)
   base.cramSchoolMonthlyPl = cramPl
 
-  const { data: actRows, error: actErr } = await supabase.from('school_activities').select('category').eq('active', true)
-  if (!actErr && actRows && actRows.length > 0) {
-    const cats = new Set(
-      (actRows as { category: string }[])
-        .map((r) => String(r.category ?? '').trim())
-        .filter((c) => c.length > 0),
-    )
+  const { data: courseRows, error: courseErr } = await supabase
+    .from('school_activities')
+    .select('id, title, category, description')
+    .eq('active', true)
+    .order('category', { ascending: true })
+    .order('title', { ascending: true })
+    .limit(200)
+
+  if (!courseErr && courseRows && courseRows.length > 0) {
+    base.schoolCourses = (
+      courseRows as { id: string; title: string; category: string; description: string | null }[]
+    ).map((r) => ({
+      id: String(r.id),
+      title: String(r.title ?? '').trim() || '—',
+      category: String(r.category ?? '').trim() || 'ทั่วไป',
+      description: r.description != null && String(r.description).trim() ? String(r.description) : null,
+    }))
+    const cats = new Set(base.schoolCourses.map((c) => c.category))
     base.metricCards[1] = {
       ...base.metricCards[1],
       value: fmtInt(Math.max(cats.size, 1)),
@@ -334,7 +347,7 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
     }
     base.metricCards[2] = {
       ...base.metricCards[2],
-      value: fmtInt(actRows.length),
+      value: fmtInt(courseRows.length),
       hint: 'จำนวนรายการคอร์ส/กิจกรรมที่เปิด (school_activities)',
     }
   }
@@ -348,9 +361,11 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
   if (!cramRoomErr && cramRooms && cramRooms.length > 0) {
     const { data: cramStuds, error: cramStudErr } = await supabase
       .from('cram_students')
-      .select('classroom_id, current_avg_score')
+      .select('classroom_id, display_name, current_avg_score')
+      .order('display_name', { ascending: true })
 
     const byRoom = new Map<string, { n: number; sum: number }>()
+    const rosterByClass = new Map<string, Array<{ name: string; avgScore: number | null }>>()
     let totalN = 0
     let totalSum = 0
     if (!cramStudErr && cramStuds) {
@@ -365,6 +380,22 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
         totalN += 1
         totalSum += v
       }
+      for (const row of cramStuds as {
+        classroom_id: string
+        display_name?: string | null
+        current_avg_score?: number | null
+      }[]) {
+        const cid = String(row.classroom_id)
+        const name = String(row.display_name ?? '').trim() || '—'
+        let avgScore: number | null = null
+        if (row.current_avg_score != null) {
+          const n = Number(row.current_avg_score)
+          avgScore = Number.isFinite(n) ? n : null
+        }
+        const list = rosterByClass.get(cid) ?? []
+        list.push({ name, avgScore })
+        rosterByClass.set(cid, list)
+      }
     }
 
     base.classes = cramRooms.map((r: { id: string; display_name: string; room_code: string }) => {
@@ -376,6 +407,11 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
         avgScore: avg,
       }
     })
+
+    base.cramClassRoster = cramRooms.map((r: { id: string; display_name: string; room_code: string }) => ({
+      room: r.display_name || r.room_code,
+      roster: rosterByClass.get(String(r.id)) ?? [],
+    }))
 
     if (totalN > 0) {
       const overall = Math.round((totalSum / totalN) * 10) / 10

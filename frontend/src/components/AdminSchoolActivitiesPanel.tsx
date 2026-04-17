@@ -1,0 +1,378 @@
+import { useCallback, useEffect, useState } from 'react'
+
+const STORAGE_KEY = 'yrc_admin_upload_key'
+
+function normalizeApiBase(base: string): string {
+  return base.trim().replace(/\/+$/, '')
+}
+
+type Activity = {
+  id: string
+  title: string
+  category: string
+  description: string | null
+  active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+type Props = { apiBase: string }
+
+export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
+  const base = normalizeApiBase(apiBase)
+  const [adminKey, setAdminKey] = useState('')
+  const [msg, setMsg] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [activities, setActivities] = useState<Activity[]>([])
+
+  const [newTitle, setNewTitle] = useState('')
+  const [newCategory, setNewCategory] = useState('')
+  const [newDescription, setNewDescription] = useState('')
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editCategory, setEditCategory] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+
+  useEffect(() => {
+    setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
+  }, [])
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, adminKey)
+  }, [adminKey])
+
+  const headers = useCallback(() => {
+    const h: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (adminKey.trim()) h['x-admin-key'] = adminKey.trim()
+    return h
+  }, [adminKey])
+
+  const loadActivities = useCallback(async () => {
+    if (!adminKey.trim()) {
+      setMsg('ใส่ x-admin-key ก่อน')
+      return
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/school-activities`, { headers: headers() })
+      const j = (await r.json().catch(() => ({}))) as { ok?: boolean; activities?: Activity[]; error?: string }
+      if (!r.ok) {
+        setMsg(j.error ?? `HTTP ${r.status}`)
+        return
+      }
+      setActivities(j.activities ?? [])
+      setMsg(`โหลด ${(j.activities ?? []).length} รายการ`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }, [adminKey, base, headers])
+
+  async function addActivity() {
+    if (!adminKey.trim()) {
+      setMsg('ใส่ x-admin-key ก่อน')
+      return
+    }
+    if (!newTitle.trim() || !newCategory.trim()) {
+      setMsg('กรอกชื่อคอร์สและหมวด')
+      return
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const body: Record<string, unknown> = {
+        title: newTitle.trim(),
+        category: newCategory.trim(),
+      }
+      if (newDescription.trim()) body.description = newDescription.trim()
+      const r = await fetch(`${base}/api/admin/school-activities`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(body),
+      })
+      const j = (await r.json().catch(() => ({}))) as { error?: string }
+      if (!r.ok) {
+        setMsg(j.error ?? `HTTP ${r.status}`)
+        return
+      }
+      setNewTitle('')
+      setNewCategory('')
+      setNewDescription('')
+      await loadActivities()
+      setMsg('เพิ่มรายการแล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function startEdit(a: Activity) {
+    setEditingId(a.id)
+    setEditTitle(a.title)
+    setEditCategory(a.category)
+    setEditDescription(a.description ?? '')
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function saveEdit(id: string) {
+    if (!adminKey.trim()) return
+    if (!editTitle.trim() || !editCategory.trim()) {
+      setMsg('กรอกชื่อและหมวด')
+      return
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const body: Record<string, unknown> = {
+        title: editTitle.trim(),
+        category: editCategory.trim(),
+        description: editDescription.trim() ? editDescription.trim() : null,
+      }
+      const r = await fetch(`${base}/api/admin/school-activities/${id}`, {
+        method: 'PATCH',
+        headers: headers(),
+        body: JSON.stringify(body),
+      })
+      const j = (await r.json().catch(() => ({}))) as { error?: string }
+      if (!r.ok) {
+        setMsg(j.error ?? `HTTP ${r.status}`)
+        return
+      }
+      setEditingId(null)
+      await loadActivities()
+      setMsg('บันทึกแล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function toggleActive(a: Activity) {
+    if (!adminKey.trim()) return
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/school-activities/${a.id}`, {
+        method: 'PATCH',
+        headers: headers(),
+        body: JSON.stringify({ active: !a.active }),
+      })
+      const j = (await r.json().catch(() => ({}))) as { error?: string }
+      if (!r.ok) {
+        setMsg(j.error ?? `HTTP ${r.status}`)
+        return
+      }
+      await loadActivities()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function deleteActivity(id: string) {
+    if (!adminKey.trim()) return
+    if (!window.confirm('ลบรายการนี้? (การบริจาคที่อ้างอิงจะถูกตัดความเชื่อม)')) return
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/school-activities/${id}`, {
+        method: 'DELETE',
+        headers: headers(),
+      })
+      const j = (await r.json().catch(() => ({}))) as { error?: string }
+      if (!r.ok) {
+        setMsg(j.error ?? `HTTP ${r.status}`)
+        return
+      }
+      await loadActivities()
+      setMsg('ลบแล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section className="mt-8 rounded-xl border border-amber-900/40 bg-amber-950/10 p-6">
+      <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200">Admin — คอร์ส / กิจกรรม (school_activities)</h2>
+      <p className="mt-2 text-xs text-slate-500">
+        รายการที่แสดงใน Academy พอร์ทัล (หน้าคอร์สเรียน) — ใช้ key เดียวกับนำเข้าสมาชิก
+      </p>
+      <label className="mt-4 block text-sm text-slate-300">
+        x-admin-key
+        <input
+          type="password"
+          autoComplete="off"
+          value={adminKey}
+          onChange={(e) => setAdminKey(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-amber-600"
+          placeholder="ADMIN_UPLOAD_KEY"
+        />
+      </label>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void loadActivities()}
+          className="rounded-lg bg-amber-800 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50"
+        >
+          โหลดรายการ
+        </button>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">เพิ่มรายการ</h3>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <input
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            placeholder="หมวด (เช่น วิชาหลัก)"
+            className="rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm"
+          />
+          <input
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="ชื่อคอร์ส / กิจกรรม"
+            className="rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm"
+          />
+        </div>
+        <textarea
+          value={newDescription}
+          onChange={(e) => setNewDescription(e.target.value)}
+          placeholder="รายละเอียด (ถ้ามี)"
+          rows={2}
+          className="mt-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-200"
+        />
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void addActivity()}
+          className="mt-2 rounded bg-emerald-800 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          เพิ่ม
+        </button>
+      </div>
+
+      <div className="mt-6 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/50">
+        <table className="w-full min-w-[560px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-800 text-xs uppercase text-slate-500">
+              <th className="px-3 py-2">หมวด</th>
+              <th className="px-3 py-2">ชื่อ</th>
+              <th className="px-3 py-2">รายละเอียด</th>
+              <th className="px-3 py-2">สถานะ</th>
+              <th className="px-3 py-2"> </th>
+            </tr>
+          </thead>
+          <tbody>
+            {activities.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                  ยังไม่มีข้อมูล — กดโหลดรายการ
+                </td>
+              </tr>
+            ) : (
+              activities.map((a) =>
+                editingId === a.id ? (
+                  <tr key={a.id} className="border-b border-slate-800/80 bg-slate-900/40">
+                    <td className="px-3 py-2 align-top" colSpan={3}>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          className="flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm"
+                          aria-label="หมวด"
+                        />
+                        <input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className="flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm"
+                          aria-label="ชื่อ"
+                        />
+                      </div>
+                      <textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        rows={2}
+                        className="mt-2 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm"
+                        aria-label="รายละเอียด"
+                      />
+                    </td>
+                    <td className="px-3 py-2 align-middle text-slate-500">—</td>
+                    <td className="px-3 py-2 align-top">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="text-xs text-emerald-400 hover:underline"
+                          onClick={() => void saveEdit(a.id)}
+                        >
+                          บันทึก
+                        </button>
+                        <button type="button" className="text-xs text-slate-400 hover:underline" onClick={cancelEdit}>
+                          ยกเลิก
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={a.id} className="border-b border-slate-800/80">
+                    <td className="px-3 py-2 text-slate-400">{a.category}</td>
+                    <td className="px-3 py-2 font-medium text-slate-100">{a.title}</td>
+                    <td className="max-w-xs truncate px-3 py-2 text-slate-500" title={a.description ?? undefined}>
+                      {a.description ?? '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => void toggleActive(a)}
+                        className={`text-xs underline ${a.active ? 'text-emerald-400' : 'text-slate-500'}`}
+                      >
+                        {a.active ? 'เปิด' : 'ปิด'}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          className="text-xs text-amber-300 hover:underline"
+                          onClick={() => startEdit(a)}
+                        >
+                          แก้ไข
+                        </button>
+                        <button
+                          type="button"
+                          className="text-xs text-red-400 hover:underline"
+                          onClick={() => void deleteActivity(a.id)}
+                        >
+                          ลบ
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {msg ? (
+        <pre className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400">
+          {msg}
+        </pre>
+      ) : null}
+      {loading ? <p className="mt-2 text-xs text-slate-500">กำลังโหลด…</p> : null}
+    </section>
+  )
+}

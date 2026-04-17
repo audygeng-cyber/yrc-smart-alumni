@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { AdminCramPanel } from './components/AdminCramPanel'
 import { AdminImportPanel } from './components/AdminImportPanel'
 import { AdminFinancePanel } from './components/AdminFinancePanel'
+import { AdminSchoolActivitiesPanel } from './components/AdminSchoolActivitiesPanel'
 import { MemberLinkPanel } from './components/MemberLinkPanel'
 import { MemberRequestsPanel } from './components/MemberRequestsPanel'
 import { PushOptIn } from './components/PushOptIn'
@@ -187,6 +189,7 @@ export default function App() {
     if (location.pathname.startsWith('/member')) return 'max-w-5xl'
     if (location.pathname.startsWith('/committee')) return 'max-w-5xl'
     if (location.pathname.startsWith('/academy')) return 'max-w-5xl'
+    if (location.pathname.startsWith('/admin')) return 'max-w-5xl'
     return 'max-w-2xl'
   }, [location.pathname])
   const showMemberNav = roleView === 'all' || roleView === 'member'
@@ -277,6 +280,8 @@ export default function App() {
               <>
                 <AdminImportPanel apiBase={apiBase} />
                 <AdminFinancePanel apiBase={apiBase} />
+                <AdminCramPanel apiBase={apiBase} />
+                <AdminSchoolActivitiesPanel apiBase={apiBase} />
               </>
             }
           />

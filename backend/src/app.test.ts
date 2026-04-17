@@ -52,6 +52,8 @@ describe.sequential('createApp', () => {
     expect(res.body.roleCards?.admin?.length).toBeGreaterThan(0)
     expect(Array.isArray(res.body.classes)).toBe(true)
     expect(Object.prototype.hasOwnProperty.call(res.body, 'cramSchoolMonthlyPl')).toBe(true)
+    expect(Array.isArray(res.body.cramClassRoster)).toBe(true)
+    expect(Array.isArray(res.body.schoolCourses)).toBe(true)
   })
 
   it('CORS allows default dev origin localhost:5173', async () => {
@@ -90,6 +92,14 @@ describe.sequential('createApp', () => {
     vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
     const app = createApp()
     const res = await request(app).get('/api/admin/cram/classrooms')
+    expect(res.status).toBe(401)
+    expect(res.body.error).toBe('Unauthorized')
+  })
+
+  it('GET /api/admin/school-activities requires admin key', async () => {
+    vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
+    const app = createApp()
+    const res = await request(app).get('/api/admin/school-activities')
     expect(res.status).toBe(401)
     expect(res.body.error).toBe('Unauthorized')
   })
