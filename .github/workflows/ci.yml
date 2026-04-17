@@ -50,11 +50,10 @@ jobs:
       - name: Build Docker image
         run: docker build -t yrc-api:ci .
 
-  # ทดสอบ /health + CORS ต่อ Cloud Run + Vercel — รันเมื่อตั้ง secrets VERIFY_API_BASE และ VERIFY_FRONTEND_ORIGIN ใน repo
+  # ทดสอบ /health + CORS ต่อ Cloud Run + Vercel — ใช้ secrets VERIFY_* (ห้ามใช้ secrets ใน job-level if; เลยเช็กในสคริปต์)
   smoke-production:
     runs-on: ubuntu-latest
     needs: docker-image
-    if: ${{ secrets.VERIFY_API_BASE != '' && secrets.VERIFY_FRONTEND_ORIGIN != '' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -66,4 +65,9 @@ jobs:
         env:
           VERIFY_API_BASE: ${{ secrets.VERIFY_API_BASE }}
           VERIFY_FRONTEND_ORIGIN: ${{ secrets.VERIFY_FRONTEND_ORIGIN }}
-        run: node scripts/verify-deployment.mjs
+        run: |
+          if [ -z "${VERIFY_API_BASE}" ] || [ -z "${VERIFY_FRONTEND_ORIGIN}" ]; then
+            echo "Skip smoke-production: set repository secrets VERIFY_API_BASE and VERIFY_FRONTEND_ORIGIN."
+            exit 0
+          fi
+          node scripts/verify-deployment.mjs
