@@ -1001,7 +1001,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="เช่น pending_president"
+            placeholder="เช่น pending_president (รอประธานรุ่น)"
             className={`mt-1 block w-56 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none focus-visible:border-violet-600 ${portalFocusRing}`}
           />
         </label>

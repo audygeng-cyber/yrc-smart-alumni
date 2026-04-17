@@ -43,7 +43,7 @@ export async function subscribePushNotifications(apiBase: string): Promise<strin
 
   const r = await fetch(`${apiBase}/api/push/vapid-public`)
   if (r.status === 503) {
-    return 'ยังไม่ตั้งค่า VAPID บน server (ดู README)'
+    return 'ยังไม่ตั้งค่า VAPID บนระบบ backend (ดู README)'
   }
   const { publicKey } = (await r.json()) as { publicKey?: string }
   if (!publicKey) {
@@ -55,7 +55,7 @@ export async function subscribePushNotifications(apiBase: string): Promise<strin
 
   if (!reg.pushManager || typeof reg.pushManager.subscribe !== 'function') {
     return isIosDevice()
-      ? 'อุปกรณ์นี้ยังไม่พร้อมสำหรับ Web Push กรุณาเปิดเว็บจาก Home Screen app แล้วลองใหม่'
+      ? 'อุปกรณ์นี้ยังไม่พร้อมสำหรับ Web Push กรุณาเปิดเว็บจากหน้าจอหลัก (Home Screen) แล้วลองใหม่'
       : 'เบราว์เซอร์นี้ยังไม่รองรับ Web Push'
   }
 

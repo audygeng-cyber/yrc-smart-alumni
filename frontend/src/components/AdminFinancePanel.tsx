@@ -1676,21 +1676,21 @@ export function AdminFinancePanel({ apiBase }: Props) {
           value={reportFrom}
           onChange={(e) => setReportFrom(e.target.value)}
           className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          placeholder="from"
+          placeholder="วันที่เริ่ม (from)"
         />
         <input
           type="date"
           value={reportTo}
           onChange={(e) => setReportTo(e.target.value)}
           className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          placeholder="to"
+          placeholder="วันที่สิ้นสุด (to)"
         />
         <input
           type="text"
           value={reportKeyword}
           onChange={(e) => setReportKeyword(e.target.value)}
           className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          placeholder="ค้นหา donor / batch / account"
+          placeholder="ค้นหาผู้บริจาค (donor) / รุ่น (batch) / บัญชี (account)"
         />
         <button
           type="button"
@@ -2057,7 +2057,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
             onChange={(e) => setPaymentBankAccountId(e.target.value)}
             className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           >
-            <option value="">{'bank_account_id (ใช้เมื่อจำนวนเงิน <= 20000)'}</option>
+            <option value="">{'รหัสบัญชีธนาคาร (bank_account_id) — ใช้เมื่อจำนวนเงิน <= 20000'}</option>
             {filteredAccounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.account_name} ({a.account_no_masked})
@@ -2068,7 +2068,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
             value={paymentMeetingId}
             onChange={(e) => setPaymentMeetingId(e.target.value)}
             className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            placeholder="meeting_session_id (ใช้เมื่อจำนวนเงิน > 20000)"
+            placeholder="รหัสรอบประชุม (meeting_session_id) — ใช้เมื่อจำนวนเงิน > 20000"
           />
           <button
             type="button"
