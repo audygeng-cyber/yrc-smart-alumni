@@ -31,6 +31,12 @@
 - เพิ่ม `docs/PRE_COMMIT_PACKAGE.md` เพื่อสรุปงานก่อน commit
 - ปรับ `README.md` และเอกสาร flow ที่เกี่ยวข้องให้ตรงกับพฤติกรรมระบบล่าสุด
 
+### Security Incident Response Docs (Follow-up)
+
+- เพิ่ม `docs/SECRET_ROTATION_CHECKLIST.md` สำหรับขั้นตอนหมุนคีย์ลับแบบ incident response
+- เพิ่ม `docs/SECRET_ROTATION_LOG_TEMPLATE.md` สำหรับบันทึกหลักฐานการหมุนคีย์
+- เพิ่ม `docs/SECRET_ROTATION_LOG_2026-04-17.md` เป็น incident log รอบปัจจุบัน
+
 ## Impact
 
 - ผู้ใช้เห็นข้อความที่สม่ำเสมอและเข้าใจง่ายขึ้น
@@ -43,6 +49,7 @@
 - การตรวจในเครื่อง (`npm run ci`) ผ่านครบ (build/lint/test)
 - บันทึกผลหลัง merge: `docs/POST_MERGE_VERIFICATION_2026-04-17.md`
 - บันทึกผล smoke test execution: `docs/SMOKE_TEST_EXECUTION_2026-04-17.md`
+- บันทึกการหมุนคีย์ (incident): `docs/SECRET_ROTATION_LOG_2026-04-17.md`
 
 ## Follow-up (Recommended)
 
