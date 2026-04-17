@@ -6,6 +6,7 @@ Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 - **Cursor Agent (บริบทโปรเจกต์):** [`.cursor/skills/yrc-smart-alumni/SKILL.md`](.cursor/skills/yrc-smart-alumni/SKILL.md) — skill ชุมชนจาก [skills.sh](https://skills.sh/) vendor ไว้ใน `.cursor/skills/` (ดู [`.cursor/skills/VENDORED_SKILLS.md`](.cursor/skills/VENDORED_SKILLS.md)); อัปเดตด้วย `powershell -File scripts/sync-cursor-community-skills.ps1`
 - **มาตรฐานคำศัพท์/การเข้าถึง + handoff ล่าสุด:** [`docs/UI_TH_TERMINOLOGY_CHECKLIST.md`](docs/UI_TH_TERMINOLOGY_CHECKLIST.md), [`docs/LOCALIZATION_A11Y_HANDOFF.md`](docs/LOCALIZATION_A11Y_HANDOFF.md)
 - **บันทึกผลหลังปล่อยล่าสุด:** [`docs/POST_MERGE_VERIFICATION_2026-04-17.md`](docs/POST_MERGE_VERIFICATION_2026-04-17.md), [`docs/SMOKE_TEST_EXECUTION_2026-04-17.md`](docs/SMOKE_TEST_EXECUTION_2026-04-17.md)
+- **เช็กลิสต์หมุนคีย์ลับ (incident response):** [`docs/SECRET_ROTATION_CHECKLIST.md`](docs/SECRET_ROTATION_CHECKLIST.md)
 
 ## ความต้องการ
 
