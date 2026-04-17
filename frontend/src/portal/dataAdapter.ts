@@ -4,8 +4,11 @@ import {
   academyEnrollmentFunnel,
   academyMetricCards,
   academyRoleCards,
+  committeeAttendanceRowsMock,
+  committeeAttendanceSessionMock,
   committeeMeetings,
   committeeMetricCards,
+  committeeOpenAgendasMock,
   committeeRequestTrend,
   committeeRoleCards,
   memberBatchDistribution,
@@ -39,11 +42,41 @@ export type MemberPortalData = {
   meetingReports: MeetingReportItem[]
 }
 
+export type CommitteeAttendanceSession = {
+  id: string
+  title: string
+  scheduledAt: string | null
+  expectedParticipants: number
+  quorumNumerator: number
+  quorumDenominator: number
+  status: string
+  signedCount: number
+}
+
+export type CommitteeAttendanceRow = {
+  attendeeName: string
+  attendeeRoleCode: string
+  signedVia: string
+  signedAt: string
+}
+
+export type CommitteeOpenAgenda = {
+  id: string
+  title: string
+  scope: string
+  status: string
+}
+
 export type CommitteePortalData = {
   metricCards: MetricItem[]
   roleCards: Record<CommitteeRoleView, MetricItem[]>
   requestTrend: TrendItem[]
   meetings: MeetingItem[]
+  /** รอบประชุมล่าสุด — null ถ้าไม่มีข้อมูล */
+  attendanceSession: CommitteeAttendanceSession | null
+  attendanceRows: CommitteeAttendanceRow[]
+  /** วาระเปิดลงมติ */
+  openAgendas: CommitteeOpenAgenda[]
 }
 
 export type AcademyPortalData = {
@@ -88,6 +121,9 @@ const committeePortalMockData: CommitteePortalData = {
   roleCards: committeeRoleCards,
   requestTrend: committeeRequestTrend,
   meetings: committeeMeetings,
+  attendanceSession: committeeAttendanceSessionMock,
+  attendanceRows: committeeAttendanceRowsMock,
+  openAgendas: committeeOpenAgendasMock,
 }
 
 const academyPortalMockData: AcademyPortalData = {
@@ -105,6 +141,60 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 /** รวมฟิลด์ที่ขาดเมื่อ API เก่าหรือ response ไม่ครบ — ลดความเสี่ยง UI พัง */
+export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePortalData): CommitteePortalData {
+  if (!isRecord(raw)) return fallback
+
+  const meetings = Array.isArray(raw.meetings) ? (raw.meetings as CommitteePortalData['meetings']) : fallback.meetings
+
+  let attendanceSession: CommitteePortalData['attendanceSession']
+  const as = raw.attendanceSession
+  if (as === null) {
+    attendanceSession = null
+  } else if (
+    isRecord(as) &&
+    typeof as.id === 'string' &&
+    typeof as.title === 'string' &&
+    (as.scheduledAt === null || typeof as.scheduledAt === 'string') &&
+    typeof as.expectedParticipants === 'number' &&
+    typeof as.quorumNumerator === 'number' &&
+    typeof as.quorumDenominator === 'number' &&
+    typeof as.status === 'string' &&
+    typeof as.signedCount === 'number'
+  ) {
+    const scheduledAt = as.scheduledAt === null ? null : (as.scheduledAt as string)
+    attendanceSession = {
+      id: as.id as string,
+      title: as.title as string,
+      scheduledAt,
+      expectedParticipants: as.expectedParticipants as number,
+      quorumNumerator: as.quorumNumerator as number,
+      quorumDenominator: as.quorumDenominator as number,
+      status: as.status as string,
+      signedCount: as.signedCount as number,
+    }
+  } else {
+    attendanceSession = fallback.attendanceSession
+  }
+
+  const attendanceRows = Array.isArray(raw.attendanceRows)
+    ? (raw.attendanceRows as CommitteePortalData['attendanceRows'])
+    : fallback.attendanceRows
+
+  const openAgendas = Array.isArray(raw.openAgendas)
+    ? (raw.openAgendas as CommitteePortalData['openAgendas'])
+    : fallback.openAgendas
+
+  return {
+    metricCards: Array.isArray(raw.metricCards) ? (raw.metricCards as CommitteePortalData['metricCards']) : fallback.metricCards,
+    roleCards: isRecord(raw.roleCards) ? (raw.roleCards as CommitteePortalData['roleCards']) : fallback.roleCards,
+    requestTrend: Array.isArray(raw.requestTrend) ? (raw.requestTrend as CommitteePortalData['requestTrend']) : fallback.requestTrend,
+    meetings,
+    attendanceSession,
+    attendanceRows,
+    openAgendas,
+  }
+}
+
 export function normalizeAcademyPortalData(raw: unknown, fallback: AcademyPortalData): AcademyPortalData {
   if (!isRecord(raw)) return fallback
 
@@ -191,7 +281,7 @@ export function useMemberPortalData(apiBase: string) {
 }
 
 export function useCommitteePortalData(apiBase: string) {
-  return usePortalData(apiBase, '/api/portal/committee', committeePortalMockData)
+  return usePortalData(apiBase, '/api/portal/committee', committeePortalMockData, normalizeCommitteePortalData)
 }
 
 export function useAcademyPortalData(apiBase: string) {

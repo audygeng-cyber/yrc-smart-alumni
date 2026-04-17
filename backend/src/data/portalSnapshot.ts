@@ -76,6 +76,30 @@ export const committeePortalPayload = {
     { topic: 'โครงการสนับสนุนโรงเรียน', time: '10:30', status: 'pending_vote' as const },
     { topic: 'อัปเดตทะเบียนสมาชิก', time: '11:15', status: 'in_review' as const },
   ],
+  /** รอบประชุมล่าสุด (สำหรับหน้า attendance) — null ถ้ายังไม่มี meeting_sessions */
+  attendanceSession: null as null | {
+    id: string
+    title: string
+    scheduledAt: string | null
+    expectedParticipants: number
+    quorumNumerator: number
+    quorumDenominator: number
+    status: string
+    signedCount: number
+  },
+  attendanceRows: [] as Array<{
+    attendeeName: string
+    attendeeRoleCode: string
+    signedVia: string
+    signedAt: string
+  }>,
+  /** วาระ status=open — ใช้ในหน้า voting */
+  openAgendas: [] as Array<{
+    id: string
+    title: string
+    scope: string
+    status: string
+  }>,
 } as const
 
 export const academyPortalPayload = {

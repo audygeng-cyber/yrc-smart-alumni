@@ -64,6 +64,38 @@ export const committeeMeetings: MeetingItem[] = [
   { topic: 'อัปเดตทะเบียนสมาชิก', time: '11:15', status: 'in_review' },
 ]
 
+/** ตัวอย่าง snapshot หน้า attendance / voting เมื่อโหลด mock */
+export const committeeAttendanceSessionMock = {
+  id: '00000000-0000-0000-0000-000000000001',
+  title: 'ประชุมคณะกรรมการ (ตัวอย่าง)',
+  scheduledAt: new Date().toISOString(),
+  expectedParticipants: 35,
+  quorumNumerator: 2,
+  quorumDenominator: 3,
+  status: 'open',
+  signedCount: 29,
+}
+
+export const committeeAttendanceRowsMock = [
+  {
+    attendeeName: 'นายตัวอย่าง หนึ่ง',
+    attendeeRoleCode: 'committee',
+    signedVia: 'line',
+    signedAt: new Date().toISOString(),
+  },
+  {
+    attendeeName: 'นางสาวตัวอย่าง สอง',
+    attendeeRoleCode: 'committee',
+    signedVia: 'manual',
+    signedAt: new Date().toISOString(),
+  },
+]
+
+export const committeeOpenAgendasMock = [
+  { id: 'a0000000-0000-0000-0000-000000000001', title: 'อนุมัติคำขอจ่ายเงินโครงการกีฬา', scope: 'association', status: 'open' },
+  { id: 'a0000000-0000-0000-0000-000000000002', title: 'แต่งตั้งคณะทำงานตรวจสอบภายใน', scope: 'association', status: 'open' },
+]
+
 export const committeeRoleCards: Record<'chair' | 'member', MetricItem[]> = {
   chair: [
     { label: 'วาระพร้อมเซ็นอนุมัติ', value: '5', hint: 'รอประธานยืนยันก่อนประกาศใช้' },

@@ -73,24 +73,8 @@ export function CommitteeArea(props: { apiBase: string }) {
           }
         />
         <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} />} />
-        <Route
-          path="attendance"
-          element={
-            <SectionPlaceholder
-              title="ลงทะเบียนและลงชื่อประชุม"
-              description="ระบบลงทะเบียนเข้าร่วมประชุม, เช็กชื่อ, และติดตาม quorum"
-            />
-          }
-        />
-        <Route
-          path="voting"
-          element={
-            <SectionPlaceholder
-              title="การลงมติ"
-              description="เปิดวาระลงมติ, ลงคะแนน, และดูผลการลงมติในแต่ละหัวข้อ"
-            />
-          }
-        />
+        <Route path="attendance" element={<CommitteeAttendancePage portalState={portalData} />} />
+        <Route path="voting" element={<CommitteeVotingPage portalState={portalData} />} />
         <Route path="*" element={<NotFoundInline />} />
       </Routes>
     </PortalShell>
@@ -157,6 +141,170 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
       </section>
     </div>
   )
+}
+
+function CommitteeAttendancePage(props: { portalState: PortalDataState<CommitteePortalData> }) {
+  const { data, loading, source } = props.portalState
+  const session = data.attendanceSession
+  const rows = data.attendanceRows
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ลงทะเบียนและลงชื่อประชุม</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              ข้อมูลจากรอบประชุมล่าสุด (<code className="text-slate-500">meeting_sessions</code> /{' '}
+              <code className="text-slate-500">meeting_attendance</code>)
+            </p>
+          </div>
+          <PortalDataSourceBadge loading={loading} source={source} />
+        </div>
+
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+        ) : !session ? (
+          <p className="mt-4 text-sm text-slate-400">ยังไม่มีรอบประชุมในระบบ — เมื่อมีข้อมูลจะแสดง quorum และรายชื่อผู้ลงชื่อที่นี่</p>
+        ) : (
+          <div className="mt-4 space-y-4">
+            <div className="rounded border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm">
+              <p className="font-medium text-slate-100">{session.title}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                กำหนดการ{' '}
+                {session.scheduledAt
+                  ? new Date(session.scheduledAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
+                  : '—'}
+                {' · '}
+                quorum {session.quorumNumerator}/{session.quorumDenominator} ของผู้เข้าร่วมที่คาด ({session.expectedParticipants}{' '}
+                คน)
+              </p>
+              <p className="mt-2 text-slate-200">
+                ลงชื่อแล้ว <span className="font-semibold text-emerald-300">{session.signedCount}</span> /{' '}
+                {session.expectedParticipants}
+                <span className="ml-2 rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+                  {session.status === 'open' ? 'กำลังเปิดรับ' : 'ปิดรอบ'}
+                </span>
+              </p>
+            </div>
+
+            {rows.length === 0 ? (
+              <p className="text-sm text-slate-500">ยังไม่มีรายการลงชื่อในรอบนี้</p>
+            ) : (
+              <div className="overflow-x-auto rounded border border-slate-800">
+                <table className="min-w-full text-left text-sm text-slate-300">
+                  <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">ชื่อผู้เข้าร่วม</th>
+                      <th className="px-3 py-2">บทบาท</th>
+                      <th className="px-3 py-2">ช่องทาง</th>
+                      <th className="px-3 py-2">เวลาลงชื่อ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={`${r.attendeeName}-${i}`} className="border-t border-slate-800/80">
+                        <td className="px-3 py-2 text-slate-100">{r.attendeeName}</td>
+                        <td className="px-3 py-2 text-slate-400">{r.attendeeRoleCode}</td>
+                        <td className="px-3 py-2 text-slate-400">{signedViaLabel(r.signedVia)}</td>
+                        <td className="px-3 py-2 text-slate-500">{formatThaiSignedAt(r.signedAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link to="/committee/voting" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+            ไปหน้าลงมติ
+          </Link>
+          <Link to="/committee/meetings" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+            วาระ/รายงานประชุม
+          </Link>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePortalData> }) {
+  const { data, loading, source } = props.portalState
+  const agendas = data.openAgendas
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การลงมติ</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              วาระที่เปิดรับการลงมติ (<code className="text-slate-500">meeting_agendas</code> status = open)
+            </p>
+          </div>
+          <PortalDataSourceBadge loading={loading} source={source} />
+        </div>
+
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+        ) : agendas.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-400">ไม่มีวาระเปิดลงมติในขณะนี้</p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {agendas.map((a) => (
+              <li
+                key={a.id}
+                className="flex flex-wrap items-start justify-between gap-3 rounded border border-slate-800 px-3 py-2.5 text-sm"
+              >
+                <div>
+                  <p className="font-medium text-slate-100">{a.title}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-slate-600">{a.id}</p>
+                </div>
+                <span className="shrink-0 rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400">
+                  {agendaScopeLabel(a.scope)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <p className="mt-4 text-xs text-slate-600">
+          การลงคะแนนจริงเชื่อมกับบัญชีผู้ใช้และตาราง <code className="text-slate-500">meeting_votes</code> — หน้านี้แสดงรายการวาระจาก snapshot
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link to="/committee/attendance" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+            ดูการลงชื่อประชุม
+          </Link>
+          <Link to="/committee/meetings" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+            วาระ/รายงานประชุม
+          </Link>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function formatThaiSignedAt(iso: string) {
+  try {
+    return new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
+  } catch {
+    return iso
+  }
+}
+
+function agendaScopeLabel(scope: string) {
+  if (scope === 'cram_school') return 'โรงเรียนกวดวิชา'
+  if (scope === 'association') return 'สมาคม'
+  return scope
+}
+
+function signedViaLabel(v: string) {
+  if (v === 'line') return 'LINE'
+  if (v === 'manual') return 'ลงชื่อมือ'
+  return v
 }
 
 function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalData: CommitteePortalData }) {

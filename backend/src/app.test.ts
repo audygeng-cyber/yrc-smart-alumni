@@ -43,6 +43,9 @@ describe.sequential('createApp', () => {
     expect(res.status).toBe(200)
     expect(Array.isArray(res.body.metricCards)).toBe(true)
     expect(res.body.meetings?.[0]?.status).toBeDefined()
+    expect(Array.isArray(res.body.attendanceRows)).toBe(true)
+    expect(Array.isArray(res.body.openAgendas)).toBe(true)
+    expect(Object.prototype.hasOwnProperty.call(res.body, 'attendanceSession')).toBe(true)
   })
 
   it('GET /api/portal/academy returns dashboard snapshot', async () => {

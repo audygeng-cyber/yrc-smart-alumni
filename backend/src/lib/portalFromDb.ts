@@ -22,11 +22,39 @@ type MemberPortalMerged = {
   meetingReports: MeetingReport[]
 }
 
+type CommitteeAttendanceSession = {
+  id: string
+  title: string
+  scheduledAt: string | null
+  expectedParticipants: number
+  quorumNumerator: number
+  quorumDenominator: number
+  status: string
+  signedCount: number
+}
+
+type CommitteeAttendanceRow = {
+  attendeeName: string
+  attendeeRoleCode: string
+  signedVia: string
+  signedAt: string
+}
+
+type CommitteeOpenAgenda = {
+  id: string
+  title: string
+  scope: string
+  status: string
+}
+
 type CommitteePortalMerged = {
   metricCards: MetricCard[]
   roleCards: { chair: MetricCard[]; member: MetricCard[] }
   requestTrend: TrendItem[]
   meetings: MeetingRow[]
+  attendanceSession: CommitteeAttendanceSession | null
+  attendanceRows: CommitteeAttendanceRow[]
+  openAgendas: CommitteeOpenAgenda[]
 }
 
 type AcademyPortalMerged = {
@@ -230,22 +258,66 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
 
   const { data: latestSession, error: e3 } = await supabase
     .from('meeting_sessions')
-    .select('id,expected_participants')
+    .select(
+      'id,title,scheduled_at,expected_participants,quorum_numerator,quorum_denominator,status',
+    )
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
   if (!e3 && latestSession?.id) {
+    const ls = latestSession as {
+      id: string
+      title: string
+      scheduled_at?: string | null
+      expected_participants?: number | null
+      quorum_numerator?: number | null
+      quorum_denominator?: number | null
+      status: string
+    }
+    const exp = ls.expected_participants ?? 35
     const { count: attCount, error: e4 } = await supabase
       .from('meeting_attendance')
       .select('*', { count: 'exact', head: true })
-      .eq('meeting_session_id', latestSession.id)
+      .eq('meeting_session_id', ls.id)
+    const signedCount = e4 ? 0 : (attCount ?? 0)
     if (!e4) {
-      const exp = latestSession.expected_participants ?? 35
       base.metricCards[2] = {
         ...base.metricCards[2],
-        value: `${attCount ?? 0}/${exp}`,
+        value: `${signedCount}/${exp}`,
       }
+    }
+    base.attendanceSession = {
+      id: ls.id,
+      title: ls.title,
+      scheduledAt: ls.scheduled_at ?? null,
+      expectedParticipants: exp,
+      quorumNumerator: ls.quorum_numerator ?? 2,
+      quorumDenominator: ls.quorum_denominator ?? 3,
+      status: ls.status,
+      signedCount,
+    }
+
+    const { data: attRows, error: e4b } = await supabase
+      .from('meeting_attendance')
+      .select('attendee_name,attendee_role_code,signed_via,signed_at')
+      .eq('meeting_session_id', ls.id)
+      .order('signed_at', { ascending: false })
+      .limit(50)
+    if (!e4b && attRows?.length) {
+      base.attendanceRows = attRows.map(
+        (r: {
+          attendee_name: string
+          attendee_role_code: string
+          signed_via: string
+          signed_at: string
+        }) => ({
+          attendeeName: r.attendee_name,
+          attendeeRoleCode: r.attendee_role_code,
+          signedVia: r.signed_via,
+          signedAt: r.signed_at,
+        }),
+      )
     }
   }
 
@@ -253,6 +325,21 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
     .from('meeting_agendas')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'open')
+
+  const { data: agendaRows, error: e5b } = await supabase
+    .from('meeting_agendas')
+    .select('id,title,scope,status')
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(25)
+  if (!e5b && agendaRows?.length) {
+    base.openAgendas = agendaRows.map((a: { id: string; title: string; scope: string; status: string }) => ({
+      id: a.id,
+      title: a.title,
+      scope: a.scope,
+      status: a.status,
+    }))
+  }
 
   base.roleCards.chair[1] = {
     ...base.roleCards.chair[1],
