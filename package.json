@@ -11,6 +11,8 @@
     "lint": "npm run lint -w frontend && npm run lint -w backend",
     "test": "npm run test -w backend",
     "ci": "npm run build && npm run lint && npm run test",
+    "ci:full": "npm run ci && docker build -t yrc-api:ci .",
+    "gh:actions": "node scripts/github-actions-url.mjs",
     "verify:deploy": "node scripts/verify-deployment.mjs",
     "verify:deploy:deep": "node scripts/verify-deployment.mjs --deep",
     "verify:admin": "node scripts/verify-admin.mjs",

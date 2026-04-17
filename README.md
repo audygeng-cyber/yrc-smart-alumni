@@ -36,7 +36,9 @@ npm run dev
 
 ถ้าตั้ง **repository secrets** ชื่อ `VERIFY_API_BASE` (URL API Cloud Run) และ `VERIFY_FRONTEND_ORIGIN` (origin เว็บ Vercel) workflow จะรัน job **smoke-production** เพิ่ม — เรียก `scripts/verify-deployment.mjs` ตรวจ `/health` และ CORS (ถ้าไม่ตั้ง secrets job นี้จะข้าม ไม่ทำให้ CI ล้ม)
 
-บนเครื่องตรวจก่อน push ได้ด้วย `npm run ci` (build + lint + **ทดสอบ backend** หลัง `npm install`; ไม่รวม `docker build`) — หรือ `npm run test` เฉพาะเทส API
+บนเครื่องตรวจก่อน push ได้ด้วย `npm run ci` (build + lint + **ทดสอบ backend** หลัง `npm install`; ไม่รวม `docker build`) — หรือ `npm run test` เฉพาะเทส API — ถ้าติดตั้ง Docker แล้ว ใช้ `npm run ci:full` ให้ใกล้เคียง job บน GitHub (รวม `docker build`)  
+
+ดูหน้า workflow หลัง push: รัน `npm run gh:actions` แล้วเปิด URL ที่พิมพ์ออกมา (หรือไปที่ repo → แท็บ **Actions**)
 
 [Dependabot](https://docs.github.com/en/code-security/dependabot) (ไฟล์ `.github/dependabot.yml`) จะเปิด PR อัปเดตแพ็กเกจ npm และ GitHub Actions เป็นระยะหลัง repo อยู่บน GitHub
 
