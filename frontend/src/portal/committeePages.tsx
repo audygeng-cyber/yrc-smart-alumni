@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MetricCards, PortalDataSourceBadge, PortalShell, SectionPlaceholder, TrendBars } from './ui'
 import {
@@ -47,15 +47,7 @@ export function CommitteeArea(props: { apiBase: string }) {
       <Routes>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<CommitteeDashboardPage roleView={roleView} portalData={portalData.data} />} />
-        <Route
-          path="members"
-          element={
-            <SectionPlaceholder
-              title="ทะเบียนสมาชิก"
-              description="ค้นหา/กรองสมาชิก, ดูข้อมูลเชิงลึก และสถิติสมาชิกสำหรับคณะกรรมการ"
-            />
-          }
-        />
+        <Route path="members" element={<CommitteeMembersPage portalState={portalData} />} />
         <Route
           path="finance"
           element={
@@ -136,6 +128,97 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
           </Link>
           <Link to="/committee/voting" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
             หน้าลงมติ (ตัวอย่าง)
+          </Link>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePortalData> }) {
+  const { data, loading, source } = props.portalState
+  const [query, setQuery] = useState('')
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return data.memberDirectoryPreview
+    return data.memberDirectoryPreview.filter((row) => {
+      const name = `${row.firstName} ${row.lastName}`.toLowerCase()
+      const batch = (row.batch ?? '').toLowerCase()
+      const st = row.membershipStatus.toLowerCase()
+      return name.includes(q) || batch.includes(q) || st.includes(q) || row.id.toLowerCase().includes(q)
+    })
+  }, [data.memberDirectoryPreview, query])
+
+  return (
+    <div className="space-y-4">
+      <MetricCards items={data.metricCards.slice(0, 2)} />
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ทะเบียนสมาชิก</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              สัดส่วนตามรุ่นและรายชื่ออัปเดตล่าสุดจาก snapshot — ค้นหาด้านล่างกรองเฉพาะรายการในรอบนี้ (สูงสุด 40 คน)
+            </p>
+          </div>
+          <PortalDataSourceBadge loading={loading} source={source} />
+        </div>
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+        ) : (
+          <>
+            {data.memberBatchDistribution.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-500">ยังไม่มีข้อมูลรุ่นสำหรับแสดงกราฟ</p>
+            ) : (
+              <div className="mt-4">
+                <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">สัดส่วนตามรุ่น (สูงสุด 8 รุ่น)</h4>
+                <TrendBars items={data.memberBatchDistribution} color="emerald" />
+              </div>
+            )}
+            <div className="mt-6">
+              <label className="block text-xs font-medium uppercase tracking-wide text-slate-500">ค้นหาในรายการตัวอย่าง</label>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="ชื่อ, รุ่น, สถานะ หรือรหัสสมาชิก…"
+                className="mt-2 w-full max-w-md rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600"
+              />
+            </div>
+            {data.memberDirectoryPreview.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-500">ยังไม่มีรายชื่อใน snapshot</p>
+            ) : filtered.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-500">ไม่พบรายการที่ตรงกับคำค้น</p>
+            ) : (
+              <div className="mt-4 overflow-x-auto rounded border border-slate-800">
+                <table className="min-w-full text-left text-sm text-slate-300">
+                  <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">ชื่อ-นามสกุล</th>
+                      <th className="px-3 py-2">รุ่น</th>
+                      <th className="px-3 py-2">สถานะ</th>
+                      <th className="px-3 py-2 font-mono">รหัส</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((row) => (
+                      <tr key={row.id} className="border-t border-slate-800/80">
+                        <td className="px-3 py-2 text-slate-100">
+                          {[row.firstName, row.lastName].filter(Boolean).join(' ') || '—'}
+                        </td>
+                        <td className="px-3 py-2 text-slate-400">{row.batch ?? '—'}</td>
+                        <td className="px-3 py-2 text-slate-400">{row.membershipStatus}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-slate-600">{row.id}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link to="/committee/dashboard" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+            แดชบอร์ด
           </Link>
         </div>
       </section>

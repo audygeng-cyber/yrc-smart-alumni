@@ -96,6 +96,12 @@ export const committeeOpenAgendasMock = [
   { id: 'a0000000-0000-0000-0000-000000000002', title: 'แต่งตั้งคณะทำงานตรวจสอบภายใน', scope: 'association', status: 'open' },
 ]
 
+export const committeeMemberDirectoryPreviewMock = [
+  { id: 'm0000000-0000-0000-0000-000000000001', firstName: 'สมชาย', lastName: 'ใจดี', batch: '57', membershipStatus: 'Active' },
+  { id: 'm0000000-0000-0000-0000-000000000002', firstName: 'สมหญิง', lastName: 'รักเรียน', batch: '56', membershipStatus: 'Active' },
+  { id: 'm0000000-0000-0000-0000-000000000003', firstName: 'ประยุทธ', lastName: 'ศิษย์เก่า', batch: '55', membershipStatus: 'Active' },
+]
+
 export const committeeRoleCards: Record<'chair' | 'member', MetricItem[]> = {
   chair: [
     { label: 'วาระพร้อมเซ็นอนุมัติ', value: '5', hint: 'รอประธานยืนยันก่อนประกาศใช้' },

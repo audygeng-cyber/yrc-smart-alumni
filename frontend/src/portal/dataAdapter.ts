@@ -6,6 +6,7 @@ import {
   academyRoleCards,
   committeeAttendanceRowsMock,
   committeeAttendanceSessionMock,
+  committeeMemberDirectoryPreviewMock,
   committeeMeetings,
   committeeMetricCards,
   committeeOpenAgendasMock,
@@ -67,6 +68,14 @@ export type CommitteeOpenAgenda = {
   status: string
 }
 
+export type CommitteeMemberPreviewRow = {
+  id: string
+  firstName: string
+  lastName: string
+  batch: string | null
+  membershipStatus: string
+}
+
 export type CommitteePortalData = {
   metricCards: MetricItem[]
   roleCards: Record<CommitteeRoleView, MetricItem[]>
@@ -77,6 +86,10 @@ export type CommitteePortalData = {
   attendanceRows: CommitteeAttendanceRow[]
   /** วาระเปิดลงมติ */
   openAgendas: CommitteeOpenAgenda[]
+  /** สัดส่วนสมาชิกตามรุ่น (snapshot) */
+  memberBatchDistribution: TrendItem[]
+  /** รายชื่ออัปเดตล่าสุด (ไม่เกิน 40 คน) */
+  memberDirectoryPreview: CommitteeMemberPreviewRow[]
 }
 
 export type AcademyPortalData = {
@@ -124,6 +137,8 @@ const committeePortalMockData: CommitteePortalData = {
   attendanceSession: committeeAttendanceSessionMock,
   attendanceRows: committeeAttendanceRowsMock,
   openAgendas: committeeOpenAgendasMock,
+  memberBatchDistribution: memberBatchDistribution,
+  memberDirectoryPreview: committeeMemberDirectoryPreviewMock,
 }
 
 const academyPortalMockData: AcademyPortalData = {
@@ -184,6 +199,14 @@ export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePo
     ? (raw.openAgendas as CommitteePortalData['openAgendas'])
     : fallback.openAgendas
 
+  const memberBatchDistribution = Array.isArray(raw.memberBatchDistribution)
+    ? (raw.memberBatchDistribution as CommitteePortalData['memberBatchDistribution'])
+    : fallback.memberBatchDistribution
+
+  const memberDirectoryPreview = Array.isArray(raw.memberDirectoryPreview)
+    ? (raw.memberDirectoryPreview as CommitteePortalData['memberDirectoryPreview'])
+    : fallback.memberDirectoryPreview
+
   return {
     metricCards: Array.isArray(raw.metricCards) ? (raw.metricCards as CommitteePortalData['metricCards']) : fallback.metricCards,
     roleCards: isRecord(raw.roleCards) ? (raw.roleCards as CommitteePortalData['roleCards']) : fallback.roleCards,
@@ -192,6 +215,8 @@ export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePo
     attendanceSession,
     attendanceRows,
     openAgendas,
+    memberBatchDistribution,
+    memberDirectoryPreview,
   }
 }
 

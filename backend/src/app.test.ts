@@ -46,6 +46,8 @@ describe.sequential('createApp', () => {
     expect(Array.isArray(res.body.attendanceRows)).toBe(true)
     expect(Array.isArray(res.body.openAgendas)).toBe(true)
     expect(Object.prototype.hasOwnProperty.call(res.body, 'attendanceSession')).toBe(true)
+    expect(Array.isArray(res.body.memberBatchDistribution)).toBe(true)
+    expect(Array.isArray(res.body.memberDirectoryPreview)).toBe(true)
   })
 
   it('GET /api/portal/academy returns dashboard snapshot', async () => {

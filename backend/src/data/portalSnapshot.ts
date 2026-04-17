@@ -100,6 +100,16 @@ export const committeePortalPayload = {
     scope: string
     status: string
   }>,
+  /** สัดส่วนตามรุ่น (สูงสุด 8 รุ่น) — หน้าทะเบียนสมาชิกคณะกรรมการ */
+  memberBatchDistribution: [] as Array<{ label: string; value: number }>,
+  /** ตัวอย่างรายชื่อล่าสุด — ไม่เกิน 40 แถว */
+  memberDirectoryPreview: [] as Array<{
+    id: string
+    firstName: string
+    lastName: string
+    batch: string | null
+    membershipStatus: string
+  }>,
 } as const
 
 export const academyPortalPayload = {

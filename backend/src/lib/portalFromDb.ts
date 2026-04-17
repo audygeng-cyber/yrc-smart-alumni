@@ -47,6 +47,14 @@ type CommitteeOpenAgenda = {
   status: string
 }
 
+type CommitteeMemberPreview = {
+  id: string
+  firstName: string
+  lastName: string
+  batch: string | null
+  membershipStatus: string
+}
+
 type CommitteePortalMerged = {
   metricCards: MetricCard[]
   roleCards: { chair: MetricCard[]; member: MetricCard[] }
@@ -55,6 +63,8 @@ type CommitteePortalMerged = {
   attendanceSession: CommitteeAttendanceSession | null
   attendanceRows: CommitteeAttendanceRow[]
   openAgendas: CommitteeOpenAgenda[]
+  memberBatchDistribution: TrendItem[]
+  memberDirectoryPreview: CommitteeMemberPreview[]
 }
 
 type AcademyPortalMerged = {
@@ -255,6 +265,37 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
 
   base.metricCards[0] = { ...base.metricCards[0], value: fmtInt(totalMembers ?? 0) }
   base.metricCards[1] = { ...base.metricCards[1], value: fmtInt(pendingRequests ?? 0) }
+
+  const { data: batchRows, error: eBatch } = await supabase.from('members').select('batch')
+  if (!eBatch && batchRows?.length) {
+    const dist = topBatchesByCount(batchRows as Array<{ batch: string | null }>, 8)
+    if (dist.length > 0) {
+      base.memberBatchDistribution = dist
+    }
+  }
+
+  const { data: previewRows, error: ePreview } = await supabase
+    .from('members')
+    .select('id,first_name,last_name,batch,membership_status')
+    .order('updated_at', { ascending: false })
+    .limit(40)
+  if (!ePreview && previewRows?.length) {
+    base.memberDirectoryPreview = (
+      previewRows as Array<{
+        id: string
+        first_name: string | null
+        last_name: string | null
+        batch: string | null
+        membership_status: string | null
+      }>
+    ).map((r) => ({
+      id: r.id,
+      firstName: (r.first_name ?? '').trim(),
+      lastName: (r.last_name ?? '').trim(),
+      batch: r.batch?.trim() ? r.batch.trim() : null,
+      membershipStatus: (r.membership_status ?? '').trim() || '—',
+    }))
+  }
 
   const { data: latestSession, error: e3 } = await supabase
     .from('meeting_sessions')
