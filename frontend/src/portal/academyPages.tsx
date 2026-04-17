@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { formatThbShort, totalStudentsInClasses, weightedAverageFromClasses } from './academyMath'
 import { type AcademyPortalData, type AcademyRoleView, type PortalDataState, useAcademyPortalData } from './dataAdapter'
-import { MetricCards, PortalDataSourceBadge, PortalShell, SectionPlaceholder, TrendBars } from './ui'
+import { MetricCards, PortalDataSourceBadge, PortalShell, TrendBars } from './ui'
 
 export function AcademyArea(props: { apiBase: string }) {
   const [roleView, setRoleView] = useState<AcademyRoleView>('admin')
@@ -533,12 +533,61 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: Ac
           </div>
         </section>
       </div>
-      <SectionPlaceholder
-        title="Role-based infographic"
-        description="รองรับการแสดงผลต่างกันตามสิทธิ์: ผู้บริหารเห็นภาพรวมทั้งหมด, ครูเห็นห้องที่สอน, นักเรียน/ผู้ปกครองเห็นข้อมูลรายบุคคล"
-      />
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">มุมมองตามบทบาท</h3>
+        <p className="mt-2 text-sm text-slate-400">
+          สรุปสิ่งที่แต่ละบทบาทใช้ในเมนู Academy — ข้อมูลตัวเลขด้านบนมาจาก snapshot เดียวกัน แต่ละ role เห็นเมนูย่อยต่างกัน
+        </p>
+        <div className="mt-4 rounded-lg border border-cyan-900/35 bg-cyan-950/20 px-4 py-3">
+          <ul className="list-inside list-disc space-y-1.5 text-sm text-slate-300">
+            {academyRoleBullets(props.roleView).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link to="/academy/students" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+            ห้อง / นักเรียน
+          </Link>
+          <Link to="/academy/courses" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+            คอร์ส
+          </Link>
+          <Link to="/academy/reports" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+            รายงาน
+          </Link>
+        </div>
+      </section>
     </div>
   )
+}
+
+function academyRoleBullets(role: AcademyRoleView): string[] {
+  switch (role) {
+    case 'admin':
+      return [
+        'เห็นเมตริกภาพรวม การเงิน cram_school (ถ้ามี journal) และ funnel สมัคร',
+        'เข้าถึงห้องเรียน คอร์ส รายงาน และผลการเรียนทั้งระบบ',
+        'ใช้ข้อมูลเพื่อวางแผนรับนักเรียนและติดตามคุณภาพ',
+      ]
+    case 'teacher':
+      return [
+        'โฟกัสห้องเรียนและคะแนนเฉลี่ยที่เกี่ยวข้องกับการสอน',
+        'ติดตามผลการเรียนและประสานกับผู้บริหารผ่านหน้ารายงาน',
+        'เมนูนักเรียน/ห้องเรียนและผลการเรียนเปิดให้ใช้งาน',
+      ]
+    case 'student':
+      return [
+        'มุมมองจำลอง: เน้นคอร์ส การสมัครเรียน และผลคะแนนของตนเอง',
+        'ใช้เมนูสมัครเรียนและผลการเรียนเมื่อเชื่อมบัญชีจริงในอนาคต',
+      ]
+    case 'parent':
+      return [
+        'มุมมองจำลอง: ติดตามความคืบหน้าและข้อมูลบุตรหลาน',
+        'ใช้เมนูสมัครเรียนและผลการเรียนเมื่อเชื่อมบัญชีผู้ปกครอง',
+      ]
+    default:
+      return []
+  }
 }
 
 function NotFoundInline() {

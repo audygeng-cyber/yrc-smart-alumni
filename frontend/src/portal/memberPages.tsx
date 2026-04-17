@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MemberPortal } from '../components/MemberPortal'
-import { DonationCampaignCard, MeetingReportRow, MetricCards, PortalShell, SectionPlaceholder, TrendBars } from './ui'
+import { DonationCampaignCard, MeetingReportRow, MetricCards, PortalShell, TrendBars } from './ui'
 import {
   type MemberPortalData,
   type MemberRoleView,
@@ -72,20 +72,64 @@ export function MemberArea(props: {
         <Route path="meetings" element={<MemberMeetingsPage portalData={portalData.data} />} />
         <Route
           path="documents"
-          element={
-            roleView === 'staff' ? (
-              <SectionPlaceholder
-                title="ข้อมูลเชิงกำกับดูแล"
-                description="เอกสารกำกับดูแลเชิงลึกสำหรับเจ้าหน้าที่สมาคม เช่น รายงานปิดงบและเอกสารตรวจสอบภายใน"
-              />
-            ) : (
-              <NotFoundInline />
-            )
-          }
+          element={roleView === 'staff' ? <MemberStaffDocumentsPage /> : <NotFoundInline />}
         />
         <Route path="*" element={<NotFoundInline />} />
       </Routes>
     </PortalShell>
+  )
+}
+
+function MemberStaffDocumentsPage() {
+  const links = [
+    {
+      to: '/admin',
+      title: 'แผง Admin',
+      description: 'นำเข้าสมาชิก การเงิน กิจกรรมโรงเรียน — จุดทำงานหลักของเจ้าหน้าที่',
+    },
+    {
+      to: '/requests',
+      title: 'คำร้องสมาชิก',
+      description: 'อนุมัติและติดตามคำร้องลงทะเบียน/แก้ไขข้อมูล',
+    },
+    {
+      to: '/committee/dashboard',
+      title: 'พอร์ทัลคณะกรรมการ',
+      description: 'สรุปการประชุม การเงิน ทะเบียน และวาระลงมติ',
+    },
+    {
+      to: '/academy/dashboard',
+      title: 'Academy',
+      description: 'โรงเรียนกวดวิชา — ห้องเรียน คอร์ส และ funnel สมัคร',
+    },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ข้อมูลเชิงกำกับดูแล</h3>
+        <p className="mt-2 text-sm text-slate-400">
+          ศูนย์ลิงก์สำหรับเจ้าหน้าที่สมาคม — รายงานปิดงบ หลักฐานการเงิน และ audit trail อยู่ใน workflow การเงิน (Admin) และบัญชีแยกประเภท
+          ในระบบหลังบ้าน
+        </p>
+        <ul className="mt-5 space-y-3">
+          {links.map((item) => (
+            <li key={item.to}>
+              <Link
+                to={item.to}
+                className="block rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-3 transition hover:border-emerald-800/60 hover:bg-slate-900/70"
+              >
+                <p className="font-medium text-emerald-200">{item.title}</p>
+                <p className="mt-1 text-sm text-slate-400">{item.description}</p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-5 text-xs text-slate-600">
+          หมายเหตุ: การเข้าถึงข้อมูลส่วนบัญชีอาจต้องใช้คีย์หรือสิทธิ์ตามที่กำหนดในแผง Admin
+        </p>
+      </section>
+    </div>
   )
 }
 
