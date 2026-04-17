@@ -48,6 +48,9 @@ describe.sequential('createApp', () => {
     expect(Object.prototype.hasOwnProperty.call(res.body, 'attendanceSession')).toBe(true)
     expect(Array.isArray(res.body.memberBatchDistribution)).toBe(true)
     expect(Array.isArray(res.body.memberDirectoryPreview)).toBe(true)
+    expect(Object.prototype.hasOwnProperty.call(res.body, 'associationMonthlyPl')).toBe(true)
+    expect(Object.prototype.hasOwnProperty.call(res.body, 'cramSchoolMonthlyPl')).toBe(true)
+    expect(typeof res.body.paymentRequestsPending).toBe('number')
   })
 
   it('GET /api/portal/academy returns dashboard snapshot', async () => {

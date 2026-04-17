@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { MetricCards, PortalDataSourceBadge, PortalShell, SectionPlaceholder, TrendBars } from './ui'
+import { MetricCards, PortalDataSourceBadge, PortalShell, TrendBars } from './ui'
 import {
+  type CommitteeMonthlyPl,
   type CommitteePortalData,
   type CommitteeRoleView,
   type PortalDataState,
@@ -48,28 +49,127 @@ export function CommitteeArea(props: { apiBase: string }) {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<CommitteeDashboardPage roleView={roleView} portalData={portalData.data} />} />
         <Route path="members" element={<CommitteeMembersPage portalState={portalData} />} />
-        <Route
-          path="finance"
-          element={
-            roleView === 'chair' ? (
-              <SectionPlaceholder
-                title="การเงินแบบละเอียด"
-                description="รายรับรายจ่ายสมาคมและโรงเรียนกวดวิชาแบบละเอียด พร้อมเอกสารประกอบ"
-              />
-            ) : (
-              <SectionPlaceholder
-                title="การเงินแบบละเอียด"
-                description="สิทธิ์ระดับกรรมการเห็นเฉพาะสรุปภาพรวม โปรดยกระดับสิทธิ์เพื่อดูรายละเอียดทั้งหมด"
-              />
-            )
-          }
-        />
+        <Route path="finance" element={<CommitteeFinancePage roleView={roleView} portalState={portalData} />} />
         <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} />} />
         <Route path="attendance" element={<CommitteeAttendancePage portalState={portalData} />} />
         <Route path="voting" element={<CommitteeVotingPage portalState={portalData} />} />
         <Route path="*" element={<NotFoundInline />} />
       </Routes>
     </PortalShell>
+  )
+}
+
+function fmtThbAmount(n: number) {
+  return `฿ ${Math.round(n).toLocaleString('en-US')}`
+}
+
+function CommitteePlBlock(props: { title: string; entityHint: string; pl: CommitteeMonthlyPl | null }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{props.entityHint}</p>
+      <h4 className="mt-1 text-base font-medium text-slate-100">{props.title}</h4>
+      {!props.pl ? (
+        <p className="mt-3 text-sm text-slate-500">ไม่มีข้อมูล journal ในช่วงเดือนนี้</p>
+      ) : (
+        <dl className="mt-3 space-y-2 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">รายรับ</dt>
+            <dd className="text-emerald-300">{fmtThbAmount(props.pl.revenue)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">รายจ่าย</dt>
+            <dd className="text-amber-200">{fmtThbAmount(props.pl.expense)}</dd>
+          </div>
+          <div className="flex justify-between gap-4 border-t border-slate-800 pt-2">
+            <dt className="text-slate-400">กำไรสุทธิ</dt>
+            <dd className="font-medium text-slate-100">{fmtThbAmount(props.pl.netIncome)}</dd>
+          </div>
+        </dl>
+      )}
+    </div>
+  )
+}
+
+function CommitteeFinancePage(props: {
+  roleView: CommitteeRoleView
+  portalState: PortalDataState<CommitteePortalData>
+}) {
+  const { data, loading, source } = props.portalState
+  const monthLabel = new Date().toLocaleString('th-TH', { month: 'long', year: 'numeric' })
+
+  if (props.roleView === 'member') {
+    return (
+      <div className="space-y-4">
+        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การเงิน (สรุป)</h3>
+              <p className="mt-2 text-sm text-slate-400">
+                มุมมองกรรมการแสดงเฉพาะกำไรสุทธิโดยสังเขป — รายละเอียดบัญชีเต็มสำหรับประธาน/ผู้ได้รับมอบหมาย
+              </p>
+            </div>
+            <PortalDataSourceBadge loading={loading} source={source} />
+          </div>
+          {loading ? (
+            <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          ) : (
+            <ul className="mt-4 space-y-3 text-sm">
+              <li className="rounded border border-slate-800 px-3 py-2">
+                <span className="text-slate-500">นิติบุคคลสมาคม · กำไรสุทธิ</span>
+                <p className="mt-1 font-medium text-slate-100">
+                  {data.associationMonthlyPl ? fmtThbAmount(data.associationMonthlyPl.netIncome) : '— ไม่มีข้อมูล —'}
+                </p>
+              </li>
+              <li className="rounded border border-slate-800 px-3 py-2">
+                <span className="text-slate-500">โรงเรียนกวดวิชา · กำไรสุทธิ</span>
+                <p className="mt-1 font-medium text-slate-100">
+                  {data.cramSchoolMonthlyPl ? fmtThbAmount(data.cramSchoolMonthlyPl.netIncome) : '— ไม่มีข้อมูล —'}
+                </p>
+              </li>
+            </ul>
+          )}
+          <p className="mt-4 text-xs text-slate-600">ช่วงอ้างอิง: {monthLabel} (ตาม journal ในระบบ)</p>
+        </section>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การเงินละเอียด</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              สรุป P/L เดือนปัจจุบันจากบัญชีแยกประเภท (journal) แยกนิติบุคคล — อัปเดตเมื่อโหลดพอร์ทัล
+            </p>
+            <p className="mt-1 text-xs text-slate-600">ช่วงเดือน: {monthLabel}</p>
+          </div>
+          <PortalDataSourceBadge loading={loading} source={source} />
+        </div>
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+        ) : (
+          <>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <CommitteePlBlock entityHint="legal_entities.code = association" title="นิติบุคคลสมาคม" pl={data.associationMonthlyPl} />
+              <CommitteePlBlock entityHint="legal_entities.code = cram_school" title="โรงเรียนกวดวิชา" pl={data.cramSchoolMonthlyPl} />
+            </div>
+            <div className="mt-4 rounded-lg border border-amber-900/40 bg-amber-950/20 px-4 py-3 text-sm">
+              <p className="text-amber-100">
+                คำขอจ่ายที่รอดำเนินการ (status = pending):{' '}
+                <span className="font-semibold tabular-nums">{data.paymentRequestsPending}</span> รายการ
+              </p>
+            </div>
+          </>
+        )}
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link to="/committee/dashboard" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+            แดชบอร์ด
+          </Link>
+        </div>
+      </section>
+    </div>
   )
 }
 

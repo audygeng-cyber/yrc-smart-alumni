@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MemberPortal } from '../components/MemberPortal'
 import { DonationCampaignCard, MeetingReportRow, MetricCards, PortalShell, SectionPlaceholder, TrendBars } from './ui'
 import {
@@ -89,25 +89,89 @@ export function MemberArea(props: {
   )
 }
 
+function memberStr(m: Record<string, unknown>, key: string): string {
+  const v = m[key]
+  if (v == null || v === '') return ''
+  return String(v).trim()
+}
+
 function MemberCardPage(props: { member: Record<string, unknown> }) {
-  const fullName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || '-'
-  const batch = props.member.batch != null ? String(props.member.batch) : '-'
-  const lineUid = props.member.line_uid != null ? String(props.member.line_uid) : '-'
+  const fullName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || 'สมาชิก'
+  const batch = memberStr(props.member, 'batch') || '—'
+  const code = memberStr(props.member, 'member_code')
+  const status = memberStr(props.member, 'membership_status') || '—'
   return (
-    <SectionPlaceholder
-      title="บัตรสมาชิกดิจิทัล"
-      description={`เตรียมหน้าบัตรสมาชิกสำหรับ ${fullName} · รุ่น ${batch} · LINE UID ${lineUid}`}
-    />
+    <div className="space-y-4">
+      <div className="mx-auto max-w-md">
+        <div className="overflow-hidden rounded-2xl border border-emerald-800/50 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 shadow-xl ring-1 ring-emerald-500/20">
+          <div className="bg-emerald-950/50 px-6 py-4 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-emerald-400">YRC Smart Alumni</p>
+            <p className="mt-1 text-xs text-slate-400">บัตรสมาชิกดิจิทัล</p>
+          </div>
+          <div className="px-6 py-8 text-center">
+            <p className="text-xl font-semibold text-white">{fullName}</p>
+            <p className="mt-2 text-sm text-slate-400">รุ่น {batch}</p>
+            <div className="mt-6 flex justify-center">
+              <div className="flex h-28 w-28 items-center justify-center rounded-xl border border-dashed border-slate-600 bg-slate-900/80 text-[10px] text-slate-500">
+                QR
+              </div>
+            </div>
+            <dl className="mt-6 space-y-2 text-left text-sm">
+              <div className="flex justify-between gap-4 border-t border-slate-800 pt-3">
+                <dt className="text-slate-500">รหัสสมาชิก</dt>
+                <dd className="font-mono text-xs text-slate-300">{code || '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">สถานะ</dt>
+                <dd className="text-slate-200">{status}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Link
+          to="/member/profile"
+          className="rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700"
+        >
+          ข้อมูลส่วนตัว
+        </Link>
+        <Link to="/member/dashboard" className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">
+          แดชบอร์ด
+        </Link>
+      </div>
+    </div>
   )
 }
 
 function MemberProfilePage(props: { member: Record<string, unknown> }) {
-  const fullName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || '-'
+  const rows: Array<{ label: string; value: string }> = [
+    { label: 'ชื่อ', value: [memberStr(props.member, 'first_name'), memberStr(props.member, 'last_name')].filter(Boolean).join(' ') || '—' },
+    { label: 'รุ่น', value: memberStr(props.member, 'batch') || '—' },
+    { label: 'รหัสสมาชิก', value: memberStr(props.member, 'member_code') || '—' },
+    { label: 'สถานะสมาชิก', value: memberStr(props.member, 'membership_status') || '—' },
+    { label: 'อีเมล', value: memberStr(props.member, 'email') || '—' },
+    { label: 'โทรศัพท์', value: memberStr(props.member, 'phone') || '—' },
+    { label: 'จังหวัด', value: memberStr(props.member, 'province') || '—' },
+  ]
   return (
-    <SectionPlaceholder
-      title="ข้อมูลส่วนตัวสมาชิก"
-      description={`เตรียมหน้าจัดการข้อมูลส่วนตัวและประวัติคำขอแก้ไขข้อมูลของ ${fullName}`}
-    />
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ข้อมูลส่วนตัว</h3>
+        <p className="mt-2 text-sm text-slate-400">ข้อมูลจากบัญชีที่ลงทะเบียนแล้ว — แก้ไขผ่านคำร้องอัปเดตข้อมูล</p>
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+          {rows.map((r) => (
+            <div key={r.label} className="rounded border border-slate-800/80 bg-slate-900/30 px-3 py-2">
+              <dt className="text-xs text-slate-500">{r.label}</dt>
+              <dd className="mt-0.5 text-sm text-slate-100">{r.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-4 text-xs text-slate-600">
+          หากข้อมูลไม่ครบหรือต้องแก้ไข ใช้ flow คำร้องในแอปหลักหลังเชื่อม LINE
+        </p>
+      </section>
+    </div>
   )
 }
 

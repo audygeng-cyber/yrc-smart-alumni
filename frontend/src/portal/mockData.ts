@@ -102,6 +102,9 @@ export const committeeMemberDirectoryPreviewMock = [
   { id: 'm0000000-0000-0000-0000-000000000003', firstName: 'ประยุทธ', lastName: 'ศิษย์เก่า', batch: '55', membershipStatus: 'Active' },
 ]
 
+export const committeeAssociationPlMock = { revenue: 482000, expense: 351400, netIncome: 130600 }
+export const committeeCramSchoolPlMock = { revenue: 198000, expense: 142000, netIncome: 56000 }
+
 export const committeeRoleCards: Record<'chair' | 'member', MetricItem[]> = {
   chair: [
     { label: 'วาระพร้อมเซ็นอนุมัติ', value: '5', hint: 'รอประธานยืนยันก่อนประกาศใช้' },

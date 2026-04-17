@@ -110,6 +110,11 @@ export const committeePortalPayload = {
     batch: string | null
     membershipStatus: string
   }>,
+  /** P/L เดือนปัจจุบันจาก journal — null ถ้ายังไม่มีรายการ */
+  associationMonthlyPl: null as null | { revenue: number; expense: number; netIncome: number },
+  cramSchoolMonthlyPl: null as null | { revenue: number; expense: number; netIncome: number },
+  /** คำขอจ่าย status=pending */
+  paymentRequestsPending: 0,
 } as const
 
 export const academyPortalPayload = {

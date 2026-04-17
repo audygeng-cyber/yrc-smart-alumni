@@ -7,6 +7,8 @@ import {
   committeeAttendanceRowsMock,
   committeeAttendanceSessionMock,
   committeeMemberDirectoryPreviewMock,
+  committeeAssociationPlMock,
+  committeeCramSchoolPlMock,
   committeeMeetings,
   committeeMetricCards,
   committeeOpenAgendasMock,
@@ -76,6 +78,12 @@ export type CommitteeMemberPreviewRow = {
   membershipStatus: string
 }
 
+export type CommitteeMonthlyPl = {
+  revenue: number
+  expense: number
+  netIncome: number
+}
+
 export type CommitteePortalData = {
   metricCards: MetricItem[]
   roleCards: Record<CommitteeRoleView, MetricItem[]>
@@ -90,6 +98,12 @@ export type CommitteePortalData = {
   memberBatchDistribution: TrendItem[]
   /** รายชื่ออัปเดตล่าสุด (ไม่เกิน 40 คน) */
   memberDirectoryPreview: CommitteeMemberPreviewRow[]
+  /** P/L เดือนปัจจุบัน — นิติบุคคลสมาคม */
+  associationMonthlyPl: CommitteeMonthlyPl | null
+  /** P/L เดือนปัจจุบัน — โรงเรียนกวดวิชา */
+  cramSchoolMonthlyPl: CommitteeMonthlyPl | null
+  /** คำขอจ่ายที่รออนุมัติ */
+  paymentRequestsPending: number
 }
 
 export type AcademyPortalData = {
@@ -139,6 +153,9 @@ const committeePortalMockData: CommitteePortalData = {
   openAgendas: committeeOpenAgendasMock,
   memberBatchDistribution: memberBatchDistribution,
   memberDirectoryPreview: committeeMemberDirectoryPreviewMock,
+  associationMonthlyPl: committeeAssociationPlMock,
+  cramSchoolMonthlyPl: committeeCramSchoolPlMock,
+  paymentRequestsPending: 3,
 }
 
 const academyPortalMockData: AcademyPortalData = {
@@ -207,6 +224,27 @@ export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePo
     ? (raw.memberDirectoryPreview as CommitteePortalData['memberDirectoryPreview'])
     : fallback.memberDirectoryPreview
 
+  const parsePl = (key: 'associationMonthlyPl' | 'cramSchoolMonthlyPl'): CommitteeMonthlyPl | null => {
+    if (!(key in raw)) return fallback[key]
+    const v = raw[key]
+    if (v === null) return null
+    if (
+      isRecord(v) &&
+      typeof v.revenue === 'number' &&
+      typeof v.expense === 'number' &&
+      typeof v.netIncome === 'number'
+    ) {
+      return { revenue: v.revenue, expense: v.expense, netIncome: v.netIncome }
+    }
+    return fallback[key]
+  }
+
+  const associationMonthlyPl = parsePl('associationMonthlyPl')
+  const cramSchoolMonthlyPl = parsePl('cramSchoolMonthlyPl')
+
+  const paymentRequestsPending =
+    typeof raw.paymentRequestsPending === 'number' ? raw.paymentRequestsPending : fallback.paymentRequestsPending
+
   return {
     metricCards: Array.isArray(raw.metricCards) ? (raw.metricCards as CommitteePortalData['metricCards']) : fallback.metricCards,
     roleCards: isRecord(raw.roleCards) ? (raw.roleCards as CommitteePortalData['roleCards']) : fallback.roleCards,
@@ -217,6 +255,9 @@ export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePo
     openAgendas,
     memberBatchDistribution,
     memberDirectoryPreview,
+    associationMonthlyPl,
+    cramSchoolMonthlyPl,
+    paymentRequestsPending,
   }
 }
 

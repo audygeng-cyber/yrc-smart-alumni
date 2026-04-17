@@ -55,6 +55,8 @@ type CommitteeMemberPreview = {
   membershipStatus: string
 }
 
+type CommitteeMonthlyPl = { revenue: number; expense: number; netIncome: number }
+
 type CommitteePortalMerged = {
   metricCards: MetricCard[]
   roleCards: { chair: MetricCard[]; member: MetricCard[] }
@@ -65,6 +67,9 @@ type CommitteePortalMerged = {
   openAgendas: CommitteeOpenAgenda[]
   memberBatchDistribution: TrendItem[]
   memberDirectoryPreview: CommitteeMemberPreview[]
+  associationMonthlyPl: CommitteeMonthlyPl | null
+  cramSchoolMonthlyPl: CommitteeMonthlyPl | null
+  paymentRequestsPending: number
 }
 
 type AcademyPortalMerged = {
@@ -406,6 +411,19 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
         m.status === 'closed' ? ('ready' as const) : m.status === 'open' ? ('pending_vote' as const) : ('in_review' as const)
       return { topic: m.title, time: `${hh}:${mm}`, status: st }
     })
+  }
+
+  const assocPl = await tryAssociationMonthlyPlFromJournal(supabase)
+  const cramPl = await tryCramSchoolMonthlyPlFromJournal(supabase)
+  base.associationMonthlyPl = assocPl
+  base.cramSchoolMonthlyPl = cramPl
+
+  const { count: payPending, error: ePay } = await supabase
+    .from('payment_requests')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending')
+  if (!ePay && typeof payPending === 'number') {
+    base.paymentRequestsPending = payPending
   }
 
   return base
