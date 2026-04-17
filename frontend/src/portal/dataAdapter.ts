@@ -18,6 +18,7 @@ import {
   memberDonationCampaigns,
   memberFinanceCards,
   memberMeetingReports,
+  memberRequestTrendMock,
   memberStatsCards,
   academyCramClassRoster,
   academySchoolCourses,
@@ -43,6 +44,8 @@ export type MemberPortalData = {
   donationCampaigns: DonationCampaign[]
   financeCards: MetricItem[]
   meetingReports: MeetingReportItem[]
+  /** คำร้องใหม่ต่อวัน (UTC) 7 วัน — จาก member_update_requests */
+  requestTrend: TrendItem[]
 }
 
 export type CommitteeAttendanceSession = {
@@ -141,6 +144,7 @@ const memberPortalMockData: MemberPortalData = {
   donationCampaigns: memberDonationCampaigns,
   financeCards: memberFinanceCards,
   meetingReports: memberMeetingReports,
+  requestTrend: memberRequestTrendMock,
 }
 
 const committeePortalMockData: CommitteePortalData = {
@@ -194,6 +198,7 @@ export function normalizeMemberPortalData(raw: unknown, fallback: MemberPortalDa
     meetingReports: Array.isArray(raw.meetingReports)
       ? (raw.meetingReports as MemberPortalData['meetingReports'])
       : fallback.meetingReports,
+    requestTrend: Array.isArray(raw.requestTrend) ? (raw.requestTrend as MemberPortalData['requestTrend']) : fallback.requestTrend,
   }
 }
 

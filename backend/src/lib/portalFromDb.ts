@@ -20,6 +20,7 @@ type MemberPortalMerged = {
   donationCampaigns: DonationCampaign[]
   financeCards: MetricCard[]
   meetingReports: MeetingReport[]
+  requestTrend: TrendItem[]
 }
 
 type CommitteeAttendanceSession = {
@@ -147,8 +148,8 @@ function thaiWeekdayShortFromUtcDateKey(isoDateKey: string): string {
   return w[d.getUTCDay()] ?? isoDateKey
 }
 
-/** จำนวนคำร้อง member_update_requests ต่อวัน (UTC) — 7 แท่ง */
-async function tryCommitteeRequestTrendLast7Days(supabase: SupabaseClient): Promise<TrendItem[] | null> {
+/** จำนวนคำร้อง member_update_requests ต่อวัน (UTC) — 7 แท่ง (ใช้ทั้ง member / committee portal) */
+async function tryMemberUpdateRequestsTrendLast7Days(supabase: SupabaseClient): Promise<TrendItem[] | null> {
   const keys = last7UtcDateKeys()
   if (keys.length !== 7) return null
   const startIso = `${keys[0]!}T00:00:00.000Z`
@@ -286,6 +287,11 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
       const year = d.getFullYear() + 543
       return { title: s.title, date: `${day}/${month}/${year}` }
     })
+  }
+
+  const memberReqTrend = await tryMemberUpdateRequestsTrendLast7Days(supabase)
+  if (memberReqTrend && memberReqTrend.length === 7) {
+    base.requestTrend = memberReqTrend
   }
 
   return base
@@ -463,7 +469,7 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
     base.paymentRequestsPending = payPending
   }
 
-  const reqTrend = await tryCommitteeRequestTrendLast7Days(supabase)
+  const reqTrend = await tryMemberUpdateRequestsTrendLast7Days(supabase)
   if (reqTrend && reqTrend.length === 7) {
     base.requestTrend = reqTrend
   }

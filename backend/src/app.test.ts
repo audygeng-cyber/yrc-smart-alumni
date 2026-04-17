@@ -37,6 +37,8 @@ describe.sequential('createApp', () => {
     expect(res.body.roleCards?.staff?.length).toBeGreaterThan(0)
     expect(Array.isArray(res.body.batchDistribution)).toBe(true)
     expect(Array.isArray(res.body.meetingReports)).toBe(true)
+    expect(Array.isArray(res.body.requestTrend)).toBe(true)
+    expect(res.body.requestTrend?.length).toBe(7)
   })
 
   it('GET /api/portal/committee returns dashboard snapshot', async () => {

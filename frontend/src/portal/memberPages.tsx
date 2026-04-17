@@ -237,6 +237,14 @@ function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: Po
           <MetricCards items={data.statsCards} />
           <MetricCards items={data.roleCards[props.roleView]} />
           <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">คำร้องใหม่ 7 วัน (UTC)</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              จำนวนคำร้องต่อวันจาก <code className="text-slate-500">member_update_requests</code> — เทียบกับแนวโน้มใน Committee
+              portal
+            </p>
+            <TrendBars items={data.requestTrend} color="cyan" />
+          </section>
+          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สัดส่วนสมาชิกตามรุ่น</h3>
             <TrendBars items={data.batchDistribution} color="emerald" />
           </section>

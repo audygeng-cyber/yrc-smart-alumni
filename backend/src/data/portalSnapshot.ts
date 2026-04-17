@@ -43,6 +43,16 @@ export const memberPortalPayload = {
     { title: 'สรุปโครงการสนับสนุนกิจกรรมเดือนมีนาคม', date: '28/03/2569' },
     { title: 'รายงานการเงินไตรมาส 1/2569', date: '20/03/2569' },
   ],
+  /** คำร้อง member_update_requests ต่อวัน (UTC) 7 วัน — โครงเดียวกับ committee.requestTrend */
+  requestTrend: [
+    { label: 'Mon', value: 4 },
+    { label: 'Tue', value: 8 },
+    { label: 'Wed', value: 6 },
+    { label: 'Thu', value: 10 },
+    { label: 'Fri', value: 5 },
+    { label: 'Sat', value: 3 },
+    { label: 'Sun', value: 7 },
+  ] as Array<{ label: string; value: number }>,
 } as const
 
 export const committeePortalPayload = {

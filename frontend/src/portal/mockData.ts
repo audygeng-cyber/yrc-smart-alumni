@@ -41,6 +41,16 @@ export const memberMeetingReports: MeetingReportItem[] = [
   { title: 'รายงานการเงินไตรมาส 1/2569', date: '20/03/2569' },
 ]
 
+export const memberRequestTrendMock: TrendItem[] = [
+  { label: 'Mon', value: 4 },
+  { label: 'Tue', value: 8 },
+  { label: 'Wed', value: 6 },
+  { label: 'Thu', value: 10 },
+  { label: 'Fri', value: 5 },
+  { label: 'Sat', value: 3 },
+  { label: 'Sun', value: 7 },
+]
+
 export const committeeMetricCards: MetricItem[] = [
   { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'อัปเดตล่าสุดตามทะเบียนสมาชิก' },
   { label: 'คำร้องรอดำเนินการ', value: '18', hint: 'pending_president + pending_admin' },
