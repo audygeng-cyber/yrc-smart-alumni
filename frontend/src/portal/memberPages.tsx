@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MemberPortal } from '../components/MemberPortal'
-import { DonationCampaignCard, MeetingReportRow, MetricCards, PortalShell, TrendBars } from './ui'
+import { DonationCampaignCard, MeetingReportRow, MetricCards, PortalDataSourceBadge, PortalShell, TrendBars } from './ui'
 import {
   type MemberPortalData,
   type MemberRoleView,
+  type PortalDataState,
   useMemberPortalData,
 } from './dataAdapter'
 
@@ -67,9 +68,9 @@ export function MemberArea(props: {
         />
         <Route path="card" element={<MemberCardPage member={props.member} />} />
         <Route path="profile" element={<MemberProfilePage member={props.member} />} />
-        <Route path="statistics" element={<MemberStatisticsPage roleView={roleView} portalData={portalData.data} />} />
-        <Route path="donations" element={<MemberDonationsPage portalData={portalData.data} />} />
-        <Route path="meetings" element={<MemberMeetingsPage portalData={portalData.data} />} />
+        <Route path="statistics" element={<MemberStatisticsPage roleView={roleView} portalState={portalData} />} />
+        <Route path="donations" element={<MemberDonationsPage portalState={portalData} />} />
+        <Route path="meetings" element={<MemberMeetingsPage portalState={portalData} />} />
         <Route
           path="documents"
           element={roleView === 'staff' ? <MemberStaffDocumentsPage /> : <NotFoundInline />}
@@ -219,62 +220,97 @@ function MemberProfilePage(props: { member: Record<string, unknown> }) {
   )
 }
 
-function MemberStatisticsPage(props: { roleView: MemberRoleView; portalData: MemberPortalData }) {
+function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: PortalDataState<MemberPortalData> }) {
+  const { data, loading, source } = props.portalState
   return (
     <div className="space-y-4">
-      <MetricCards items={props.portalData.statsCards} />
-      <MetricCards items={props.portalData.roleCards[props.roleView]} />
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs uppercase tracking-wide text-slate-500">ข้อมูล snapshot</p>
+          <PortalDataSourceBadge loading={loading} source={source} />
+        </div>
+      </section>
+      {loading ? (
+        <p className="text-sm text-slate-500">กำลังโหลด…</p>
+      ) : (
+        <>
+          <MetricCards items={data.statsCards} />
+          <MetricCards items={data.roleCards[props.roleView]} />
+          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สัดส่วนสมาชิกตามรุ่น</h3>
+            <TrendBars items={data.batchDistribution} color="emerald" />
+          </section>
+        </>
+      )}
+    </div>
+  )
+}
+
+function MemberDonationsPage(props: { portalState: PortalDataState<MemberPortalData> }) {
+  const { data, loading, source } = props.portalState
+  return (
+    <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สัดส่วนสมาชิกตามรุ่น (ตัวอย่าง)</h3>
-        <TrendBars items={props.portalData.batchDistribution} color="emerald" />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สนับสนุนกิจกรรมโรงเรียน</h3>
+            <p className="mt-2 text-sm text-slate-400">เลือกโครงการที่ต้องการสนับสนุนและแนบสลิปเพื่อยืนยันรายการ</p>
+          </div>
+          <PortalDataSourceBadge loading={loading} source={source} />
+        </div>
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+        ) : (
+          <>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {data.donationCampaigns.map((campaign) => (
+                <DonationCampaignCard
+                  key={campaign.title}
+                  title={campaign.title}
+                  progress={campaign.progress}
+                  target={campaign.target}
+                  raised={campaign.raised}
+                />
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" className="rounded bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700">
+                บริจาคและแนบสลิป
+              </button>
+              <button type="button" className="rounded border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">
+                ดูประวัติการบริจาค
+              </button>
+            </div>
+          </>
+        )}
       </section>
     </div>
   )
 }
 
-function MemberDonationsPage(props: { portalData: MemberPortalData }) {
+function MemberMeetingsPage(props: { portalState: PortalDataState<MemberPortalData> }) {
+  const { data, loading, source } = props.portalState
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สนับสนุนกิจกรรมโรงเรียน</h3>
-        <p className="mt-2 text-sm text-slate-400">เลือกโครงการที่ต้องการสนับสนุนและแนบสลิปเพื่อยืนยันรายการ</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {props.portalData.donationCampaigns.map((campaign) => (
-            <DonationCampaignCard
-              key={campaign.title}
-              title={campaign.title}
-              progress={campaign.progress}
-              target={campaign.target}
-              raised={campaign.raised}
-            />
-          ))}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สาระประชุมและรายรับรายจ่าย</h3>
+            <p className="mt-2 text-sm text-slate-400">ข้อมูลที่สมาชิกเข้าถึงได้: สรุปรายงานประชุมและภาพรวมทางการเงิน</p>
+          </div>
+          <PortalDataSourceBadge loading={loading} source={source} />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button type="button" className="rounded bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700">
-            บริจาคและแนบสลิป
-          </button>
-          <button type="button" className="rounded border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">
-            ดูประวัติการบริจาค
-          </button>
-        </div>
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+        ) : (
+          <div className="mt-4 space-y-2 text-sm">
+            {data.meetingReports.map((meeting) => (
+              <MeetingReportRow key={meeting.title} title={meeting.title} date={meeting.date} />
+            ))}
+          </div>
+        )}
       </section>
-    </div>
-  )
-}
-
-function MemberMeetingsPage(props: { portalData: MemberPortalData }) {
-  return (
-    <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สาระประชุมและรายรับรายจ่าย</h3>
-        <p className="mt-2 text-sm text-slate-400">ข้อมูลที่สมาชิกเข้าถึงได้: สรุปรายงานประชุมและภาพรวมทางการเงิน</p>
-        <div className="mt-4 space-y-2 text-sm">
-          {props.portalData.meetingReports.map((meeting) => (
-            <MeetingReportRow key={meeting.title} title={meeting.title} date={meeting.date} />
-          ))}
-        </div>
-      </section>
-      <MetricCards items={props.portalData.financeCards} />
+      {!loading ? <MetricCards items={data.financeCards} /> : null}
     </div>
   )
 }

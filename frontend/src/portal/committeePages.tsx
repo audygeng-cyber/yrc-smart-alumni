@@ -9,6 +9,10 @@ import {
   useCommitteePortalData,
 } from './dataAdapter'
 
+function committeeMeetingStatusLabel(s: 'ready' | 'pending_vote' | 'in_review') {
+  return s === 'ready' ? 'พร้อม' : s === 'pending_vote' ? 'รอลงมติ' : 'ตรวจสอบ'
+}
+
 export function CommitteeArea(props: { apiBase: string }) {
   const [roleView, setRoleView] = useState<CommitteeRoleView>('chair')
   const portalData = useCommitteePortalData(props.apiBase)
@@ -177,9 +181,6 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
   const { data, loading, source } = props.portalState
   const meetings = data.meetings
 
-  const statusLabel = (s: (typeof meetings)[number]['status']) =>
-    s === 'ready' ? 'พร้อม' : s === 'pending_vote' ? 'รอลงมติ' : 'ตรวจสอบ'
-
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
@@ -216,7 +217,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
                         : 'bg-sky-900/40 text-sky-200'
                   }`}
                 >
-                  {statusLabel(m.status)}
+                  {committeeMeetingStatusLabel(m.status)}
                 </span>
               </li>
             ))}
@@ -491,6 +492,10 @@ function signedViaLabel(v: string) {
 }
 
 function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalData: CommitteePortalData }) {
+  const att = props.portalData.attendanceSession
+  const openAgendaCount = props.portalData.openAgendas.length
+  const payPending = props.portalData.paymentRequestsPending
+
   return (
     <div className="space-y-4">
       <MetricCards items={props.portalData.metricCards} />
@@ -504,9 +509,17 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalData
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">งานด่วนวันนี้</h3>
           <ul className="mt-3 space-y-2 text-sm">
-            <li className="rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-amber-100">ตรวจ quorum ก่อนเริ่มประชุม</li>
-            <li className="rounded border border-red-900/40 bg-red-950/20 px-3 py-2 text-red-100">วาระลงมติค้าง 2 รายการ</li>
-            <li className="rounded border border-sky-900/40 bg-sky-950/20 px-3 py-2 text-sky-100">ติดตามเอกสารการเงินเดือนล่าสุด</li>
+            <li className="rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-amber-100">
+              {att
+                ? `ลงชื่อประชุมล่าสุด ${att.signedCount}/${att.expectedParticipants} · ${att.title}`
+                : 'ยังไม่มีรอบประชุมใน snapshot — ตรวจ quorum เมื่อเปิดรอบ'}
+            </li>
+            <li className="rounded border border-red-900/40 bg-red-950/20 px-3 py-2 text-red-100">
+              วาระเปิดลงมติ {openAgendaCount} รายการ (meeting_agendas open)
+            </li>
+            <li className="rounded border border-sky-900/40 bg-sky-950/20 px-3 py-2 text-sky-100">
+              คำขอจ่ายรอดำเนินการ {payPending} รายการ (pending)
+            </li>
           </ul>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link to="/committee/voting" className="rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700">
@@ -536,7 +549,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalData
                       : 'bg-sky-900/40 text-sky-200'
                 }`}
               >
-                {meeting.status}
+                {committeeMeetingStatusLabel(meeting.status)}
               </span>
             </div>
           ))}

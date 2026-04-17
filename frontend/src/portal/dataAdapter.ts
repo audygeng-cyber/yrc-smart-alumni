@@ -172,6 +172,31 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
+export function normalizeMemberPortalData(raw: unknown, fallback: MemberPortalData): MemberPortalData {
+  if (!isRecord(raw)) return fallback
+
+  const rc = raw.roleCards
+  const roleCards =
+    isRecord(rc) && Array.isArray(rc.member) && Array.isArray(rc.staff)
+      ? (rc as MemberPortalData['roleCards'])
+      : fallback.roleCards
+
+  return {
+    statsCards: Array.isArray(raw.statsCards) ? (raw.statsCards as MemberPortalData['statsCards']) : fallback.statsCards,
+    roleCards,
+    batchDistribution: Array.isArray(raw.batchDistribution)
+      ? (raw.batchDistribution as MemberPortalData['batchDistribution'])
+      : fallback.batchDistribution,
+    donationCampaigns: Array.isArray(raw.donationCampaigns)
+      ? (raw.donationCampaigns as MemberPortalData['donationCampaigns'])
+      : fallback.donationCampaigns,
+    financeCards: Array.isArray(raw.financeCards) ? (raw.financeCards as MemberPortalData['financeCards']) : fallback.financeCards,
+    meetingReports: Array.isArray(raw.meetingReports)
+      ? (raw.meetingReports as MemberPortalData['meetingReports'])
+      : fallback.meetingReports,
+  }
+}
+
 /** รวมฟิลด์ที่ขาดเมื่อ API เก่าหรือ response ไม่ครบ — ลดความเสี่ยง UI พัง */
 export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePortalData): CommitteePortalData {
   if (!isRecord(raw)) return fallback
@@ -343,7 +368,7 @@ function usePortalData<TData>(
 }
 
 export function useMemberPortalData(apiBase: string) {
-  return usePortalData(apiBase, '/api/portal/member', memberPortalMockData)
+  return usePortalData(apiBase, '/api/portal/member', memberPortalMockData, normalizeMemberPortalData)
 }
 
 export function useCommitteePortalData(apiBase: string) {
