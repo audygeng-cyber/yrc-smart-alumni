@@ -32,7 +32,9 @@ npm run dev
 
 ## CI (GitHub)
 
-หลัง push ไป `main`/`master` หรือเปิด PR จะรัน `npm ci`, `npm run build`, `npm run lint` (frontend + backend), `npm run test` แล้วตามด้วย **`docker build`** (ยืนยัน image สำหรับ Cloud Run) ตาม `.github/workflows/ci.yml` — ต้องมี `package-lock.json` ที่รากและ push ขึ้น remote แล้ว workflow จึงทำงาน
+หลัง push ไป `main`/`master` หรือเปิด PR จะรัน `npm ci`, `npm run build`, `npm run lint` (frontend + backend), `npm run test` แล้วตามด้วย **`docker build`** (ยืนยัน image สำหรับ Cloud Run) ตาม `.github/workflows/ci.yml` — ต้องมี `package-lock.json` ที่รากและ push ขึ้น remote แล้ว workflow จึงทำงาน  
+
+ถ้าตั้ง **repository secrets** ชื่อ `VERIFY_API_BASE` (URL API Cloud Run) และ `VERIFY_FRONTEND_ORIGIN` (origin เว็บ Vercel) workflow จะรัน job **smoke-production** เพิ่ม — เรียก `scripts/verify-deployment.mjs` ตรวจ `/health` และ CORS (ถ้าไม่ตั้ง secrets job นี้จะข้าม ไม่ทำให้ CI ล้ม)
 
 บนเครื่องตรวจก่อน push ได้ด้วย `npm run ci` (build + lint + **ทดสอบ backend** หลัง `npm install`; ไม่รวม `docker build`) — หรือ `npm run test` เฉพาะเทส API
 
