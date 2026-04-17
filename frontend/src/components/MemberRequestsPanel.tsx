@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
-const STORAGE_ADMIN = 'yrc_admin_upload_key'
+import { ADMIN_UPLOAD_STORAGE_KEY } from '../lib/adminApi'
 const STORAGE_PRESIDENT = 'yrc_president_upload_key'
 const STORAGE_AUTO_REFRESH = 'yrc_member_requests_auto_refresh'
 const STORAGE_AUTO_REFRESH_MS = 'yrc_member_requests_auto_refresh_ms'
@@ -236,7 +235,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   }, [rows])
 
   useEffect(() => {
-    setAdminKey(sessionStorage.getItem(STORAGE_ADMIN) ?? '')
+    setAdminKey(sessionStorage.getItem(ADMIN_UPLOAD_STORAGE_KEY) ?? '')
     setPresidentKey(sessionStorage.getItem(STORAGE_PRESIDENT) ?? '')
     setAutoRefresh(sessionStorage.getItem(STORAGE_AUTO_REFRESH) === 'true')
     const savedPreset = sessionStorage.getItem(STORAGE_VIEW_PRESET)
@@ -283,7 +282,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   }, [])
 
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_ADMIN, adminKey)
+    sessionStorage.setItem(ADMIN_UPLOAD_STORAGE_KEY, adminKey)
   }, [adminKey])
 
   useEffect(() => {

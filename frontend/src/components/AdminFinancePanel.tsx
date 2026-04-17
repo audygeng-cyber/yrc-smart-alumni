@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-
-const STORAGE_KEY = 'yrc_admin_upload_key'
+import { ADMIN_UPLOAD_STORAGE_KEY, normalizeApiBase } from '../lib/adminApi'
 const PAGE_SIZE = 20
 const REPORT_PRESETS_KEY = 'yrc_finance_report_presets_v1'
 const ACTIVITY_LOG_KEY = 'yrc_finance_activity_log_v1'
@@ -102,10 +101,6 @@ const ACTIVITY_SHORTCUTS = [
   { label: 'Meeting', keyword: 'ประชุม' },
   { label: 'Payment', keyword: 'คำขอจ่ายเงิน' },
 ] as const
-
-function normalizeApiBase(base: string): string {
-  return base.trim().replace(/\/+$/, '')
-}
 
 async function readApiJson(r: Response): Promise<{
   status: number
@@ -287,7 +282,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   useEffect(() => {
-    setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
+    setAdminKey(sessionStorage.getItem(ADMIN_UPLOAD_STORAGE_KEY) ?? '')
     const rawPresets = sessionStorage.getItem(REPORT_PRESETS_KEY)
     const rawActivity = sessionStorage.getItem(ACTIVITY_LOG_KEY)
     const rawAutoRefresh = sessionStorage.getItem(AUTO_REFRESH_SETTINGS_KEY)

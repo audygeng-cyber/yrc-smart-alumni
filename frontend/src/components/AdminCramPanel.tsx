@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-
-const STORAGE_KEY = 'yrc_admin_upload_key'
-
-function normalizeApiBase(base: string): string {
-  return base.trim().replace(/\/+$/, '')
-}
+import { ADMIN_UPLOAD_STORAGE_KEY, adminJsonHeaders, normalizeApiBase } from '../lib/adminApi'
 
 type Classroom = {
   id: string
@@ -47,18 +42,14 @@ export function AdminCramPanel({ apiBase }: Props) {
   const [editScore, setEditScore] = useState('')
 
   useEffect(() => {
-    setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
+    setAdminKey(sessionStorage.getItem(ADMIN_UPLOAD_STORAGE_KEY) ?? '')
   }, [])
 
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY, adminKey)
+    sessionStorage.setItem(ADMIN_UPLOAD_STORAGE_KEY, adminKey)
   }, [adminKey])
 
-  const headers = useCallback(() => {
-    const h: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (adminKey.trim()) h['x-admin-key'] = adminKey.trim()
-    return h
-  }, [adminKey])
+  const headers = useCallback(() => adminJsonHeaders(adminKey), [adminKey])
 
   const loadClassrooms = useCallback(async () => {
     if (!adminKey.trim()) {

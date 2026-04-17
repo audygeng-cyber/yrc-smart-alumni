@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react'
+import { ADMIN_UPLOAD_STORAGE_KEY, normalizeApiBase } from '../lib/adminApi'
 
-const STORAGE_KEY = 'yrc_admin_upload_key'
 const BATCH_ID_KEY = 'yrc_last_import_batch_id'
-
-function normalizeApiBase(base: string): string {
-  return base.trim().replace(/\/+$/, '')
-}
 
 /** อ่าน body เป็น text แล้ว parse JSON — ถ้าไม่ใช่ JSON จะได้ payload เป็น null แต่ยังมี status + rawText สำหรับ debug */
 async function readApiJson(r: Response): Promise<{
@@ -62,12 +58,12 @@ export function AdminImportPanel({ apiBase }: Props) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    setAdminKey(sessionStorage.getItem(STORAGE_KEY) ?? '')
+    setAdminKey(sessionStorage.getItem(ADMIN_UPLOAD_STORAGE_KEY) ?? '')
     setLastImportBatchId(sessionStorage.getItem(BATCH_ID_KEY))
   }, [])
 
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY, adminKey)
+    sessionStorage.setItem(ADMIN_UPLOAD_STORAGE_KEY, adminKey)
   }, [adminKey])
 
   useEffect(() => {
