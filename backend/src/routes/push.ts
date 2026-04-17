@@ -8,7 +8,7 @@ export const pushRouter = Router()
 pushRouter.get('/vapid-public', (_req, res) => {
   const key = getVapidPublicKey()
   if (!key) {
-    res.status(503).json({ error: 'VAPID not configured on server' })
+    res.status(503).json({ error: 'ยังไม่ได้ตั้งค่า VAPID บนเซิร์ฟเวอร์' })
     return
   }
   res.json({ publicKey: key })
@@ -27,7 +27,7 @@ pushRouter.post('/subscribe', async (req, res) => {
     const auth = keys && typeof keys.auth === 'string' ? keys.auth.trim() : ''
 
     if (!endpoint || !p256dh || !auth) {
-      res.status(400).json({ error: 'endpoint and keys.p256dh, keys.auth required' })
+      res.status(400).json({ error: 'ต้องระบุ endpoint และ keys.p256dh, keys.auth' })
       return
     }
 
@@ -42,13 +42,13 @@ pushRouter.post('/subscribe', async (req, res) => {
     )
 
     if (error) {
-      res.status(500).json({ error: 'Failed to save subscription', details: error })
+      res.status(500).json({ error: 'บันทึก subscription ไม่สำเร็จ', details: error })
       return
     }
 
     res.json({ ok: true })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })

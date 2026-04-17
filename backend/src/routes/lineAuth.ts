@@ -23,19 +23,19 @@ lineAuthRouter.post('/token', async (req, res) => {
     const redirect_uri = typeof req.body?.redirect_uri === 'string' ? req.body.redirect_uri.trim() : ''
 
     if (!code || !redirect_uri) {
-      res.status(400).json({ error: 'code and redirect_uri are required' })
+      res.status(400).json({ error: 'ต้องระบุ code และ redirect_uri' })
       return
     }
 
     const allow = allowedRedirectUris()
     if (allow.length === 0) {
-      res.status(500).json({ error: 'LINE_REDIRECT_URIS (or LINE_REDIRECT_URI) is not configured' })
+      res.status(500).json({ error: 'ยังไม่ได้ตั้งค่า LINE_REDIRECT_URIS (หรือ LINE_REDIRECT_URI)' })
       return
     }
 
     if (!allow.includes(redirect_uri)) {
       res.status(400).json({
-        error: 'redirect_uri not allowed',
+        error: 'redirect_uri ไม่ได้รับอนุญาต',
         allowed: allow,
       })
       return
@@ -44,7 +44,7 @@ lineAuthRouter.post('/token', async (req, res) => {
     const clientId = process.env.LINE_CHANNEL_ID
     const clientSecret = process.env.LINE_CHANNEL_SECRET
     if (!clientId || !clientSecret) {
-      res.status(500).json({ error: 'LINE_CHANNEL_ID / LINE_CHANNEL_SECRET not configured' })
+      res.status(500).json({ error: 'ยังไม่ได้ตั้งค่า LINE_CHANNEL_ID / LINE_CHANNEL_SECRET' })
       return
     }
 
@@ -70,7 +70,7 @@ lineAuthRouter.post('/token', async (req, res) => {
 
     const id_token = typeof tokenJson.id_token === 'string' ? tokenJson.id_token : ''
     if (!id_token) {
-      res.status(502).json({ error: 'no_id_token in LINE response', details: tokenJson })
+      res.status(502).json({ error: 'ไม่พบ id_token ในการตอบกลับจาก LINE', details: tokenJson })
       return
     }
 
@@ -93,7 +93,7 @@ lineAuthRouter.post('/token', async (req, res) => {
 
     const sub = typeof verifyJson.sub === 'string' ? verifyJson.sub : ''
     if (!sub) {
-      res.status(502).json({ error: 'no sub in LINE verify response', details: verifyJson })
+      res.status(502).json({ error: 'ไม่พบ sub ในการตอบกลับจาก LINE verify', details: verifyJson })
       return
     }
 
@@ -103,7 +103,7 @@ lineAuthRouter.post('/token', async (req, res) => {
       picture: typeof verifyJson.picture === 'string' ? verifyJson.picture : null,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })

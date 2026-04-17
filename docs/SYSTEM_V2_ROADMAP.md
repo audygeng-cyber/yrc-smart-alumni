@@ -40,8 +40,8 @@
 
 ## แผนถัดไป (แนะนำลำดับทำงาน)
 
-1. **Identity + Session**
-   - ออก token/session หลัง LINE login
+1. **Identity + เซสชัน**
+   - ออก token/เซสชัน หลัง LINE login
    - ผูก `line_uid` → `app_users`
    - middleware ตรวจสิทธิ์ตาม role
 2. **Approval Flow จริง**

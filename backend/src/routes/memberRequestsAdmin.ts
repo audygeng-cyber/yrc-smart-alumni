@@ -24,13 +24,13 @@ memberRequestsAdminRouter.get('/', adminAuth, async (req, res) => {
 
     const { data, error } = await q
     if (error) {
-      res.status(500).json({ error: 'List failed', details: error })
+      res.status(500).json({ error: 'โหลดรายการไม่สำเร็จ', details: error })
       return
     }
 
     res.json({ ok: true, requests: data ?? [] })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -53,12 +53,12 @@ memberRequestsAdminRouter.post('/:id/president-approve', presidentAuth, async (r
       .maybeSingle()
 
     if (fetchErr || !row) {
-      res.status(fetchErr ? 500 : 404).json({ error: fetchErr ? 'Fetch failed' : 'Not found', details: fetchErr })
+      res.status(fetchErr ? 500 : 404).json({ error: fetchErr ? 'โหลดข้อมูลไม่สำเร็จ' : 'ไม่พบข้อมูล', details: fetchErr })
       return
     }
 
     if (row.status !== 'pending_president') {
-      res.status(400).json({ error: 'Invalid status for president approval', current: row.status })
+      res.status(400).json({ error: 'สถานะคำร้องไม่ถูกต้องสำหรับการอนุมัติของประธานรุ่น', current: row.status })
       return
     }
 
@@ -86,13 +86,13 @@ memberRequestsAdminRouter.post('/:id/president-approve', presidentAuth, async (r
       .eq('id', id)
 
     if (upErr) {
-      res.status(500).json({ error: 'Update failed', details: upErr })
+      res.status(500).json({ error: 'อัปเดตข้อมูลไม่สำเร็จ', details: upErr })
       return
     }
 
     res.json({ ok: true })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -115,18 +115,18 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
       .maybeSingle()
 
     if (fetchErr || !row) {
-      res.status(fetchErr ? 500 : 404).json({ error: fetchErr ? 'Fetch failed' : 'Not found', details: fetchErr })
+      res.status(fetchErr ? 500 : 404).json({ error: fetchErr ? 'โหลดข้อมูลไม่สำเร็จ' : 'ไม่พบข้อมูล', details: fetchErr })
       return
     }
 
     if (row.status !== 'pending_admin') {
-      res.status(400).json({ error: 'Invalid status for admin approval', current: row.status })
+      res.status(400).json({ error: 'สถานะคำร้องไม่ถูกต้องสำหรับการอนุมัติของ Admin', current: row.status })
       return
     }
 
     const line_uid = typeof row.line_uid === 'string' ? row.line_uid.trim() : ''
     if (!line_uid) {
-      res.status(400).json({ error: 'Request has no line_uid' })
+      res.status(400).json({ error: 'คำร้องนี้ไม่มี LINE UID' })
       return
     }
 
@@ -138,7 +138,7 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
     if (row.request_type === 'new_registration') {
       const { data: uidDup } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
       if (uidDup) {
-        res.status(409).json({ code: 'LINE_UID_EXISTS', error: 'มีสมาชิกใช้ Line UID นี้แล้ว' })
+        res.status(409).json({ code: 'LINE_UID_EXISTS', error: 'มีสมาชิกใช้ LINE UID นี้แล้ว' })
         return
       }
 
@@ -173,7 +173,7 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
         .single()
 
       if (insErr || !newMember) {
-        res.status(500).json({ error: 'Insert member failed', details: insErr })
+        res.status(500).json({ error: 'เพิ่มข้อมูลสมาชิกไม่สำเร็จ', details: insErr })
         return
       }
 
@@ -199,7 +199,7 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
         .eq('id', id)
 
       if (finErr) {
-        res.status(500).json({ error: 'Request finalize failed', details: finErr })
+        res.status(500).json({ error: 'ปิดคำร้องไม่สำเร็จ', details: finErr })
         return
       }
 
@@ -207,9 +207,9 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
       return
     }
 
-    res.status(400).json({ error: `Unsupported request_type: ${row.request_type}` })
+    res.status(400).json({ error: `ไม่รองรับ request_type: ${row.request_type}` })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -234,12 +234,12 @@ memberRequestsAdminRouter.post('/:id/reject', presidentAuth, async (req, res) =>
       .maybeSingle()
 
     if (fetchErr || !fullRow) {
-      res.status(fetchErr ? 500 : 404).json({ error: fetchErr ? 'Fetch failed' : 'Not found' })
+      res.status(fetchErr ? 500 : 404).json({ error: fetchErr ? 'โหลดข้อมูลไม่สำเร็จ' : 'ไม่พบข้อมูล' })
       return
     }
 
     if (fullRow.status !== 'pending_president' && fullRow.status !== 'pending_admin') {
-      res.status(400).json({ error: 'Cannot reject in current status', current: fullRow.status })
+      res.status(400).json({ error: 'ไม่สามารถปฏิเสธคำร้องในสถานะปัจจุบัน', current: fullRow.status })
       return
     }
 
@@ -268,13 +268,13 @@ memberRequestsAdminRouter.post('/:id/reject', presidentAuth, async (req, res) =>
       .eq('id', id)
 
     if (upErr) {
-      res.status(500).json({ error: 'Reject failed', details: upErr })
+      res.status(500).json({ error: 'ปฏิเสธคำร้องไม่สำเร็จ', details: upErr })
       return
     }
 
     res.json({ ok: true })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY, normalizeApiBase } from '../lib/adminApi'
+import { portalFocusRing } from '../portal/portalLabels'
 
 const BATCH_ID_KEY = 'yrc_last_import_batch_id'
 
@@ -76,7 +77,7 @@ export function AdminImportPanel({ apiBase }: Props) {
 
   async function upload() {
     if (!file || !adminKey.trim()) {
-      setMsg('เลือกไฟล์ .xlsx และใส่ Admin key')
+      setMsg('เลือกไฟล์ XLSX และใส่ Admin key')
       return
     }
     setLoading(true)
@@ -107,10 +108,10 @@ export function AdminImportPanel({ apiBase }: Props) {
 
   async function wipeAll() {
     if (!adminKey.trim()) {
-      setMsg('ใส่ Admin key')
+      setMsg('ใส่ Admin key ก่อน')
       return
     }
-    if (!window.confirm('ลบสมาชิกทั้งหมดจากตาราง members — ยืนยัน?')) return
+    if (!window.confirm('ลบสมาชิกทั้งหมดจากตาราง `members` — ยืนยัน?')) return
     setLoading(true)
     setMsg(null)
     try {
@@ -134,7 +135,7 @@ export function AdminImportPanel({ apiBase }: Props) {
 
   async function summarizeImport() {
     if (!adminKey.trim()) {
-      setMsg('ใส่ Admin key')
+      setMsg('ใส่ Admin key ก่อน')
       return
     }
 
@@ -166,19 +167,19 @@ export function AdminImportPanel({ apiBase }: Props) {
   return (
     <section className="rounded-xl border border-amber-900/50 bg-amber-950/20 p-6">
       <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200/90">
-        Admin — นำเข้า / ล้างสมาชิก
+        Admin — นำเข้า / ล้างข้อมูลสมาชิก
       </h2>
       <p className="mt-2 text-xs text-slate-500">
-        ใช้เฉพาะผู้ดูแลระบบ อย่า commit Admin key; เก็บใน session ของเบราว์เซอร์เท่านั้น
+        ใช้เฉพาะผู้ดูแลระบบ ห้าม commit Admin key; เก็บในเซสชันของเบราว์เซอร์เท่านั้น
       </p>
       <label className="mt-4 block text-sm text-slate-300">
-        x-admin-key
+        Admin key (x-admin-key)
         <input
           type="password"
           autoComplete="off"
           value={adminKey}
           onChange={(e) => setAdminKey(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-amber-600"
+          className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-amber-600 ${portalFocusRing}`}
           placeholder="ค่าเดียวกับ ADMIN_UPLOAD_KEY ใน backend/.env"
         />
       </label>
@@ -191,29 +192,29 @@ export function AdminImportPanel({ apiBase }: Props) {
         <div className="mt-2 flex flex-wrap gap-2">
           <a
             href={`${base}/api/admin/members/import-template.xlsx`}
-            className="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-slate-700"
+            className={`inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-slate-700 ${portalFocusRing}`}
             target="_blank"
             rel="noreferrer"
           >
-            ดาวน์โหลด .xlsx
+            ดาวน์โหลด XLSX
           </a>
           <a
             href={`${base}/api/admin/members/import-template.csv`}
-            className="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700"
+            className={`inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
             target="_blank"
             rel="noreferrer"
           >
-            ดาวน์โหลด .csv
+            ดาวน์โหลด CSV
           </a>
         </div>
       </div>
       <label className="mt-4 block text-sm text-slate-300">
-        ไฟล์ .xlsx (ชีตแรก)
+        ไฟล์ XLSX (ชีตแรก)
         <input
           type="file"
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="mt-1 block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-slate-200"
+          className={`mt-1 block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-slate-200 ${portalFocusRing}`}
         />
       </label>
       <div className="mt-4 flex flex-wrap gap-3">
@@ -221,7 +222,7 @@ export function AdminImportPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={upload}
-          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-amber-500 disabled:opacity-50"
+          className={`rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-amber-500 disabled:opacity-50 ${portalFocusRing}`}
         >
           อัปโหลดนำเข้า
         </button>
@@ -229,7 +230,7 @@ export function AdminImportPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={summarizeImport}
-          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-600 disabled:opacity-50"
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
         >
           ตรวจสอบหลังนำเข้า
         </button>
@@ -237,13 +238,17 @@ export function AdminImportPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={wipeAll}
-          className="rounded-lg border border-red-800 bg-red-950/40 px-4 py-2 text-sm font-medium text-red-200 hover:bg-red-950/70 disabled:opacity-50"
+          className={`rounded-lg border border-red-800 bg-red-950/40 px-4 py-2 text-sm font-medium text-red-200 hover:bg-red-950/70 disabled:opacity-50 ${portalFocusRing}`}
         >
           ลบสมาชิกทั้งหมด
         </button>
       </div>
       {msg && (
-        <pre className="mt-4 max-h-48 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-slate-300">
+        <pre
+          className="mt-4 max-h-48 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-slate-300"
+          role="status"
+          aria-live="polite"
+        >
           {msg}
         </pre>
       )}

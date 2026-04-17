@@ -2,42 +2,52 @@ import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { formatThbShort, totalStudentsInClasses, weightedAverageFromClasses } from './academyMath'
 import { type AcademyPortalData, type AcademyRoleView, type PortalDataState, useAcademyPortalData } from './dataAdapter'
-import { MetricCards, PortalDataSourceBadge, PortalShell, TrendBars } from './ui'
+import { portalFocusRing, portalNotFoundScopeLabel } from './portalLabels'
+import {
+  MetricCards,
+  PortalContentLoading,
+  PortalNotFound,
+  PortalSectionHeader,
+  PortalShell,
+  PortalSnapshotStatusRow,
+  PortalSnapshotToolbar,
+  TrendBars,
+} from './ui'
 
 export function AcademyArea(props: { apiBase: string }) {
   const [roleView, setRoleView] = useState<AcademyRoleView>('admin')
   const portalData = useAcademyPortalData(props.apiBase)
   const navItems = [
-    { to: '/academy/dashboard', label: 'Dashboard', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
+    { to: '/academy/dashboard', label: 'แดชบอร์ด', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
     { to: '/academy/students', label: 'นักเรียน/ห้องเรียน', roles: ['admin', 'teacher'] as AcademyRoleView[] },
     { to: '/academy/courses', label: 'คอร์สเรียน', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
     { to: '/academy/enrollment', label: 'สมัครเรียน', roles: ['admin', 'student', 'parent'] as AcademyRoleView[] },
     { to: '/academy/results', label: 'ผลการเรียน/คะแนน', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
-    { to: '/academy/reports', label: 'รายงาน infographic', roles: ['admin', 'teacher'] as AcademyRoleView[] },
+    { to: '/academy/reports', label: 'รายงานอินโฟกราฟิก', roles: ['admin', 'teacher'] as AcademyRoleView[] },
   ]
   const visibleNavItems = navItems.filter((item) => item.roles.includes(roleView)).map((item) => ({ to: item.to, label: item.label }))
 
   return (
     <PortalShell
-      title="Academy Portal"
-      subtitle="ผู้บริหาร · ผู้ปกครอง · นักเรียน · ครู · dashboard infographic (role-based)"
+      title="พอร์ทัลโรงเรียนกวดวิชา (Academy)"
+      subtitle="ผู้บริหาร · ผู้ปกครอง · นักเรียน · ครู · แดชบอร์ดอินโฟกราฟิก (ตามบทบาท)"
       navItems={visibleNavItems}
     >
       <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-500">Role view</span>
+          <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as AcademyRoleView)}
-            className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+            className={`rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
           >
             <option value="admin">ผู้บริหารโรงเรียน</option>
             <option value="teacher">ครู</option>
             <option value="student">นักเรียน</option>
             <option value="parent">ผู้ปกครอง</option>
           </select>
-          <span className="text-xs text-slate-500">จำลองสิทธิ์การเข้าถึงเมนูภายใน academy</span>
-          <PortalDataSourceBadge loading={portalData.loading} source={portalData.source} />
+          <span className="text-xs text-slate-500">จำลองสิทธิ์การเข้าถึงเมนูภายในพอร์ทัลโรงเรียนกวดวิชา (Academy)</span>
+          <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
         </div>
       </section>
       <Routes>
@@ -51,7 +61,7 @@ export function AcademyArea(props: { apiBase: string }) {
         <Route path="enrollment" element={<AcademyEnrollmentPage portalState={portalData} />} />
         <Route path="results" element={<AcademyResultsPage roleView={roleView} portalState={portalData} />} />
         <Route path="reports" element={<AcademyReportsPage roleView={roleView} portalState={portalData} />} />
-        <Route path="*" element={<NotFoundInline />} />
+        <Route path="*" element={<PortalNotFound scopeLabel={portalNotFoundScopeLabel.academy} />} />
       </Routes>
     </PortalShell>
   )
@@ -72,7 +82,10 @@ function AcademyStudentsPage(props: { roleView: AcademyRoleView; portalState: Po
         <p className="mt-3 text-sm text-slate-400">
           หน้านี้จัดไว้สำหรับผู้บริหารและครูเป็นหลัก หากต้องการดูข้อมูลส่วนตัวหรือของบุตรหลาน ให้ใช้เมนูที่เกี่ยวข้องเมื่อระบบเชื่อมบัญชีแล้ว
         </p>
-        <Link to="/academy/dashboard" className="mt-4 inline-block rounded bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+        <Link
+          to="/academy/dashboard"
+          className={`mt-4 inline-block rounded bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+        >
           กลับไปหน้าแดชบอร์ด
         </Link>
       </section>
@@ -85,23 +98,22 @@ function AcademyStudentsPage(props: { roleView: AcademyRoleView; portalState: Po
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ห้องเรียนและจำนวนนักเรียน</h3>
             <p className="mt-2 text-sm text-slate-400">
               สรุปจากฐานข้อมูลห้องที่เปิดใช้งานและนักเรียนในระบบ — อัปเดตเมื่อโหลดพอร์ทัล
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : classes.length === 0 ? (
           <div className="mt-4 rounded-lg border border-dashed border-slate-700 bg-slate-950/80 p-4 text-sm text-slate-400">
             <p>ยังไม่มีข้อมูลห้องจากระบบ (หรือใช้ข้อมูลจำลองที่ไม่มีรายการห้อง)</p>
             <p className="mt-2">
               ผู้ดูแลสามารถเพิ่มห้องและนักเรียนได้ที่{' '}
-              <Link to="/admin" className="text-emerald-400 underline hover:text-emerald-300">
+              <Link to="/admin" className={`rounded-sm text-emerald-400 underline hover:text-emerald-300 ${portalFocusRing}`}>
                 Admin
               </Link>{' '}
               หลังรัน migration และตั้งค่า API
@@ -181,8 +193,8 @@ function AcademyStudentsPage(props: { roleView: AcademyRoleView; portalState: Po
               </div>
             ) : (
               <p className="mt-4 text-xs text-slate-500">
-                ยังไม่มีรายชื่อนักเรียนใน snapshot — เพิ่มนักเรียนได้ที่{' '}
-                <Link to="/admin" className="text-emerald-400/90 underline hover:text-emerald-300">
+                ยังไม่มีรายชื่อนักเรียนในสแนปช็อต — เพิ่มนักเรียนได้ที่{' '}
+                <Link to="/admin" className={`rounded-sm text-emerald-400/90 underline hover:text-emerald-300 ${portalFocusRing}`}>
                   Admin
                 </Link>{' '}
                 (ข้อมูลมาจาก cram_students)
@@ -202,23 +214,22 @@ function AcademyCoursesPage(props: { portalState: PortalDataState<AcademyPortalD
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">คอร์สเรียน / กิจกรรม</h3>
             <p className="mt-2 text-sm text-slate-400">
               รายการจาก <code className="text-slate-500">school_activities</code> ที่เปิดใช้งาน — อัปเดตเมื่อโหลดพอร์ทัล
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : schoolCourses.length === 0 ? (
           <div className="mt-4 rounded-lg border border-dashed border-slate-700 bg-slate-950/80 p-4 text-sm text-slate-400">
             <p>ยังไม่มีรายการคอร์สในฐานข้อมูล (หรือใช้ข้อมูลจำลองที่ไม่มีรายการ)</p>
             <p className="mt-2 text-xs text-slate-500">
               เพิ่มผ่าน{' '}
-              <Link to="/admin" className="text-amber-400/90 underline hover:text-amber-300">
+              <Link to="/admin" className={`rounded-sm text-amber-400/90 underline hover:text-amber-300 ${portalFocusRing}`}>
                 Admin → คอร์ส/กิจกรรม
               </Link>{' '}
               หรือแก้ที่ตาราง <code className="text-slate-400">school_activities</code> ใน Supabase
@@ -267,35 +278,34 @@ function AcademyEnrollmentPage(props: { portalState: PortalDataState<AcademyPort
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สมัครเรียน (funnel)</h3>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สมัครเรียน (ขั้นตอน Funnel)</h3>
             <p className="mt-2 text-sm text-slate-400">
-              สรุปจำนวนตามขั้นจาก snapshot — ใช้เป็นภาพรวมก่อนมี workflow สมัครจริงในระบบ
+              สรุปจำนวนตามขั้นจากสแนปช็อต — ใช้เป็นภาพรวมก่อนมีขั้นตอนงานสมัครจริง (workflow) ในระบบ
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : (
           <>
             <TrendBars items={funnel} color="violet" />
             <p className="mt-4 text-sm text-slate-400">
-              อัตราแปลงโดยประมาณจากขั้นแรกถึงขั้นสุดใน funnel:{' '}
+              อัตราแปลงโดยประมาณจากขั้นแรกถึงขั้นสุดในขั้นตอน Funnel:{' '}
               <span className="font-medium text-violet-200">{conversionPct}%</span>
               <span className="text-slate-500"> ({last.toLocaleString('en-US')} / {first.toLocaleString('en-US')})</span>
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <Link
                 to="/academy/courses"
-                className="rounded-lg bg-violet-800 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700"
+                className={`rounded-lg bg-violet-800 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 ${portalFocusRing}`}
               >
                 ดูรายการคอร์ส
               </Link>
               <Link
                 to="/academy/reports"
-                className="rounded-lg border border-slate-700 px-4 py-2 text-xs text-slate-200 hover:bg-slate-800"
+                className={`rounded-lg border border-slate-700 px-4 py-2 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
               >
                 รายงานสรุป
               </Link>
@@ -317,16 +327,18 @@ function AcademyResultsPage(props: { roleView: AcademyRoleView; portalState: Por
   if (roleView === 'student' || roleView === 'parent') {
     return (
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ผลการเรียนและคะแนน</h3>
             <p className="mt-3 text-sm text-slate-400">
               มุมมองรายบุคคลและรายวิชาจะเชื่อมกับบัญชีนักเรียน/ผู้ปกครองเมื่อระบบพร้อม — ตอนนี้ดูภาพรวมได้จากแดชบอร์ดและเมนูที่เกี่ยวข้อง
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
-        <Link to="/academy/dashboard" className="mt-4 inline-block rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+        </PortalSectionHeader>
+        <Link
+          to="/academy/dashboard"
+          className={`mt-4 inline-block rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+        >
           ไปแดชบอร์ด
         </Link>
       </section>
@@ -336,17 +348,16 @@ function AcademyResultsPage(props: { roleView: AcademyRoleView; portalState: Por
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สรุปผลการเรียน (จาก snapshot)</h3>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สรุปผลการเรียน (จากสแนปช็อต)</h3>
             <p className="mt-2 text-sm text-slate-400">
               ค่าเฉลี่ยถ่วงน้ำหนักและจำนวนนักเรียนตามห้อง — รายละเอียดรายห้องและรายชื่ออยู่ที่เมนูนักเรียน/ห้องเรียน
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : (
           <>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -362,13 +373,13 @@ function AcademyResultsPage(props: { roleView: AcademyRoleView; portalState: Por
             <div className="mt-6 flex flex-wrap gap-2">
               <Link
                 to="/academy/students"
-                className="rounded-lg bg-emerald-800 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-700"
+                className={`rounded-lg bg-emerald-800 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-700 ${portalFocusRing}`}
               >
                 ดูรายห้องและรายชื่อ
               </Link>
               <Link
                 to="/academy/dashboard"
-                className="rounded-lg border border-slate-700 px-4 py-2 text-xs text-slate-200 hover:bg-slate-800"
+                className={`rounded-lg border border-slate-700 px-4 py-2 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
               >
                 แดชบอร์ด
               </Link>
@@ -405,15 +416,14 @@ function AcademyReportsPage(props: { roleView: AcademyRoleView; portalState: Por
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">รายงานสรุป</h3>
             <p className="mt-2 text-sm text-slate-400">{roleHint}</p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : (
           <>
             <div className="mt-4">
@@ -423,25 +433,28 @@ function AcademyReportsPage(props: { roleView: AcademyRoleView; portalState: Por
               </div>
             </div>
             <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Funnel สมัครเรียน</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">ขั้นตอนสมัครเรียน (Funnel)</p>
               <TrendBars items={data.enrollmentFunnel} color="cyan" />
             </div>
             {cramFinanceCards.length > 0 ? (
               <div className="mt-6 rounded-lg border border-violet-900/40 bg-violet-950/15 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-violet-200">การเงิน cram_school</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-violet-200">การเงินหน่วยงาน cram_school</p>
                 <div className="mt-3">
                   <MetricCards items={cramFinanceCards} />
                 </div>
               </div>
             ) : null}
             <div className="mt-6 flex flex-wrap gap-2">
-              <Link to="/academy/enrollment" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-white hover:bg-slate-700">
-                Funnel สมัคร
+              <Link
+                to="/academy/enrollment"
+                className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-white hover:bg-slate-700 ${portalFocusRing}`}
+              >
+                ขั้นตอนสมัคร (Funnel)
               </Link>
-              <Link to="/academy/students" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+              <Link to="/academy/students" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
                 ห้อง / นักเรียน
               </Link>
-              <Link to="/academy/courses" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+              <Link to="/academy/courses" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
                 คอร์ส
               </Link>
             </div>
@@ -471,12 +484,12 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
           {
             label: 'รายรับ (cram_school)',
             value: formatThbShort(cramPl.revenue),
-            hint: 'จากบัญชีแยกประเภท — journal เดือนนี้',
+            hint: 'จากบัญชีแยกประเภท — สมุดรายวัน (journal) เดือนนี้',
           },
           {
             label: 'รายจ่าย (cram_school)',
             value: formatThbShort(cramPl.expense),
-            hint: 'จากบัญชีแยกประเภท — journal เดือนนี้',
+            hint: 'จากบัญชีแยกประเภท — สมุดรายวัน (journal) เดือนนี้',
           },
           {
             label: 'คงเหลือสุทธิ',
@@ -489,20 +502,16 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <PortalSnapshotStatusRow loading={loading} source={source}>
           <p className="text-sm text-slate-200">{roleSummary}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            {loading ? <span className="text-xs text-slate-500">กำลังโหลด snapshot…</span> : null}
-            <PortalDataSourceBadge loading={loading} source={source} />
-          </div>
-        </div>
+        </PortalSnapshotStatusRow>
       </section>
       <MetricCards items={data.metricCards} />
       <MetricCards items={roleCards} />
       {cramFinanceCards.length > 0 ? (
         <section className="rounded-lg border border-violet-900/40 bg-violet-950/20 p-4">
           <h3 className="text-sm font-medium uppercase tracking-wide text-violet-200">การเงินโรงเรียนกวดวิชา (นิติบุคคล)</h3>
-          <p className="mt-1 text-xs text-violet-300/80">ยอดจาก journal เดือนปัจจุบัน — แยกจากสมาคมศิษย์เก่า</p>
+          <p className="mt-1 text-xs text-violet-300/80">ยอดจากสมุดรายวัน (journal) เดือนปัจจุบัน — แยกจากสมาคมศิษย์เก่า</p>
           <div className="mt-3">
             <MetricCards items={cramFinanceCards} />
           </div>
@@ -513,7 +522,7 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ผลคะแนนเฉลี่ยตามห้อง</h3>
           <p className="mt-2 text-sm text-slate-400">ดูคุณภาพการเรียนรายห้องเพื่อวางแผนเสริมจุดอ่อน</p>
           {data.classes.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">ยังไม่มีข้อมูลห้องเรียนจาก snapshot (เช่น ยังไม่มี cram_classrooms ที่ active)</p>
+            <p className="mt-4 text-sm text-slate-500">ยังไม่มีข้อมูลห้องเรียนจากสแนปช็อต (เช่น ยังไม่มีข้อมูลห้องที่เปิดใช้งานใน `cram_classrooms`)</p>
           ) : (
             <div className="mt-4 space-y-2 text-sm">
               {data.classes.map((row) => (
@@ -532,13 +541,19 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
           )}
         </section>
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-          <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">Funnel สมัครเรียน</h3>
+          <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ขั้นตอน Funnel สมัครเรียน</h3>
           <TrendBars items={data.enrollmentFunnel} color="violet" />
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link to="/academy/enrollment" className="rounded bg-violet-800 px-3 py-1.5 text-xs text-white hover:bg-violet-700">
+            <Link
+              to="/academy/enrollment"
+              className={`rounded bg-violet-800 px-3 py-1.5 text-xs text-white hover:bg-violet-700 ${portalFocusRing}`}
+            >
               ไปหน้าสมัครเรียน
             </Link>
-            <Link to="/academy/reports" className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+            <Link
+              to="/academy/reports"
+              className={`rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+            >
               ดูรายงานทั้งหมด
             </Link>
           </div>
@@ -547,7 +562,7 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">มุมมองตามบทบาท</h3>
         <p className="mt-2 text-sm text-slate-400">
-          สรุปสิ่งที่แต่ละบทบาทใช้ในเมนู Academy — ข้อมูลตัวเลขด้านบนมาจาก snapshot เดียวกัน แต่ละ role เห็นเมนูย่อยต่างกัน
+          สรุปสิ่งที่แต่ละบทบาทใช้ในเมนู Academy — ข้อมูลตัวเลขด้านบนมาจากสแนปช็อตเดียวกัน แต่ละบทบาทเห็นเมนูย่อยต่างกัน
         </p>
         <div className="mt-4 rounded-lg border border-cyan-900/35 bg-cyan-950/20 px-4 py-3">
           <ul className="list-inside list-disc space-y-1.5 text-sm text-slate-300">
@@ -557,13 +572,16 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
           </ul>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link to="/academy/students" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+          <Link
+            to="/academy/students"
+            className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+          >
             ห้อง / นักเรียน
           </Link>
-          <Link to="/academy/courses" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+          <Link to="/academy/courses" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
             คอร์ส
           </Link>
-          <Link to="/academy/reports" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+          <Link to="/academy/reports" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
             รายงาน
           </Link>
         </div>
@@ -576,7 +594,7 @@ function academyRoleBullets(role: AcademyRoleView): string[] {
   switch (role) {
     case 'admin':
       return [
-        'เห็นเมตริกภาพรวม การเงิน cram_school (ถ้ามี journal) และ funnel สมัคร',
+        'เห็นเมตริกภาพรวม การเงิน cram_school (ถ้ามีข้อมูลสมุดรายวัน journal) และ Funnel สมัคร',
         'เข้าถึงห้องเรียน คอร์ส รายงาน และผลการเรียนทั้งระบบ',
         'ใช้ข้อมูลเพื่อวางแผนรับนักเรียนและติดตามคุณภาพ',
       ]
@@ -601,10 +619,3 @@ function academyRoleBullets(role: AcademyRoleView): string[] {
   }
 }
 
-function NotFoundInline() {
-  return (
-    <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5 text-sm text-slate-400">
-      ไม่พบหน้าที่ร้องขอภายในพอร์ทัลโรงเรียนกวดวิชา
-    </section>
-  )
-}

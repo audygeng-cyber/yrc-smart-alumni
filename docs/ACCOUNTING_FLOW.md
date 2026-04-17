@@ -22,7 +22,7 @@
 
 ## API เบื้องต้น (Admin)
 
-> ตอนนี้ endpoint กลุ่มนี้อยู่ใต้ `x-admin-key` เพื่อทดสอบ flow ก่อนระบบ token/role สมบูรณ์
+> ตอนนี้ endpoint กลุ่มนี้อยู่ใต้ `Admin key (x-admin-key)` เพื่อทดสอบ flow ก่อนระบบ token/role สมบูรณ์
 
 - `GET /api/admin/finance/overview`
   - ดูภาพรวมคำขอจ่ายเงินค้าง + สรุปยอดบริจาครายรุ่น
@@ -71,7 +71,7 @@
 
 ## แผนต่อยอด
 
-1. ผูก approval กับ user session จริง (`app_users` + `app_user_roles`) แทนรับ role จาก body
+1. ผูก approval กับเซสชันผู้ใช้จริง (`app_users` + `app_user_roles`) แทนรับ role จาก body
 2. รองรับไฟล์สลิปจริงผ่าน object storage + signed URL
 3. เพิ่มรายงานบัญชีมาตรฐาน:
    - งบทดลอง

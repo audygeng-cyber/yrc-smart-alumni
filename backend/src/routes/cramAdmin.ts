@@ -13,12 +13,12 @@ cramAdminRouter.get('/classrooms', async (req, res) => {
     }
     const { data, error } = await q
     if (error) {
-      res.status(500).json({ error: 'Load failed', details: error })
+      res.status(500).json({ error: 'โหลดข้อมูลไม่สำเร็จ', details: error })
       return
     }
     res.json({ ok: true, classrooms: data ?? [] })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -29,7 +29,7 @@ cramAdminRouter.post('/classrooms', async (req, res) => {
     const room_code = typeof req.body?.room_code === 'string' ? req.body.room_code.trim() : ''
     const display_name = typeof req.body?.display_name === 'string' ? req.body.display_name.trim() : ''
     if (!room_code || !display_name) {
-      res.status(400).json({ error: 'room_code and display_name are required' })
+      res.status(400).json({ error: 'ต้องระบุ room_code และ display_name' })
       return
     }
     const sort_order = typeof req.body?.sort_order === 'number' ? req.body.sort_order : 0
@@ -42,12 +42,12 @@ cramAdminRouter.post('/classrooms', async (req, res) => {
       .select('*')
       .single()
     if (error) {
-      res.status(500).json({ error: 'Insert failed', details: error })
+      res.status(500).json({ error: 'เพิ่มข้อมูลไม่สำเร็จ', details: error })
       return
     }
     res.status(201).json({ ok: true, classroom: data })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -57,7 +57,7 @@ cramAdminRouter.patch('/classrooms/:id', async (req, res) => {
   try {
     const id = typeof req.params.id === 'string' ? req.params.id.trim() : ''
     if (!id) {
-      res.status(400).json({ error: 'id is required' })
+      res.status(400).json({ error: 'ต้องระบุ id' })
       return
     }
     const patch: Record<string, unknown> = {}
@@ -66,23 +66,23 @@ cramAdminRouter.patch('/classrooms/:id', async (req, res) => {
     if (typeof req.body?.sort_order === 'number') patch.sort_order = req.body.sort_order
     if (typeof req.body?.active === 'boolean') patch.active = req.body.active
     if (Object.keys(patch).length === 0) {
-      res.status(400).json({ error: 'No fields to update' })
+      res.status(400).json({ error: 'ไม่มีฟิลด์สำหรับอัปเดต' })
       return
     }
 
     const supabase = getServiceSupabase()
     const { data, error } = await supabase.from('cram_classrooms').update(patch).eq('id', id).select('*').maybeSingle()
     if (error) {
-      res.status(500).json({ error: 'Update failed', details: error })
+      res.status(500).json({ error: 'อัปเดตข้อมูลไม่สำเร็จ', details: error })
       return
     }
     if (!data) {
-      res.status(404).json({ error: 'Classroom not found' })
+      res.status(404).json({ error: 'ไม่พบห้องเรียน' })
       return
     }
     res.json({ ok: true, classroom: data })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -98,12 +98,12 @@ cramAdminRouter.get('/students', async (req, res) => {
     }
     const { data, error } = await q
     if (error) {
-      res.status(500).json({ error: 'Load failed', details: error })
+      res.status(500).json({ error: 'โหลดข้อมูลไม่สำเร็จ', details: error })
       return
     }
     res.json({ ok: true, students: data ?? [] })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -114,14 +114,14 @@ cramAdminRouter.post('/students', async (req, res) => {
     const classroom_id = typeof req.body?.classroom_id === 'string' ? req.body.classroom_id.trim() : ''
     const display_name = typeof req.body?.display_name === 'string' ? req.body.display_name.trim() : ''
     if (!classroom_id || !display_name) {
-      res.status(400).json({ error: 'classroom_id and display_name are required' })
+      res.status(400).json({ error: 'ต้องระบุ classroom_id และ display_name' })
       return
     }
     let current_avg_score: number | null = null
     if (req.body?.current_avg_score != null && req.body?.current_avg_score !== '') {
       const n = Number(req.body.current_avg_score)
       if (!Number.isFinite(n)) {
-        res.status(400).json({ error: 'current_avg_score must be a number' })
+        res.status(400).json({ error: 'current_avg_score ต้องเป็นตัวเลข' })
         return
       }
       current_avg_score = n
@@ -141,12 +141,12 @@ cramAdminRouter.post('/students', async (req, res) => {
       .select('*')
       .single()
     if (error) {
-      res.status(500).json({ error: 'Insert failed', details: error })
+      res.status(500).json({ error: 'เพิ่มข้อมูลไม่สำเร็จ', details: error })
       return
     }
     res.status(201).json({ ok: true, student: data })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -156,7 +156,7 @@ cramAdminRouter.patch('/students/:id', async (req, res) => {
   try {
     const id = typeof req.params.id === 'string' ? req.params.id.trim() : ''
     if (!id) {
-      res.status(400).json({ error: 'id is required' })
+      res.status(400).json({ error: 'ต้องระบุ id' })
       return
     }
     const patch: Record<string, unknown> = {}
@@ -167,7 +167,7 @@ cramAdminRouter.patch('/students/:id', async (req, res) => {
     } else if (req.body?.current_avg_score !== undefined && req.body?.current_avg_score !== '') {
       const n = Number(req.body.current_avg_score)
       if (!Number.isFinite(n)) {
-        res.status(400).json({ error: 'current_avg_score must be a number' })
+        res.status(400).json({ error: 'current_avg_score ต้องเป็นตัวเลข' })
         return
       }
       patch.current_avg_score = n
@@ -179,23 +179,23 @@ cramAdminRouter.patch('/students/:id', async (req, res) => {
       patch.app_user_id = u.length ? u : null
     }
     if (Object.keys(patch).length === 0) {
-      res.status(400).json({ error: 'No fields to update' })
+      res.status(400).json({ error: 'ไม่มีฟิลด์สำหรับอัปเดต' })
       return
     }
 
     const supabase = getServiceSupabase()
     const { data, error } = await supabase.from('cram_students').update(patch).eq('id', id).select('*').maybeSingle()
     if (error) {
-      res.status(500).json({ error: 'Update failed', details: error })
+      res.status(500).json({ error: 'อัปเดตข้อมูลไม่สำเร็จ', details: error })
       return
     }
     if (!data) {
-      res.status(404).json({ error: 'Student not found' })
+      res.status(404).json({ error: 'ไม่พบนักเรียน' })
       return
     }
     res.json({ ok: true, student: data })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -205,18 +205,18 @@ cramAdminRouter.delete('/students/:id', async (req, res) => {
   try {
     const id = typeof req.params.id === 'string' ? req.params.id.trim() : ''
     if (!id) {
-      res.status(400).json({ error: 'id is required' })
+      res.status(400).json({ error: 'ต้องระบุ id' })
       return
     }
     const supabase = getServiceSupabase()
     const { error } = await supabase.from('cram_students').delete().eq('id', id)
     if (error) {
-      res.status(500).json({ error: 'Delete failed', details: error })
+      res.status(500).json({ error: 'ลบข้อมูลไม่สำเร็จ', details: error })
       return
     }
     res.json({ ok: true })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })

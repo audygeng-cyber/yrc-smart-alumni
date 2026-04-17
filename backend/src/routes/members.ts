@@ -14,19 +14,19 @@ async function fetchMemberRowById(supabase: ReturnType<typeof getServiceSupabase
 
 membersRouter.get('/', (_req, res) => {
   res.json({
-    message: 'Member listing will be added with auth and Supabase RLS.',
+    message: 'กำลังเตรียมหน้ารายการสมาชิก โดยจะเปิดใช้งานร่วมกับ auth และ Supabase RLS',
   })
 })
 
 /**
- * โหลดข้อมูลสมาชิกจาก line_uid ที่ผูกไว้แล้ว — ใช้กู้ session ฝั่ง frontend หลัง refresh
+ * โหลดข้อมูลสมาชิกจาก line_uid ที่ผูกไว้แล้ว — ใช้กู้เซสชันฝั่ง frontend หลัง refresh
  * Body: { line_uid }
  */
 membersRouter.post('/session-member', async (req, res) => {
   try {
     const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
     if (!line_uid) {
-      res.status(400).json({ error: 'line_uid is required' })
+      res.status(400).json({ error: 'ต้องระบุ line_uid' })
       return
     }
 
@@ -34,18 +34,18 @@ membersRouter.post('/session-member', async (req, res) => {
     const { data: row, error } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
 
     if (error) {
-      res.status(500).json({ error: 'Lookup failed', details: error })
+      res.status(500).json({ error: 'ค้นหาข้อมูลไม่สำเร็จ', details: error })
       return
     }
     if (!row?.id) {
-      res.status(404).json({ code: 'MEMBER_NOT_LINKED', error: 'ยังไม่พบสมาชิกที่ผูก Line UID นี้' })
+      res.status(404).json({ code: 'MEMBER_NOT_LINKED', error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้' })
       return
     }
 
     const full = await fetchMemberRowById(supabase, row.id as string)
     res.json({ ok: true, memberId: row.id, member: full })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -55,7 +55,7 @@ membersRouter.post('/request-status', async (req, res) => {
   try {
     const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
     if (!line_uid) {
-      res.status(400).json({ error: 'line_uid is required' })
+      res.status(400).json({ error: 'ต้องระบุ line_uid' })
       return
     }
 
@@ -71,23 +71,23 @@ membersRouter.post('/request-status', async (req, res) => {
       .maybeSingle()
 
     if (error) {
-      res.status(500).json({ error: 'Lookup failed', details: error })
+      res.status(500).json({ error: 'ค้นหาข้อมูลไม่สำเร็จ', details: error })
       return
     }
     if (!row) {
-      res.status(404).json({ code: 'REQUEST_NOT_FOUND', error: 'ยังไม่พบคำร้องของ Line UID นี้' })
+      res.status(404).json({ code: 'REQUEST_NOT_FOUND', error: 'ยังไม่พบคำร้องของ LINE UID นี้' })
       return
     }
 
     res.json({ ok: true, request: row })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
 
 /**
- * ผูก Line UID กับสมาชิกที่มีอยู่แล้ว (กฎ: รุ่น + ชื่อ + นามสกุล ตรงกันหนึ่งแถวเท่านั้น)
+ * ผูก LINE UID กับสมาชิกที่มีอยู่แล้ว (กฎ: รุ่น + ชื่อ + นามสกุล ตรงกันหนึ่งแถวเท่านั้น)
  * แนะนำให้ได้ line_uid จาก POST /api/auth/line/token (ตรวจ id_token กับ LINE แล้ว)
  */
 membersRouter.post('/verify-link', async (req, res) => {
@@ -98,7 +98,7 @@ membersRouter.post('/verify-link', async (req, res) => {
     const last_name = typeof req.body?.last_name === 'string' ? req.body.last_name : ''
 
     if (!line_uid || !batch || !first_name || !last_name) {
-      res.status(400).json({ error: 'line_uid, batch, first_name, last_name are required' })
+      res.status(400).json({ error: 'ต้องระบุ line_uid, batch, first_name และ last_name' })
       return
     }
 
@@ -116,7 +116,7 @@ membersRouter.post('/verify-link', async (req, res) => {
       .eq('last_name', nl)
 
     if (qErr) {
-      res.status(500).json({ error: 'Lookup failed', details: qErr })
+      res.status(500).json({ error: 'ค้นหาข้อมูลไม่สำเร็จ', details: qErr })
       return
     }
 
@@ -155,7 +155,7 @@ membersRouter.post('/verify-link', async (req, res) => {
       .maybeSingle()
 
     if (uidErr) {
-      res.status(500).json({ error: 'Line UID check failed', details: uidErr })
+      res.status(500).json({ error: 'ตรวจสอบ LINE UID ไม่สำเร็จ', details: uidErr })
       return
     }
 
@@ -179,14 +179,14 @@ membersRouter.post('/verify-link', async (req, res) => {
       .eq('id', member.id)
 
     if (upErr) {
-      res.status(500).json({ error: 'Update failed', details: upErr })
+      res.status(500).json({ error: 'อัปเดตข้อมูลไม่สำเร็จ', details: upErr })
       return
     }
 
     const full = await fetchMemberRowById(supabase, member.id as string)
     res.json({ ok: true, memberId: member.id, linked: true, member: full })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -200,11 +200,11 @@ membersRouter.post('/update-self', async (req, res) => {
     const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
     const rawUpdates = req.body?.updates
     if (!line_uid) {
-      res.status(400).json({ error: 'line_uid is required' })
+      res.status(400).json({ error: 'ต้องระบุ line_uid' })
       return
     }
     if (!rawUpdates || typeof rawUpdates !== 'object' || Array.isArray(rawUpdates)) {
-      res.status(400).json({ error: 'updates object is required' })
+      res.status(400).json({ error: 'ต้องระบุ updates object' })
       return
     }
 
@@ -222,12 +222,12 @@ membersRouter.post('/update-self', async (req, res) => {
       .maybeSingle()
 
     if (qErr) {
-      res.status(500).json({ error: 'Lookup failed', details: qErr })
+      res.status(500).json({ error: 'ค้นหาข้อมูลไม่สำเร็จ', details: qErr })
       return
     }
     if (!row) {
       res.status(403).json({
-        error: 'ยังไม่พบสมาชิกที่ผูก Line UID นี้ — ใช้ "ตรวจสอบและผูก" ก่อน',
+        error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้ — ใช้ "ตรวจสอบและผูก" ก่อน',
       })
       return
     }
@@ -238,14 +238,14 @@ membersRouter.post('/update-self', async (req, res) => {
       .eq('id', row.id)
 
     if (upErr) {
-      res.status(500).json({ error: 'Update failed', details: upErr })
+      res.status(500).json({ error: 'อัปเดตข้อมูลไม่สำเร็จ', details: upErr })
       return
     }
 
     const full = await fetchMemberRowById(supabase, row.id as string)
     res.json({ ok: true, memberId: row.id, member: full })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -254,13 +254,13 @@ membersRouter.post('/update-self', async (req, res) => {
 membersRouter.post('/register-request', async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object') {
-      res.status(400).json({ error: 'JSON body required' })
+      res.status(400).json({ error: 'ต้องส่ง JSON body' })
       return
     }
 
     const line_uid = typeof req.body.line_uid === 'string' ? req.body.line_uid.trim() : ''
     if (!line_uid) {
-      res.status(400).json({ error: 'line_uid is required' })
+      res.status(400).json({ error: 'ต้องระบุ line_uid' })
       return
     }
 
@@ -277,7 +277,7 @@ membersRouter.post('/register-request', async (req, res) => {
       .maybeSingle()
 
     if (uidErr) {
-      res.status(500).json({ error: 'Line UID check failed', details: uidErr })
+      res.status(500).json({ error: 'ตรวจสอบ LINE UID ไม่สำเร็จ', details: uidErr })
       return
     }
 
@@ -308,7 +308,7 @@ membersRouter.post('/register-request', async (req, res) => {
       .single()
 
     if (insErr || !row) {
-      res.status(500).json({ error: 'Failed to create request', details: insErr })
+      res.status(500).json({ error: 'สร้างคำร้องไม่สำเร็จ', details: insErr })
       return
     }
 
@@ -316,7 +316,7 @@ membersRouter.post('/register-request', async (req, res) => {
 
     res.status(201).json({ ok: true, requestId: row.id })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })

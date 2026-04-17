@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { portalSnapshotPath } from './portalLabels'
 import {
   academyClasses,
   academyEnrollmentFunnel,
@@ -126,7 +127,11 @@ export type PortalDataState<TData> = {
   data: TData
   source: PortalDataSource
   loading: boolean
+  /** โหลด snapshot จาก API อีกครั้ง (แสดง loading ระหว่างดึง) */
+  refetch: () => Promise<void>
 }
+
+type PortalSnapshotSlice<TData> = Omit<PortalDataState<TData>, 'refetch'>
 
 const memberPortalMockData: MemberPortalData = {
   statsCards: memberStatsCards,
@@ -174,6 +179,10 @@ const academyPortalMockData: AcademyPortalData = {
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+function isAbortError(e: unknown): boolean {
+  return (e instanceof DOMException && e.name === 'AbortError') || (e instanceof Error && e.name === 'AbortError')
 }
 
 export function normalizeMemberPortalData(raw: unknown, fallback: MemberPortalData): MemberPortalData {
@@ -331,16 +340,18 @@ async function loadPortalData<TData>(params: {
   endpoint: string
   fallback: TData
   normalize?: (raw: unknown, fallback: TData) => TData
+  signal?: AbortSignal
 }): Promise<{ data: TData; source: PortalDataSource }> {
   try {
-    const res = await fetch(`${params.apiBase}${params.endpoint}`)
+    const res = await fetch(`${params.apiBase}${params.endpoint}`, { signal: params.signal })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const body: unknown = await res.json()
     const unwrapped =
       isRecord(body) && 'data' in body && body.data !== undefined ? (body as { data: unknown }).data : body
     const data = params.normalize ? params.normalize(unwrapped, params.fallback) : (unwrapped as TData)
     return { data, source: 'api' }
-  } catch {
+  } catch (e: unknown) {
+    if (isAbortError(e)) throw e
     return { data: params.fallback, source: 'mock' }
   }
 }
@@ -350,36 +361,73 @@ function usePortalData<TData>(
   endpoint: string,
   fallback: TData,
   normalize?: (raw: unknown, fallback: TData) => TData,
-) {
-  const [state, setState] = useState<PortalDataState<TData>>({
+): PortalDataState<TData> {
+  const [state, setState] = useState<PortalSnapshotSlice<TData>>({
     data: fallback,
     source: 'mock',
     loading: true,
   })
 
+  const loadGenRef = useRef(0)
+  const inFlightRef = useRef<AbortController | null>(null)
+
+  const runLoad = useCallback(
+    async (signal?: AbortSignal) => {
+      return loadPortalData({ apiBase, endpoint, fallback, normalize, signal })
+    },
+    [apiBase, endpoint, fallback, normalize],
+  )
+
   useEffect(() => {
-    let cancelled = false
+    const genRef = loadGenRef
+    const gen = ++genRef.current
+    inFlightRef.current?.abort()
+    const ac = new AbortController()
+    inFlightRef.current = ac
     ;(async () => {
-      const result = await loadPortalData({ apiBase, endpoint, fallback, normalize })
-      if (cancelled) return
-      setState({ ...result, loading: false })
+      setState((s) => ({ ...s, loading: true }))
+      try {
+        const result = await runLoad(ac.signal)
+        if (gen !== genRef.current) return
+        setState({ data: result.data, source: result.source, loading: false })
+      } catch (e: unknown) {
+        if (isAbortError(e)) return
+        throw e
+      }
     })()
     return () => {
-      cancelled = true
+      ac.abort()
+      genRef.current += 1
     }
-  }, [apiBase, endpoint, fallback, normalize])
+  }, [runLoad])
 
-  return state
+  const refetch = useCallback(async () => {
+    const gen = ++loadGenRef.current
+    inFlightRef.current?.abort()
+    const ac = new AbortController()
+    inFlightRef.current = ac
+    setState((s) => ({ ...s, loading: true }))
+    try {
+      const result = await runLoad(ac.signal)
+      if (gen !== loadGenRef.current) return
+      setState({ data: result.data, source: result.source, loading: false })
+    } catch (e: unknown) {
+      if (isAbortError(e)) return
+      throw e
+    }
+  }, [runLoad])
+
+  return { ...state, refetch }
 }
 
 export function useMemberPortalData(apiBase: string) {
-  return usePortalData(apiBase, '/api/portal/member', memberPortalMockData, normalizeMemberPortalData)
+  return usePortalData(apiBase, portalSnapshotPath.member, memberPortalMockData, normalizeMemberPortalData)
 }
 
 export function useCommitteePortalData(apiBase: string) {
-  return usePortalData(apiBase, '/api/portal/committee', committeePortalMockData, normalizeCommitteePortalData)
+  return usePortalData(apiBase, portalSnapshotPath.committee, committeePortalMockData, normalizeCommitteePortalData)
 }
 
 export function useAcademyPortalData(apiBase: string) {
-  return usePortalData(apiBase, '/api/portal/academy', academyPortalMockData, normalizeAcademyPortalData)
+  return usePortalData(apiBase, portalSnapshotPath.academy, academyPortalMockData, normalizeAcademyPortalData)
 }

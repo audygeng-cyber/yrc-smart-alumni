@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY, normalizeApiBase } from '../lib/adminApi'
+import { portalFocusRing } from '../portal/portalLabels'
 const PAGE_SIZE = 20
 const REPORT_PRESETS_KEY = 'yrc_finance_report_presets_v1'
 const ACTIVITY_LOG_KEY = 'yrc_finance_activity_log_v1'
@@ -94,12 +95,12 @@ type AutoRefreshSettings = {
   soundOnPause: boolean
 }
 const ACTIVITY_SHORTCUTS = [
-  { label: 'Auto refresh', keyword: 'Auto refresh' },
-  { label: 'Preset', keyword: 'preset' },
-  { label: 'Reports', keyword: 'โหลดรายงาน' },
-  { label: 'Export', keyword: 'Export' },
-  { label: 'Meeting', keyword: 'ประชุม' },
-  { label: 'Payment', keyword: 'คำขอจ่ายเงิน' },
+  { label: 'รีเฟรชอัตโนมัติ', keyword: 'Auto refresh' },
+  { label: 'พรีเซ็ต', keyword: 'preset' },
+  { label: 'รายงาน', keyword: 'โหลดรายงาน' },
+  { label: 'ส่งออก', keyword: 'Export' },
+  { label: 'ประชุม', keyword: 'ประชุม' },
+  { label: 'การจ่ายเงิน', keyword: 'คำขอจ่ายเงิน' },
 ] as const
 
 async function readApiJson(r: Response): Promise<{
@@ -166,6 +167,21 @@ function formatActivityTimestamp(d: Date): { at: string; atLabel: string } {
   return {
     at: d.toISOString(),
     atLabel: d.toLocaleString(),
+  }
+}
+
+function activityLevelLabel(level: ActivityFilter): string {
+  switch (level) {
+    case 'all':
+      return 'ทั้งหมด'
+    case 'info':
+      return 'ข้อมูล'
+    case 'warn':
+      return 'คำเตือน'
+    case 'error':
+      return 'ข้อผิดพลาด'
+    default:
+      return level
   }
 }
 
@@ -566,11 +582,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
         if (cancelled) return
         if (!pl.ok || !donations.ok) {
           const errors: string[] = []
-          if (!pl.ok) errors.push(formatFetchError('Auto refresh P/L', pl.status, pl.payload, pl.rawText))
+          if (!pl.ok) errors.push(formatFetchError('รีเฟรชอัตโนมัติ P/L', pl.status, pl.payload, pl.rawText))
           if (!donations.ok) {
             errors.push(
               formatFetchError(
-                'Auto refresh donations',
+                'รีเฟรชอัตโนมัติรายงานเงินบริจาค',
                 donations.status,
                 donations.payload,
                 donations.rawText,
@@ -582,14 +598,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
             if (next >= AUTO_REFRESH_MAX_FAILURES) {
               setAutoRefreshPausedByError(true)
               setLastAutoRefreshError(
-                `${errors.join('\n\n------------------------------\n\n')}\n\nAuto refresh หยุดชั่วคราว (error ต่อเนื่อง ${next} ครั้ง)`,
+                `${errors.join('\n\n------------------------------\n\n')}\n\nรีเฟรชอัตโนมัติหยุดชั่วคราว (ผิดพลาดต่อเนื่อง ${next} ครั้ง)`,
               )
-              addActivity('warn', `Auto refresh pause (error ต่อเนื่อง ${next} ครั้ง)`)
+              addActivity('warn', `รีเฟรชอัตโนมัติหยุดชั่วคราว (ผิดพลาดต่อเนื่อง ${next} ครั้ง)`)
             } else {
               setLastAutoRefreshError(
-                `${errors.join('\n\n------------------------------\n\n')}\n\nAuto refresh ผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
+                `${errors.join('\n\n------------------------------\n\n')}\n\nรีเฟรชอัตโนมัติผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
               )
-              addActivity('warn', `Auto refresh ผิดพลาด ${next}/${AUTO_REFRESH_MAX_FAILURES}`)
+              addActivity('warn', `รีเฟรชอัตโนมัติผิดพลาด ${next}/${AUTO_REFRESH_MAX_FAILURES}`)
             }
             return next
           })
@@ -600,7 +616,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         setLastAutoRefreshAt(new Date().toLocaleTimeString())
         setLastAutoRefreshError(null)
         setAutoRefreshFailureCount(0)
-        addActivity('info', 'Auto refresh สำเร็จ')
+        addActivity('info', 'รีเฟรชอัตโนมัติสำเร็จ')
       } catch {
         if (!cancelled) {
           setAutoRefreshFailureCount((prev) => {
@@ -608,14 +624,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
             if (next >= AUTO_REFRESH_MAX_FAILURES) {
               setAutoRefreshPausedByError(true)
               setLastAutoRefreshError(
-                `Auto refresh เรียก API ไม่สำเร็จ\n\nAuto refresh หยุดชั่วคราว (error ต่อเนื่อง ${next} ครั้ง)`,
+                `รีเฟรชอัตโนมัติเรียก API ไม่สำเร็จ\n\nรีเฟรชอัตโนมัติหยุดชั่วคราว (ผิดพลาดต่อเนื่อง ${next} ครั้ง)`,
               )
-              addActivity('warn', `Auto refresh pause (เรียก API ล้มเหลว ${next} ครั้ง)`)
+              addActivity('warn', `รีเฟรชอัตโนมัติหยุดชั่วคราว (เรียก API ล้มเหลว ${next} ครั้ง)`)
             } else {
               setLastAutoRefreshError(
-                `Auto refresh เรียก API ไม่สำเร็จ\n\nAuto refresh ผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
+                `รีเฟรชอัตโนมัติเรียก API ไม่สำเร็จ\n\nรีเฟรชอัตโนมัติผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
               )
-              addActivity('warn', `Auto refresh เรียก API ไม่สำเร็จ ${next}/${AUTO_REFRESH_MAX_FAILURES}`)
+              addActivity('warn', `รีเฟรชอัตโนมัติเรียก API ไม่สำเร็จ ${next}/${AUTO_REFRESH_MAX_FAILURES}`)
             }
             return next
           })
@@ -651,13 +667,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     if (alertOnPause && typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'granted') {
         new Notification('YRC Finance Auto Refresh Paused', {
-          body: `Auto refresh หยุดชั่วคราวหลัง error ต่อเนื่อง ${autoRefreshFailureCount} ครั้ง`,
+          body: `รีเฟรชอัตโนมัติหยุดชั่วคราวหลังผิดพลาดต่อเนื่อง ${autoRefreshFailureCount} ครั้ง`,
         })
       } else if (Notification.permission === 'default') {
         Notification.requestPermission().then((permission) => {
           if (permission === 'granted') {
             new Notification('YRC Finance Auto Refresh Paused', {
-              body: `Auto refresh หยุดชั่วคราวหลัง error ต่อเนื่อง ${autoRefreshFailureCount} ครั้ง`,
+              body: `รีเฟรชอัตโนมัติหยุดชั่วคราวหลังผิดพลาดต่อเนื่อง ${autoRefreshFailureCount} ครั้ง`,
             })
           }
         })
@@ -699,20 +715,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setAutoRefreshFailureCount(0)
       setLastAutoRefreshError(null)
       setIsAutoRefreshing(false)
-      addActivity('info', 'ปิด Auto refresh')
+      addActivity('info', 'ปิดรีเฟรชอัตโนมัติ')
       return
     }
     setAutoRefreshPausedByError(false)
     setAutoRefreshFailureCount(0)
     setLastAutoRefreshError(null)
-    addActivity('info', 'เปิด Auto refresh')
+    addActivity('info', 'เปิดรีเฟรชอัตโนมัติ')
   }
 
   function resumeAutoRefresh() {
     setAutoRefreshPausedByError(false)
     setAutoRefreshFailureCount(0)
     setLastAutoRefreshError(null)
-    addActivity('info', 'Resume Auto refresh')
+    addActivity('info', 'เริ่มรีเฟรชอัตโนมัติอีกครั้ง')
   }
 
   function togglePlSort(nextKey: PlSortKey) {
@@ -771,20 +787,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
           type="button"
           disabled={page <= 1}
           onClick={() => onPage(Math.max(1, page - 1))}
-          className="rounded bg-slate-800 px-2 py-1 text-slate-200 disabled:opacity-40"
+          className={`rounded bg-slate-800 px-2 py-1 text-slate-200 disabled:opacity-40 ${portalFocusRing}`}
         >
-          Prev
+          ก่อนหน้า
         </button>
         <span>
-          Page {page}/{totalPages}
+          หน้า {page}/{totalPages}
         </span>
         <button
           type="button"
           disabled={page >= totalPages}
           onClick={() => onPage(Math.min(totalPages, page + 1))}
-          className="rounded bg-slate-800 px-2 py-1 text-slate-200 disabled:opacity-40"
+          className={`rounded bg-slate-800 px-2 py-1 text-slate-200 disabled:opacity-40 ${portalFocusRing}`}
         >
-          Next
+          ถัดไป
         </button>
       </div>
     )
@@ -799,14 +815,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setDonorPage(1)
     setBatchPage(1)
     setEntityPage(1)
-    setMsg(`ใช้ preset แล้ว: ${preset.name}`)
-    addActivity('info', `ใช้ preset: ${preset.name}`)
+    setMsg(`ใช้พรีเซ็ตแล้ว: ${preset.name}`)
+    addActivity('info', `ใช้พรีเซ็ต: ${preset.name}`)
   }
 
   function applySelectedPreset() {
     const preset = allPresets.find((p) => p.id === selectedPresetId)
     if (!preset) {
-      setMsg('ไม่พบ preset ที่เลือก')
+      setMsg('ไม่พบพรีเซ็ตที่เลือก')
       return
     }
     applyPreset(preset)
@@ -815,11 +831,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
   async function applySelectedPresetAndLoad() {
     const preset = allPresets.find((p) => p.id === selectedPresetId)
     if (!preset) {
-      setMsg('ไม่พบ preset ที่เลือก')
+      setMsg('ไม่พบพรีเซ็ตที่เลือก')
       return
     }
     applyPreset(preset)
-    if (!adminKey.trim()) return setMsg('ใช้ preset แล้ว — ใส่ x-admin-key ก่อนโหลดรายงาน')
+    if (!adminKey.trim()) return setMsg('ใช้พรีเซ็ตแล้ว — ใส่ Admin key ก่อนโหลดรายงาน')
 
     setLoading(true)
     setMsg(null)
@@ -836,14 +852,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])
       if (!pl.ok || !donations.ok) {
         const errors: string[] = []
-        if (!pl.ok) errors.push(formatFetchError('โหลด P/L summary', pl.status, pl.payload, pl.rawText))
+        if (!pl.ok) errors.push(formatFetchError('โหลดสรุป P/L', pl.status, pl.payload, pl.rawText))
         if (!donations.ok) {
           errors.push(
-            formatFetchError('โหลด donations dashboard', donations.status, donations.payload, donations.rawText),
+            formatFetchError('โหลดแดชบอร์ดเงินบริจาค', donations.status, donations.payload, donations.rawText),
           )
         }
         setMsg(errors.join('\n\n------------------------------\n\n'))
-        addActivity('warn', `ใช้ preset + โหลดทันทีล้มเหลวบางส่วน: ${preset.name}`)
+        addActivity('warn', `ใช้พรีเซ็ต + โหลดทันทีล้มเหลวบางส่วน: ${preset.name}`)
         return
       }
       setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
@@ -852,11 +868,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setDonorPage(1)
       setBatchPage(1)
       setEntityPage(1)
-      setMsg(`ใช้ preset และโหลดรายงานแล้ว: ${preset.name}`)
-      addActivity('info', `ใช้ preset + โหลดทันทีสำเร็จ: ${preset.name}`)
+      setMsg(`ใช้พรีเซ็ตและโหลดรายงานแล้ว: ${preset.name}`)
+      addActivity('info', `ใช้พรีเซ็ต + โหลดทันทีสำเร็จ: ${preset.name}`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
-      addActivity('error', `ใช้ preset + โหลดทันทีไม่สำเร็จ: ${preset.name}`)
+      addActivity('error', `ใช้พรีเซ็ต + โหลดทันทีไม่สำเร็จ: ${preset.name}`)
     } finally {
       setLoading(false)
     }
@@ -865,7 +881,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   function saveCurrentPreset() {
     const name = presetName.trim()
     if (!name) {
-      setMsg('กรอกชื่อ preset ก่อนบันทึก')
+      setMsg('กรอกชื่อพรีเซ็ตก่อนบันทึก')
       return
     }
     const id = `custom:${Date.now()}`
@@ -880,29 +896,29 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setCustomPresets((cur) => [nextPreset, ...cur])
     setSelectedPresetId(id)
     setPresetName('')
-    setMsg(`บันทึก preset แล้ว: ${name}`)
-    addActivity('info', `บันทึก preset: ${name}`)
+    setMsg(`บันทึกพรีเซ็ตแล้ว: ${name}`)
+    addActivity('info', `บันทึกพรีเซ็ต: ${name}`)
   }
 
   function deleteSelectedPreset() {
     if (!selectedPresetId.startsWith('custom:')) {
-      setMsg('ลบได้เฉพาะ preset ที่บันทึกเอง')
+      setMsg('ลบได้เฉพาะพรีเซ็ตที่บันทึกเอง')
       return
     }
     const target = customPresets.find((p) => p.id === selectedPresetId)
     if (!target) {
-      setMsg('ไม่พบ preset ที่เลือก')
+      setMsg('ไม่พบพรีเซ็ตที่เลือก')
       return
     }
     setCustomPresets((cur) => cur.filter((p) => p.id !== selectedPresetId))
     setSelectedPresetId(builtinPresets[0]?.id ?? '')
-    setMsg(`ลบ preset แล้ว: ${target.name}`)
-    addActivity('warn', `ลบ preset: ${target.name}`)
+    setMsg(`ลบพรีเซ็ตแล้ว: ${target.name}`)
+    addActivity('warn', `ลบพรีเซ็ต: ${target.name}`)
   }
 
   function downloadCurrentViewCsv(filename: string, rows: Record<string, unknown>[]) {
     if (!rows.length) {
-      setMsg(`ไม่มีข้อมูลสำหรับ export: ${filename}`)
+      setMsg(`ไม่มีข้อมูลสำหรับส่งออก: ${filename}`)
       return
     }
     const csv = rowsToCsvText(rows)
@@ -915,12 +931,12 @@ export function AdminFinancePanel({ apiBase }: Props) {
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
-    setMsg(`ดาวน์โหลด ${filename} (current view) แล้ว`)
+    setMsg(`ดาวน์โหลด ${filename} (มุมมองปัจจุบัน) แล้ว`)
   }
 
   function exportActivityLogCsv() {
     if (!visibleActivityLog.length) {
-      setMsg('ยังไม่มี activity log สำหรับ export')
+      setMsg('ยังไม่มีบันทึกกิจกรรมสำหรับส่งออก')
       return
     }
     const rows = visibleActivityLog.map((it) => ({
@@ -932,7 +948,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     downloadCurrentViewCsv('finance-activity-log.csv', rows)
     addActivity(
       'info',
-      `Export Activity Log CSV (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
+      `ส่งออก Activity Log CSV (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
     )
   }
 
@@ -949,20 +965,20 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
     try {
       await navigator.clipboard.writeText(summary)
-      setMsg('คัดลอกสรุป current activity filter แล้ว')
+      setMsg('คัดลอกสรุปตัวกรองกิจกรรมปัจจุบันแล้ว')
       addActivity(
         'info',
-        `Copy Activity Filter Summary (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
+        `คัดลอกสรุปตัวกรองกิจกรรม (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
       )
     } catch {
       setMsg(`คัดลอกไม่สำเร็จ\n${summary}`)
-      addActivity('warn', 'Copy Activity Filter Summary ไม่สำเร็จ')
+      addActivity('warn', 'คัดลอกสรุปตัวกรองกิจกรรมไม่สำเร็จ')
     }
   }
 
   async function copyVisibleActivityRows() {
     if (!visibleActivityLog.length) {
-      setMsg('ไม่มี activity log ที่มองเห็นอยู่สำหรับคัดลอก')
+      setMsg('ไม่มีบันทึกกิจกรรมที่แสดงอยู่สำหรับคัดลอก')
       return
     }
 
@@ -975,14 +991,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
     try {
       await navigator.clipboard.writeText(text)
-      setMsg('คัดลอก visible activity rows แล้ว')
+      setMsg('คัดลอกแถวกิจกรรมที่แสดงอยู่แล้ว')
       addActivity(
         'info',
-        `Copy Visible Activity Rows (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
+        `คัดลอกแถวกิจกรรมที่แสดงอยู่ (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
       )
     } catch {
       setMsg(`คัดลอกไม่สำเร็จ\n${text}`)
-      addActivity('warn', 'Copy Visible Activity Rows ไม่สำเร็จ')
+      addActivity('warn', 'คัดลอกแถวกิจกรรมที่แสดงอยู่ไม่สำเร็จ')
     }
   }
 
@@ -990,19 +1006,19 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setActivityFilter(nextFilter)
     setActivitySearch('')
     setActivityLimit(10)
-    addActivity('info', `Incident preset: ${nextFilter}`)
+    addActivity('info', `พรีเซ็ตเหตุการณ์: ${nextFilter}`)
   }
 
   function resetActivityView() {
     setActivityFilter('all')
     setActivitySearch('')
     setActivityLimit(20)
-    addActivity('info', 'Reset Activity View')
+    addActivity('info', 'รีเซ็ตมุมมองกิจกรรม')
   }
 
   async function loadOverviewAndAccounts() {
     if (!adminKey.trim()) {
-      setMsg('ใส่ x-admin-key ก่อน')
+      setMsg('ใส่ Admin key ก่อน')
       return
     }
     setLoading(true)
@@ -1029,17 +1045,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const data = (p2.payload ?? {}) as { accounts?: BankAccount[] }
       setAccounts(Array.isArray(data.accounts) ? data.accounts : [])
       setMsg('โหลดภาพรวมและบัญชีธนาคารแล้ว')
-      addActivity('info', 'โหลด Overview + Bank Accounts สำเร็จ')
+      addActivity('info', 'โหลดภาพรวม + บัญชีธนาคารสำเร็จ')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
-      addActivity('error', 'โหลด Overview + Bank Accounts ไม่สำเร็จ')
+      addActivity('error', 'โหลดภาพรวม + บัญชีธนาคารไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
   }
 
   async function loadPlSummary() {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
     setLoading(true)
     setMsg(null)
     try {
@@ -1047,7 +1063,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const p = await readApiJson(r)
-      if (!p.ok) return setMsg(formatFetchError('โหลด P/L summary', p.status, p.payload, p.rawText))
+      if (!p.ok) return setMsg(formatFetchError('โหลดสรุป P/L', p.status, p.payload, p.rawText))
       setPlSummary((p.payload ?? null) as PlSummaryPayload | null)
       setPlPage(1)
       setMsg('โหลดรายงาน P/L แล้ว')
@@ -1061,7 +1077,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   async function loadDonationsReport() {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
     setLoading(true)
     setMsg(null)
     try {
@@ -1069,23 +1085,23 @@ export function AdminFinancePanel({ apiBase }: Props) {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const p = await readApiJson(r)
-      if (!p.ok) return setMsg(formatFetchError('โหลด donations dashboard', p.status, p.payload, p.rawText))
+      if (!p.ok) return setMsg(formatFetchError('โหลดแดชบอร์ดเงินบริจาค', p.status, p.payload, p.rawText))
       setDonationsReport((p.payload ?? null) as DonationsReportPayload | null)
       setDonorPage(1)
       setBatchPage(1)
       setEntityPage(1)
-      setMsg('โหลด donations dashboard แล้ว')
-      addActivity('info', 'โหลด Donations dashboard สำเร็จ')
+      setMsg('โหลดแดชบอร์ดเงินบริจาคแล้ว')
+      addActivity('info', 'โหลดแดชบอร์ดเงินบริจาคสำเร็จ')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
-      addActivity('error', 'โหลด Donations dashboard ไม่สำเร็จ')
+      addActivity('error', 'โหลดแดชบอร์ดเงินบริจาคไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
   }
 
   async function loadAllReports() {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
     setLoading(true)
     setMsg(null)
     try {
@@ -1105,7 +1121,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
         setPlPage(1)
       } else {
-        errors.push(formatFetchError('โหลด P/L summary', pl.status, pl.payload, pl.rawText))
+        errors.push(formatFetchError('โหลดสรุป P/L', pl.status, pl.payload, pl.rawText))
       }
 
       if (donations.ok) {
@@ -1115,7 +1131,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         setEntityPage(1)
       } else {
         errors.push(
-          formatFetchError('โหลด donations dashboard', donations.status, donations.payload, donations.rawText),
+          formatFetchError('โหลดแดชบอร์ดเงินบริจาค', donations.status, donations.payload, donations.rawText),
         )
       }
 
@@ -1136,7 +1152,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   async function downloadCsv(path: string, filename: string) {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
     setLoading(true)
     setMsg(null)
     try {
@@ -1166,10 +1182,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   async function createMeeting() {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
     const expected = Number(meetingExpected)
     if (!meetingTitle.trim() || !Number.isFinite(expected) || expected <= 0) {
-      return setMsg('กรอกชื่อประชุม และ expected participants > 0')
+      return setMsg('กรอกชื่อประชุม และจำนวนผู้เข้าร่วมที่คาดไว้ต้องมากกว่า 0')
     }
     setLoading(true)
     setMsg(null)
@@ -1194,7 +1210,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         setMeetingId(j.meetingSession.id)
         setPaymentMeetingId(j.meetingSession.id)
       }
-      setMsg(`สร้างประชุมแล้ว quorum required=${String(j.quorumRequired ?? '')}`)
+      setMsg(`สร้างประชุมแล้ว ต้องมีองค์ประชุมอย่างน้อย ${String(j.quorumRequired ?? '')} คน`)
       addActivity('info', `สร้างประชุมสำเร็จ: ${meetingTitle.trim()} (${meetingEntity})`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
@@ -1205,8 +1221,8 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   async function signAttendance() {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
-    if (!meetingId.trim() || !attendanceName.trim()) return setMsg('กรอก Meeting ID และชื่อผู้เข้าประชุม')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!meetingId.trim() || !attendanceName.trim()) return setMsg('กรอกรหัสการประชุมและชื่อผู้เข้าประชุม')
     setLoading(true)
     setMsg(null)
     try {
@@ -1235,8 +1251,8 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   async function loadMeetingSummary() {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
-    if (!meetingId.trim()) return setMsg('กรอก Meeting ID')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!meetingId.trim()) return setMsg('กรอกรหัสการประชุม')
     setLoading(true)
     setMsg(null)
     try {
@@ -1255,16 +1271,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   async function createPaymentRequest() {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
     const amount = Number(paymentAmount)
     if (!paymentPurpose.trim() || !Number.isFinite(amount) || amount <= 0) {
-      return setMsg('กรอก purpose และ amount > 0')
+      return setMsg('กรอกวัตถุประสงค์และจำนวนเงินที่มากกว่า 0')
     }
     if (amount <= 20000 && !paymentBankAccountId) {
-      return setMsg('ยอด <= 20,000 ต้องเลือก bank account')
+      return setMsg('ยอด <= 20,000 ต้องเลือกบัญชีธนาคาร')
     }
     if (amount > 20000 && !paymentMeetingId.trim()) {
-      return setMsg('ยอด > 20,000 ต้องกรอก Meeting ID')
+      return setMsg('ยอด > 20,000 ต้องกรอกรหัสการประชุม')
     }
     setLoading(true)
     setMsg(null)
@@ -1299,8 +1315,8 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }
 
   async function approvePayment() {
-    if (!adminKey.trim()) return setMsg('ใส่ x-admin-key ก่อน')
-    if (!paymentRequestId.trim()) return setMsg('กรอก Payment Request ID')
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!paymentRequestId.trim()) return setMsg('กรอกรหัสคำขอจ่ายเงิน')
     if (approveRoleCode === 'bank_signer_3of5' && !approveSignerId.trim()) {
       return setMsg('เลือก signer สำหรับ 3 ใน 5')
     }
@@ -1347,7 +1363,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         Admin Finance — บัญชี/ประชุม/อนุมัติจ่ายเงิน
       </h2>
       <p className="mt-2 text-xs text-slate-500">
-        ใช้คีย์เดียวกับ Admin panel ด้านบน (อ่านจาก session เดียวกัน)
+        ใช้คีย์เดียวกับแผงผู้ดูแล (Admin) ด้านบน (อ่านจากเซสชันเดียวกัน)
       </p>
 
       <div className="mt-4 flex flex-wrap gap-3">
@@ -1355,31 +1371,31 @@ export function AdminFinancePanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={loadOverviewAndAccounts}
-          className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+          className={`rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          โหลด Overview + Bank Accounts
+          โหลดภาพรวม + บัญชีธนาคาร
         </button>
         <button
           type="button"
           disabled={loading}
           onClick={loadPlSummary}
-          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          โหลด P/L Summary
+          โหลดสรุป P/L
         </button>
         <button
           type="button"
           disabled={loading}
           onClick={loadDonationsReport}
-          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          โหลด Donations Dashboard
+          โหลดแดชบอร์ดเงินบริจาค
         </button>
         <button
           type="button"
           disabled={loading}
           onClick={loadAllReports}
-          className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+          className={`rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
         >
           โหลดรายงานทั้งหมด
         </button>
@@ -1387,9 +1403,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={() => downloadCsv('/api/admin/finance/exports/donations.csv', 'finance-donations.csv')}
-          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          Export Donations CSV
+          ส่งออก Donations CSV
         </button>
         <button
           type="button"
@@ -1397,17 +1413,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
           onClick={() =>
             downloadCsv('/api/admin/finance/exports/payment-requests.csv', 'finance-payment-requests.csv')
           }
-          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          Export Payment Requests CSV
+          ส่งออก Payment Requests CSV
         </button>
         <button
           type="button"
           disabled={loading}
           onClick={() => downloadCsv('/api/admin/finance/exports/meeting-sessions.csv', 'finance-meeting-sessions.csv')}
-          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          Export Meeting Sessions CSV
+          ส่งออก Meeting Sessions CSV
         </button>
       </div>
 
@@ -1417,13 +1433,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
             type="checkbox"
             checked={autoRefreshEnabled}
             onChange={(e) => toggleAutoRefresh(e.target.checked)}
+            className={portalFocusRing}
           />
-          Auto refresh รายงาน
+          รีเฟรชรายงานอัตโนมัติ
         </label>
         <select
           value={autoRefreshSeconds}
           onChange={(e) => setAutoRefreshSeconds(Number(e.target.value) as 30 | 60)}
-          className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs"
+          className={`rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs ${portalFocusRing}`}
           disabled={!autoRefreshEnabled}
         >
           <option value={30}>ทุก 30 วินาที</option>
@@ -1453,16 +1470,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
         </span>
         {autoRefreshFailureCount > 0 ? (
           <span className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200">
-            fail {autoRefreshFailureCount}/{AUTO_REFRESH_MAX_FAILURES}
+            ผิดพลาด {autoRefreshFailureCount}/{AUTO_REFRESH_MAX_FAILURES} ครั้ง
           </span>
         ) : null}
         {autoRefreshPausedByError ? (
           <button
             type="button"
             onClick={resumeAutoRefresh}
-            className="rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600"
+            className={`rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600 ${portalFocusRing}`}
           >
-            Resume Auto Refresh
+            ทำงานรีเฟรชอัตโนมัติต่อ
           </button>
         ) : null}
         {lastAutoRefreshError ? (
@@ -1473,105 +1490,109 @@ export function AdminFinancePanel({ apiBase }: Props) {
             type="checkbox"
             checked={alertOnPause}
             onChange={(e) => setAlertOnPause(e.target.checked)}
+            className={portalFocusRing}
           />
-          desktop alert
+          แจ้งเตือนเดสก์ท็อป
         </label>
         <label className="flex items-center gap-1 text-[11px] text-slate-300">
           <input
             type="checkbox"
             checked={soundOnPause}
             onChange={(e) => setSoundOnPause(e.target.checked)}
+            className={portalFocusRing}
           />
-          sound alert
+          เสียงแจ้งเตือน
         </label>
       </div>
 
       <div className="mt-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <p className="font-medium text-slate-200">Activity Log (ล่าสุด 20)</p>
+            <p className="font-medium text-slate-200">บันทึกกิจกรรม (ล่าสุด 20)</p>
             <input
               type="text"
               value={activitySearch}
               onChange={(e) => setActivitySearch(e.target.value)}
-              className="w-48 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200"
-              placeholder="ค้นหา log..."
+              className={`w-48 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 ${portalFocusRing}`}
+              placeholder="ค้นหากิจกรรม..."
             />
             <select
               value={String(activityLimit)}
               onChange={(e) => setActivityLimit(e.target.value === 'all' ? 'all' : (Number(e.target.value) as 10 | 20))}
-              className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200"
+              className={`rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 ${portalFocusRing}`}
             >
               <option value="10">10</option>
               <option value="20">20</option>
-              <option value="all">all</option>
+              <option value="all">ทั้งหมด</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={copyActivityFilterSummary}
-              className="rounded bg-cyan-700 px-2 py-1 text-[11px] text-white hover:bg-cyan-600"
+              className={`rounded bg-cyan-700 px-2 py-1 text-[11px] text-white hover:bg-cyan-600 ${portalFocusRing}`}
             >
-              Copy Summary
+              คัดลอกสรุป
             </button>
             <button
               type="button"
               onClick={copyVisibleActivityRows}
-              className="rounded bg-sky-700 px-2 py-1 text-[11px] text-white hover:bg-sky-600"
+              className={`rounded bg-sky-700 px-2 py-1 text-[11px] text-white hover:bg-sky-600 ${portalFocusRing}`}
             >
-              Copy Rows
+              คัดลอกแถวข้อมูล
             </button>
             <button
               type="button"
               onClick={exportActivityLogCsv}
-              className="rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600"
+              className={`rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600 ${portalFocusRing}`}
             >
-              Export CSV
+              ส่งออก CSV
             </button>
             <button
               type="button"
               onClick={() => setActivityLog([])}
-              className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+              className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
             >
-              Clear
+              ล้างรายการ
             </button>
           </div>
         </div>
         <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
-          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">filter: {activityFilter}</span>
           <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
-            q: {activitySearchTrimmed || '-'}
-          </span>
-          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">limit: {String(activityLimit)}</span>
-          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
-            visible: {visibleActivityLog.length}
+            ตัวกรอง: {activityLevelLabel(activityFilter)}
           </span>
           <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
-            snapshot: {activitySnapshotAt}
+            ค้นหา: {activitySearchTrimmed || '-'}
+          </span>
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">จำนวน: {String(activityLimit)}</span>
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
+            แสดง: {visibleActivityLog.length}
+          </span>
+          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
+            สแนปช็อต: {activitySnapshotAt}
           </span>
         </div>
         <div className="mb-2 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => applyIncidentPreset('error')}
-            className="rounded bg-rose-700 px-2 py-1 text-[11px] text-white hover:bg-rose-600"
+            className={`rounded bg-rose-700 px-2 py-1 text-[11px] text-white hover:bg-rose-600 ${portalFocusRing}`}
           >
-            Only Errors
+            เฉพาะข้อผิดพลาด
           </button>
           <button
             type="button"
             onClick={() => applyIncidentPreset('warn')}
-            className="rounded bg-amber-700 px-2 py-1 text-[11px] text-white hover:bg-amber-600"
+            className={`rounded bg-amber-700 px-2 py-1 text-[11px] text-white hover:bg-amber-600 ${portalFocusRing}`}
           >
-            Only Warnings
+            เฉพาะคำเตือน
           </button>
           <button
             type="button"
             onClick={resetActivityView}
-            className="rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600"
+            className={`rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600 ${portalFocusRing}`}
           >
-            Reset Activity View
+            รีเซ็ตมุมมองกิจกรรม
           </button>
           {ACTIVITY_SHORTCUTS.map((shortcut) => {
             const active = activitySearchTrimmed.toLowerCase() === shortcut.keyword.toLowerCase()
@@ -1580,7 +1601,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
                 key={shortcut.label}
                 type="button"
                 onClick={() => setActivitySearch(shortcut.keyword)}
-                className={`rounded px-2 py-1 text-[11px] ${
+                className={`rounded px-2 py-1 text-[11px] ${portalFocusRing} ${
                   active
                     ? 'bg-cyan-900/70 text-cyan-200 ring-1 ring-white/30'
                     : 'bg-slate-800 text-slate-200'
@@ -1593,9 +1614,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <button
             type="button"
             onClick={() => setActivitySearch('')}
-            className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200"
+            className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 ${portalFocusRing}`}
           >
-            Clear Search
+            ล้างคำค้นหา
           </button>
         </div>
         <div className="mb-2 flex flex-wrap gap-2">
@@ -1609,11 +1630,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
               key={level}
               type="button"
               onClick={() => setActivityFilter(level)}
-              className={`rounded px-2 py-1 text-[11px] ${
+              className={`rounded px-2 py-1 text-[11px] ${portalFocusRing} ${
                 activityFilter === level ? `${color} ring-1 ring-white/30` : color
               }`}
             >
-              {level}: {count}
+              {activityLevelLabel(level)}: {count}
             </button>
           ))}
         </div>
@@ -1644,31 +1665,31 @@ export function AdminFinancePanel({ apiBase }: Props) {
         <select
           value={reportEntity}
           onChange={(e) => setReportEntity(e.target.value as ReportFilterEntity)}
-          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
         >
           <option value="">ทุกหน่วยงาน (ทั้งหมด)</option>
-          <option value="association">association</option>
-          <option value="cram_school">cram_school</option>
+          <option value="association">สมาคมศิษย์เก่า (association)</option>
+          <option value="cram_school">โรงเรียนกวดวิชา (cram_school)</option>
         </select>
         <input
           type="date"
           value={reportFrom}
           onChange={(e) => setReportFrom(e.target.value)}
-          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           placeholder="from"
         />
         <input
           type="date"
           value={reportTo}
           onChange={(e) => setReportTo(e.target.value)}
-          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           placeholder="to"
         />
         <input
           type="text"
           value={reportKeyword}
           onChange={(e) => setReportKeyword(e.target.value)}
-          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           placeholder="ค้นหา donor / batch / account"
         />
         <button
@@ -1680,7 +1701,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
             setReportTo('')
             setReportKeyword('')
           }}
-          className="rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50"
+          className={`rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
         >
           ล้างตัวกรองรายงาน
         </button>
@@ -1690,11 +1711,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
         <select
           value={selectedPresetId}
           onChange={(e) => setSelectedPresetId(e.target.value)}
-          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
         >
           {allPresets.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.id.startsWith('custom:') ? `[custom] ${p.name}` : `[builtin] ${p.name}`}
+              {p.id.startsWith('custom:') ? `[กำหนดเอง] ${p.name}` : `[ระบบ] ${p.name}`}
             </option>
           ))}
         </select>
@@ -1702,50 +1723,50 @@ export function AdminFinancePanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={applySelectedPreset}
-          className="rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50"
+          className={`rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          ใช้ preset
+          ใช้พรีเซ็ต
         </button>
         <button
           type="button"
           disabled={loading}
           onClick={applySelectedPresetAndLoad}
-          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50"
+          className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          ใช้ preset + โหลดทันที
+          ใช้พรีเซ็ต + โหลดทันที
         </button>
         <input
           type="text"
           value={presetName}
           onChange={(e) => setPresetName(e.target.value)}
-          className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-          placeholder="ชื่อ preset ใหม่"
+          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+          placeholder="ชื่อพรีเซ็ตใหม่"
         />
         <button
           type="button"
           disabled={loading}
           onClick={saveCurrentPreset}
-          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50"
+          className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          บันทึก preset ปัจจุบัน
+          บันทึกพรีเซ็ตปัจจุบัน
         </button>
         <button
           type="button"
           disabled={loading}
           onClick={deleteSelectedPreset}
-          className="rounded bg-rose-700 px-3 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-50"
+          className={`rounded bg-rose-700 px-3 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-50 ${portalFocusRing}`}
         >
-          ลบ preset ที่เลือก
+          ลบพรีเซ็ตที่เลือก
         </button>
       </div>
 
       <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
-        <p>Bank Accounts: {accounts.length}</p>
+        <p>บัญชีธนาคาร: {accounts.length}</p>
         {overview ? (
           <>
-            <p className="mt-1">Pending payments: {overview.pendingPayments.length}</p>
+            <p className="mt-1">รายการรอจ่าย: {overview.pendingPayments.length}</p>
             <p className="mt-1">
-              Donation batches: {Object.keys(overview.donationByBatch).length} | Donation total:{' '}
+              จำนวนรุ่นที่มีเงินบริจาค: {Object.keys(overview.donationByBatch).length} | ยอดรวมเงินบริจาค:{' '}
               {Object.values(overview.donationByBatch)
                 .reduce((s, n) => s + n, 0)
                 .toLocaleString()}
@@ -1754,13 +1775,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
         ) : null}
         {plSummary ? (
           <p className="mt-1">
-            P/L: Revenue {plSummary.totals.revenue.toLocaleString()} | Expense{' '}
-            {plSummary.totals.expense.toLocaleString()} | Net {plSummary.totals.netIncome.toLocaleString()}
+            P/L: รายรับ {plSummary.totals.revenue.toLocaleString()} | รายจ่าย{' '}
+            {plSummary.totals.expense.toLocaleString()} | สุทธิ {plSummary.totals.netIncome.toLocaleString()}
           </p>
         ) : null}
         {donationsReport ? (
           <p className="mt-1">
-            Donations: {donationsReport.totals.donations} รายการ | Total{' '}
+            เงินบริจาค: {donationsReport.totals.donations} รายการ | รวม{' '}
             {donationsReport.totals.totalAmount.toLocaleString()}
           </p>
         ) : null}
@@ -1769,31 +1790,31 @@ export function AdminFinancePanel({ apiBase }: Props) {
       {plSummary ? (
         <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="font-medium">P/L Accounts (ทั้งหมด)</p>
+            <p className="font-medium">บัญชี P/L (ทั้งหมด)</p>
             <button
               type="button"
               onClick={() => downloadCurrentViewCsv('finance-current-pl.csv', plExportRows)}
-              className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+              className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
             >
-              Export Current View CSV
+              ส่งออก CSV ของมุมมองนี้
             </button>
           </div>
           <div className="grid grid-cols-4 gap-2 font-semibold text-slate-400">
-            <button type="button" onClick={() => togglePlSort('accountCode')} className="text-left hover:text-slate-200">
-              Code{sortArrow(plSortKey === 'accountCode', plSortDir)}
+            <button type="button" onClick={() => togglePlSort('accountCode')} className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}>
+              รหัส{sortArrow(plSortKey === 'accountCode', plSortDir)}
             </button>
-            <button type="button" onClick={() => togglePlSort('accountName')} className="text-left hover:text-slate-200">
-              Name{sortArrow(plSortKey === 'accountName', plSortDir)}
+            <button type="button" onClick={() => togglePlSort('accountName')} className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}>
+              ชื่อ{sortArrow(plSortKey === 'accountName', plSortDir)}
             </button>
-            <button type="button" onClick={() => togglePlSort('accountType')} className="text-left hover:text-slate-200">
-              Type{sortArrow(plSortKey === 'accountType', plSortDir)}
+            <button type="button" onClick={() => togglePlSort('accountType')} className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}>
+              ประเภท{sortArrow(plSortKey === 'accountType', plSortDir)}
             </button>
             <button
               type="button"
               onClick={() => togglePlSort('net')}
-              className="text-right hover:text-slate-200"
+              className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
             >
-              Net{sortArrow(plSortKey === 'net', plSortDir)}
+              สุทธิ{sortArrow(plSortKey === 'net', plSortDir)}
             </button>
           </div>
           {plPaged.pageRows.map((r) => (
@@ -1812,36 +1833,36 @@ export function AdminFinancePanel({ apiBase }: Props) {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="font-medium">Donors (ทั้งหมด)</p>
+              <p className="font-medium">ผู้บริจาค (ทั้งหมด)</p>
               <button
                 type="button"
                 onClick={() => downloadCurrentViewCsv('finance-current-donors.csv', donorExportRows)}
-                className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+                className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
               >
-                Export Current View CSV
+                ส่งออก CSV ของมุมมองนี้
               </button>
             </div>
             <div className="grid grid-cols-3 gap-2 font-semibold text-slate-400">
               <button
                 type="button"
                 onClick={() => toggleDonorSort('donorLabel')}
-                className="text-left hover:text-slate-200"
+                className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}
               >
-                Donor{sortArrow(donorSortKey === 'donorLabel', donorSortDir)}
+                ผู้บริจาค{sortArrow(donorSortKey === 'donorLabel', donorSortDir)}
               </button>
               <button
                 type="button"
                 onClick={() => toggleDonorSort('count')}
-                className="text-right hover:text-slate-200"
+                className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
               >
-                Count{sortArrow(donorSortKey === 'count', donorSortDir)}
+                จำนวนครั้ง{sortArrow(donorSortKey === 'count', donorSortDir)}
               </button>
               <button
                 type="button"
                 onClick={() => toggleDonorSort('totalAmount')}
-                className="text-right hover:text-slate-200"
+                className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
               >
-                Amount{sortArrow(donorSortKey === 'totalAmount', donorSortDir)}
+                ยอดเงิน{sortArrow(donorSortKey === 'totalAmount', donorSortDir)}
               </button>
             </div>
             {donorPaged.pageRows.map((r) => (
@@ -1856,25 +1877,25 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="font-medium">Donations by Batch</p>
+              <p className="font-medium">เงินบริจาคแยกรุ่น</p>
               <button
                 type="button"
                 onClick={() => downloadCurrentViewCsv('finance-current-batch.csv', batchExportRows)}
-                className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+                className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
               >
-                Export Current View CSV
+                ส่งออก CSV ของมุมมองนี้
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
-              <button type="button" onClick={() => toggleBatchSort('batch')} className="text-left hover:text-slate-200">
-                Batch{sortArrow(batchSortKey === 'batch', batchSortDir)}
+              <button type="button" onClick={() => toggleBatchSort('batch')} className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}>
+                รุ่น{sortArrow(batchSortKey === 'batch', batchSortDir)}
               </button>
               <button
                 type="button"
                 onClick={() => toggleBatchSort('totalAmount')}
-                className="text-right hover:text-slate-200"
+                className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
               >
-                Amount{sortArrow(batchSortKey === 'totalAmount', batchSortDir)}
+                ยอดเงิน{sortArrow(batchSortKey === 'totalAmount', batchSortDir)}
               </button>
             </div>
             {batchPaged.pageRows.map((r) => (
@@ -1888,29 +1909,29 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
           <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200 md:col-span-2">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="font-medium">Donations by Legal Entity</p>
+              <p className="font-medium">เงินบริจาคแยกนิติบุคคล</p>
               <button
                 type="button"
                 onClick={() => downloadCurrentViewCsv('finance-current-entity.csv', entityExportRows)}
-                className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700"
+                className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
               >
-                Export Current View CSV
+                ส่งออก CSV ของมุมมองนี้
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
               <button
                 type="button"
                 onClick={() => toggleEntitySort('legalEntityCode')}
-                className="text-left hover:text-slate-200"
+                className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}
               >
-                Entity{sortArrow(entitySortKey === 'legalEntityCode', entitySortDir)}
+                นิติบุคคล{sortArrow(entitySortKey === 'legalEntityCode', entitySortDir)}
               </button>
               <button
                 type="button"
                 onClick={() => toggleEntitySort('totalAmount')}
-                className="text-right hover:text-slate-200"
+                className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
               >
-                Amount{sortArrow(entitySortKey === 'totalAmount', entitySortDir)}
+                ยอดเงิน{sortArrow(entitySortKey === 'totalAmount', entitySortDir)}
               </button>
             </div>
             {entityPaged.pageRows.map((r) => (
@@ -1930,28 +1951,28 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <select
             value={meetingEntity}
             onChange={(e) => setMeetingEntity(e.target.value as 'association' | 'cram_school')}
-            className="mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+            className={`mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           >
-            <option value="association">association</option>
-            <option value="cram_school">cram_school</option>
+            <option value="association">สมาคมศิษย์เก่า (association)</option>
+            <option value="cram_school">โรงเรียนกวดวิชา (cram_school)</option>
           </select>
           <input
             value={meetingTitle}
             onChange={(e) => setMeetingTitle(e.target.value)}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-            placeholder="Meeting title"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+            placeholder="หัวข้อการประชุม"
           />
           <input
             value={meetingExpected}
             onChange={(e) => setMeetingExpected(e.target.value)}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-            placeholder="Expected participants"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+            placeholder="จำนวนผู้เข้าร่วมที่คาดไว้"
           />
           <button
             type="button"
             disabled={loading}
             onClick={createMeeting}
-            className="mt-3 rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+            className={`mt-3 rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
           >
             สร้างประชุม
           </button>
@@ -1959,29 +1980,29 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <input
             value={meetingId}
             onChange={(e) => setMeetingId(e.target.value)}
-            className="mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-            placeholder="Meeting ID"
+            className={`mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+            placeholder="รหัสการประชุม"
           />
           <div className="mt-2 grid grid-cols-1 gap-2">
             <input
               value={attendanceName}
               onChange={(e) => setAttendanceName(e.target.value)}
-              className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+              className={`w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
               placeholder="ชื่อผู้เข้าประชุม"
             />
             <select
               value={attendanceRole}
               onChange={(e) => setAttendanceRole(e.target.value as 'committee' | 'cram_executive')}
-              className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+              className={`w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
             >
-              <option value="committee">committee</option>
-              <option value="cram_executive">cram_executive</option>
+              <option value="committee">คณะกรรมการ (committee)</option>
+              <option value="cram_executive">ผู้บริหารกวดวิชา (cram_executive)</option>
             </select>
             <input
               value={attendanceLineUid}
               onChange={(e) => setAttendanceLineUid(e.target.value)}
-              className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-              placeholder="line_uid (optional)"
+              className={`w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+              placeholder="LINE UID (ไม่บังคับ)"
             />
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -1989,7 +2010,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
               type="button"
               disabled={loading}
               onClick={signAttendance}
-              className="rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+              className={`rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               ลงชื่อเข้าประชุม
             </button>
@@ -1997,7 +2018,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
               type="button"
               disabled={loading}
               onClick={loadMeetingSummary}
-              className="rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+              className={`rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               สรุปประชุม
             </button>
@@ -2014,29 +2035,29 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <select
             value={paymentEntity}
             onChange={(e) => setPaymentEntity(e.target.value as 'association' | 'cram_school')}
-            className="mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+            className={`mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           >
-            <option value="association">association</option>
-            <option value="cram_school">cram_school</option>
+            <option value="association">สมาคมศิษย์เก่า (association)</option>
+            <option value="cram_school">โรงเรียนกวดวิชา (cram_school)</option>
           </select>
           <input
             value={paymentPurpose}
             onChange={(e) => setPaymentPurpose(e.target.value)}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-            placeholder="purpose"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+            placeholder="วัตถุประสงค์การจ่าย"
           />
           <input
             value={paymentAmount}
             onChange={(e) => setPaymentAmount(e.target.value)}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-            placeholder="amount"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+            placeholder="จำนวนเงิน"
           />
           <select
             value={paymentBankAccountId}
             onChange={(e) => setPaymentBankAccountId(e.target.value)}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           >
-            <option value="">{'bank_account_id (ใช้เมื่อ amount <= 20000)'}</option>
+            <option value="">{'bank_account_id (ใช้เมื่อจำนวนเงิน <= 20000)'}</option>
             {filteredAccounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.account_name} ({a.account_no_masked})
@@ -2046,39 +2067,39 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <input
             value={paymentMeetingId}
             onChange={(e) => setPaymentMeetingId(e.target.value)}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-            placeholder="meeting_session_id (ใช้เมื่อ amount > 20000)"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+            placeholder="meeting_session_id (ใช้เมื่อจำนวนเงิน > 20000)"
           />
           <button
             type="button"
             disabled={loading}
             onClick={createPaymentRequest}
-            className="mt-3 rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+            className={`mt-3 rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
           >
-            สร้าง Payment Request
+            สร้างคำขอจ่ายเงิน
           </button>
 
           <input
             value={paymentRequestId}
             onChange={(e) => setPaymentRequestId(e.target.value)}
-            className="mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-            placeholder="Payment Request ID"
+            className={`mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
+            placeholder="รหัสคำขอจ่ายเงิน"
           />
           <select
             value={approveRoleCode}
             onChange={(e) => setApproveRoleCode(e.target.value as 'bank_signer_3of5' | 'committee')}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           >
-            <option value="bank_signer_3of5">bank_signer_3of5</option>
-            <option value="committee">committee</option>
+            <option value="bank_signer_3of5">ผู้ลงนามธนาคาร 3 ใน 5 (bank_signer_3of5)</option>
+            <option value="committee">คณะกรรมการ (committee)</option>
           </select>
           <select
             value={approveSignerId}
             onChange={(e) => setApproveSignerId(e.target.value)}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
             disabled={approveRoleCode !== 'bank_signer_3of5'}
           >
-            <option value="">approver_signer_id</option>
+            <option value="">ผู้อนุมัติ (approver_signer_id)</option>
             {(selectedAccount?.signers ?? []).map((s) => (
               <option key={s.id} value={s.id}>
                 {s.signer_name}
@@ -2088,16 +2109,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
           <select
             value={approveDecision}
             onChange={(e) => setApproveDecision(e.target.value as 'approve' | 'reject')}
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
           >
-            <option value="approve">approve</option>
-            <option value="reject">reject</option>
+            <option value="approve">อนุมัติ</option>
+            <option value="reject">ปฏิเสธ</option>
           </select>
           <button
             type="button"
             disabled={loading}
             onClick={approvePayment}
-            className="mt-3 rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+            className={`mt-3 rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
           >
             อนุมัติ/ปฏิเสธ
           </button>
@@ -2105,7 +2126,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
       </div>
 
       {msg ? (
-        <pre className="mt-4 max-h-56 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-slate-300">
+        <pre
+          className="mt-4 max-h-56 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-slate-300"
+          role="status"
+          aria-live="polite"
+        >
           {msg}
         </pre>
       ) : null}

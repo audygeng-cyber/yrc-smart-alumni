@@ -10,7 +10,7 @@ export const presidentAuth: RequestHandler = (req, res, next) => {
   const adminExpected = process.env.ADMIN_UPLOAD_KEY
 
   if (!adminExpected) {
-    res.status(500).json({ error: 'ADMIN_UPLOAD_KEY is not configured' })
+    res.status(500).json({ error: 'ยังไม่ได้ตั้งค่า ADMIN_UPLOAD_KEY' })
     return
   }
 
@@ -28,7 +28,7 @@ export const presidentAuth: RequestHandler = (req, res, next) => {
   }
 
   res.status(401).json({
-    error: 'Unauthorized',
+    error: 'ไม่ได้รับอนุญาต',
     hint: 'ใช้ x-admin-key หรือ x-president-key ที่ตรงกับ PRESIDENT_UPLOAD_KEY / PRESIDENT_KEYS_JSON',
   })
 }

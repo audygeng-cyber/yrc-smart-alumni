@@ -52,13 +52,13 @@ async function fetchSummaryRows(importBatchId?: string): Promise<SummaryRow[]> {
 importMembersRouter.post('/import', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      res.status(400).json({ error: 'Missing file field "file" (.xlsx)' })
+      res.status(400).json({ error: 'ไม่พบไฟล์ในฟิลด์ "file" (.xlsx)' })
       return
     }
 
     const sheets = await readXlsxFile(req.file.buffer)
     if (!sheets.length) {
-      res.status(400).json({ error: 'Workbook has no sheets' })
+      res.status(400).json({ error: 'ไฟล์ Excel ไม่มีชีตข้อมูล' })
       return
     }
 
@@ -66,7 +66,7 @@ importMembersRouter.post('/import', upload.single('file'), async (req, res) => {
     const rows = sheetRowsToObjects(rawRows)
 
     if (rows.length === 0) {
-      res.status(400).json({ error: 'No data rows' })
+      res.status(400).json({ error: 'ไม่พบแถวข้อมูลในไฟล์' })
       return
     }
 
@@ -75,7 +75,7 @@ importMembersRouter.post('/import', upload.single('file'), async (req, res) => {
     for (const reqH of REQUIRED_THAI_HEADERS) {
       if (!headers.includes(reqH)) {
         res.status(400).json({
-          error: `Missing required column: "${reqH}"`,
+          error: `ไม่พบคอลัมน์ที่จำเป็น: "${reqH}"`,
           foundHeaders: headers,
           expectedMappingKeys: Object.keys(HEADER_TO_DB),
         })
@@ -96,7 +96,7 @@ importMembersRouter.post('/import', upload.single('file'), async (req, res) => {
       .single()
 
     if (batchErr || !batchRow) {
-      res.status(500).json({ error: 'Failed to create import_batches', details: batchErr })
+      res.status(500).json({ error: 'สร้าง import_batches ไม่สำเร็จ', details: batchErr })
       return
     }
 
@@ -115,7 +115,7 @@ importMembersRouter.post('/import', upload.single('file'), async (req, res) => {
       const { error: insErr } = await supabase.from('members').insert(chunk)
       if (insErr) {
         res.status(500).json({
-          error: 'Insert failed',
+          error: 'เพิ่มข้อมูลไม่สำเร็จ',
           details: insErr,
           importedSoFar: i,
           importBatchId,
@@ -132,7 +132,7 @@ importMembersRouter.post('/import', upload.single('file'), async (req, res) => {
       inserted: mapped.length,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -151,7 +151,7 @@ importMembersRouter.get('/summary', async (req, res) => {
       summary,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -165,13 +165,13 @@ importMembersRouter.delete('/all', async (_req, res) => {
       .gte('created_at', '1970-01-01T00:00:00+00:00')
 
     if (error) {
-      res.status(500).json({ error: 'Delete failed', details: error })
+      res.status(500).json({ error: 'ลบข้อมูลไม่สำเร็จ', details: error })
       return
     }
 
-    res.json({ ok: true, message: 'All members deleted' })
+    res.json({ ok: true, message: 'ลบข้อมูลสมาชิกทั้งหมดแล้ว' })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })

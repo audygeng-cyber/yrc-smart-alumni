@@ -8,7 +8,7 @@ export const memberPortalPayload = {
   statsCards: [
     { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'ภาพรวมทั้งสมาคมศิษย์เก่า' },
     { label: 'จำนวนรุ่น', value: '58', hint: 'รุ่นที่มีข้อมูลในทะเบียน' },
-    { label: 'สมาชิก active', value: '1,019', hint: 'มี session/การใช้งานล่าสุด' },
+    { label: 'สมาชิกที่ใช้งานอยู่', value: '1,019', hint: 'มีการใช้งานล่าสุดในระบบ' },
     { label: 'คำร้องเดือนนี้', value: '42', hint: 'คำร้องอัปเดตข้อมูลทั้งหมด' },
   ],
   roleCards: {
@@ -45,13 +45,13 @@ export const memberPortalPayload = {
   ],
   /** คำร้อง member_update_requests ต่อวัน (UTC) 7 วัน — โครงเดียวกับ committee.requestTrend */
   requestTrend: [
-    { label: 'Mon', value: 4 },
-    { label: 'Tue', value: 8 },
-    { label: 'Wed', value: 6 },
-    { label: 'Thu', value: 10 },
-    { label: 'Fri', value: 5 },
-    { label: 'Sat', value: 3 },
-    { label: 'Sun', value: 7 },
+    { label: 'จ.', value: 4 },
+    { label: 'อ.', value: 8 },
+    { label: 'พ.', value: 6 },
+    { label: 'พฤ.', value: 10 },
+    { label: 'ศ.', value: 5 },
+    { label: 'ส.', value: 3 },
+    { label: 'อา.', value: 7 },
   ] as Array<{ label: string; value: number }>,
 } as const
 
@@ -60,26 +60,26 @@ export const committeePortalPayload = {
     { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'อัปเดตล่าสุดตามทะเบียนสมาชิก' },
     { label: 'คำร้องรอดำเนินการ', value: '18', hint: 'pending_president + pending_admin' },
     { label: 'ผู้ลงทะเบียนประชุม', value: '29/35', hint: 'เทียบกับ quorum ที่กำหนด' },
-    { label: 'วาระรอลงมติ', value: '6', hint: 'พร้อมเปิด vote ในที่ประชุม' },
+    { label: 'วาระรอลงมติ', value: '6', hint: 'พร้อมเปิดลงมติในที่ประชุม' },
   ],
   roleCards: {
     chair: [
       { label: 'วาระพร้อมเซ็นอนุมัติ', value: '5', hint: 'รอประธานยืนยันก่อนประกาศใช้' },
-      { label: 'เอกสารการเงินรอตรวจ', value: '12', hint: 'รายการที่ยังไม่ finalize' },
+      { label: 'เอกสารการเงินรอตรวจ', value: '12', hint: 'รายการที่ยังไม่ปิดงาน' },
     ],
     member: [
       { label: 'วาระที่ต้องลงคะแนน', value: '3', hint: 'รายการที่สมาชิกกรรมการยังไม่ลงมติ' },
-      { label: 'งานติดตามมอบหมาย', value: '7', hint: 'งานที่ assigned ให้กรรมการคนนี้' },
+      { label: 'งานติดตามมอบหมาย', value: '7', hint: 'งานที่มอบหมายให้กรรมการคนนี้' },
     ],
   },
   requestTrend: [
-    { label: 'Mon', value: 4 },
-    { label: 'Tue', value: 8 },
-    { label: 'Wed', value: 6 },
-    { label: 'Thu', value: 10 },
-    { label: 'Fri', value: 5 },
-    { label: 'Sat', value: 3 },
-    { label: 'Sun', value: 7 },
+    { label: 'จ.', value: 4 },
+    { label: 'อ.', value: 8 },
+    { label: 'พ.', value: 6 },
+    { label: 'พฤ.', value: 10 },
+    { label: 'ศ.', value: 5 },
+    { label: 'ส.', value: 3 },
+    { label: 'อา.', value: 7 },
   ],
   meetings: [
     { topic: 'วาระการเงินประจำเดือน', time: '09:30', status: 'ready' as const },
@@ -130,7 +130,7 @@ export const committeePortalPayload = {
 export const academyPortalPayload = {
   metricCards: [
     { label: 'นักเรียนทั้งหมด', value: '862', hint: 'รวมทุกห้องและทุกระดับ' },
-    { label: 'ห้องเรียนที่เปิด', value: '24', hint: 'ห้องที่มี active schedule' },
+    { label: 'ห้องเรียนที่เปิด', value: '24', hint: 'ห้องที่มีตารางสอนเปิดใช้งาน' },
     { label: 'คอร์สที่เปิด', value: '31', hint: 'คอร์สที่เปิดรับสมัครอยู่' },
     { label: 'ค่าเฉลี่ยผลการเรียน', value: '82.4', hint: 'คะแนนเฉลี่ยรวมทุกวิชา' },
   ],
@@ -140,7 +140,7 @@ export const academyPortalPayload = {
       { label: 'อัตราชำระครบ', value: '86%', hint: 'สถานะค่าใช้จ่ายรวมทุกคอร์ส' },
     ],
     teacher: [
-      { label: 'ชั้นเรียนที่รับผิดชอบ', value: '6', hint: 'ห้องเรียน active ของครู' },
+      { label: 'ชั้นเรียนที่รับผิดชอบ', value: '6', hint: 'ห้องเรียนที่เปิดใช้งานของครู' },
       { label: 'งานตรวจคะแนนค้าง', value: '24', hint: 'รายการที่ต้องตรวจวันนี้' },
     ],
     student: [

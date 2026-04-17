@@ -54,26 +54,26 @@ export function createApp(): express.Express {
         health: '/health',
         lineToken: 'POST /api/auth/line/token',
         membersVerify: 'POST /api/members/verify-link',
-        membersSession: 'POST /api/members/session-member (line_uid — โหลดสมาชิกที่ผูกไว้แล้ว)',
+        membersSession: 'POST /api/members/session-member (line_uid — โหลดสมาชิกที่ผูกไว้แล้วสำหรับกู้เซสชัน)',
         membersRequestStatus: 'POST /api/members/request-status (line_uid — ดูคำร้องล่าสุดของสมาชิก)',
         membersUpdateSelf: 'POST /api/members/update-self (line_uid + updates — หลังผูกแล้ว)',
         membersRegister: 'POST /api/members/register-request',
         importTemplates:
           'GET /api/admin/members/import-template.csv | import-template.xlsx (ไม่ต้องมี key)',
-        adminImport: 'POST /api/admin/members/import (ต้องใช้ x-admin-key)',
+        adminImport: 'POST /api/admin/members/import (ต้องใช้ Admin key: x-admin-key)',
         adminImportSummary:
-          'GET /api/admin/members/summary?importBatchId=... (ต้องใช้ x-admin-key)',
+          'GET /api/admin/members/summary?importBatchId=... (ต้องใช้ Admin key: x-admin-key)',
         finance:
           'GET /api/admin/finance/overview | bank-accounts | reports/pl-summary | reports/donations | exports/donations.csv | exports/payment-requests.csv | exports/meeting-sessions.csv (รองรับ query: legal_entity_code, from, to), POST /api/admin/finance/payment-requests, POST /api/admin/finance/payment-requests/:id/approve, POST /api/admin/finance/meeting-sessions, POST /api/admin/finance/meeting-sessions/:id/sign-attendance',
         memberRequests:
-          'GET /api/admin/member-requests (x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
+          'GET /api/admin/member-requests (Admin key: x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
         push: 'GET /api/push/vapid-public, POST /api/push/subscribe',
         portal:
-          'GET /api/portal/member | /api/portal/committee | /api/portal/academy — snapshot สำหรับ dashboard พอร์ทัล',
+          'GET /api/portal/member | /api/portal/committee | /api/portal/academy — สแนปช็อตสำหรับแดชบอร์ดพอร์ทัล',
         cramSchool:
-          'GET/POST/PATCH /api/admin/cram/classrooms, GET/POST/PATCH/DELETE /api/admin/cram/students (x-admin-key) — ห้อง/นักเรียนกวดวิชา',
+          'GET/POST/PATCH /api/admin/cram/classrooms, GET/POST/PATCH/DELETE /api/admin/cram/students (Admin key: x-admin-key) — ห้อง/นักเรียนกวดวิชา',
         schoolActivities:
-          'GET/POST/PATCH/DELETE /api/admin/school-activities (x-admin-key) — คอร์ส/กิจกรรม school_activities',
+          'GET/POST/PATCH/DELETE /api/admin/school-activities (Admin key: x-admin-key) — คอร์ส/กิจกรรม school_activities',
       },
     })
   })

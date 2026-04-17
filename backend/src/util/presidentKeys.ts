@@ -57,7 +57,7 @@ export function assertPresidentForRequestBatch(req: Request, row: { requested_da
 
   const pk = req.header('x-president-key')?.trim()
   if (!pk) {
-    res.status(403).json({ error: 'Forbidden', code: 'MISSING_PRESIDENT_KEY' })
+    res.status(403).json({ error: 'ไม่ได้รับอนุญาต', code: 'MISSING_PRESIDENT_KEY' })
     return false
   }
 
@@ -66,7 +66,7 @@ export function assertPresidentForRequestBatch(req: Request, row: { requested_da
 
   if (expected === null) {
     res.status(403).json({
-      error: 'Forbidden',
+      error: 'ไม่ได้รับอนุญาต',
       code: 'NO_PRESIDENT_FOR_BATCH',
       message:
         batch == null
@@ -79,7 +79,7 @@ export function assertPresidentForRequestBatch(req: Request, row: { requested_da
 
   if (pk !== expected) {
     res.status(403).json({
-      error: 'Forbidden',
+      error: 'ไม่ได้รับอนุญาต',
       code: 'PRESIDENT_KEY_WRONG_BATCH',
       message: 'x-president-key ไม่ตรงกับรุ่นในคำร้อง',
     })

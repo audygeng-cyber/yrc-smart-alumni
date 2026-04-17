@@ -1,6 +1,16 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { MetricCards, PortalDataSourceBadge, PortalShell, TrendBars } from './ui'
+import { portalFocusRing, portalNotFoundScopeLabel } from './portalLabels'
+import {
+  MetricCards,
+  PortalContentLoading,
+  PortalNotFound,
+  PortalSectionHeader,
+  PortalShell,
+  PortalSnapshotStatusRow,
+  PortalSnapshotToolbar,
+  TrendBars,
+} from './ui'
 import {
   type CommitteeMonthlyPl,
   type CommitteePortalData,
@@ -17,7 +27,7 @@ export function CommitteeArea(props: { apiBase: string }) {
   const [roleView, setRoleView] = useState<CommitteeRoleView>('chair')
   const portalData = useCommitteePortalData(props.apiBase)
   const navItems = [
-    { to: '/committee/dashboard', label: 'Dashboard', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    { to: '/committee/dashboard', label: 'แดชบอร์ด', roles: ['chair', 'member'] as CommitteeRoleView[] },
     { to: '/committee/members', label: 'ทะเบียนสมาชิก', roles: ['chair', 'member'] as CommitteeRoleView[] },
     { to: '/committee/finance', label: 'การเงินละเอียด', roles: ['chair'] as CommitteeRoleView[] },
     { to: '/committee/meetings', label: 'วาระ/รายงานประชุม', roles: ['chair', 'member'] as CommitteeRoleView[] },
@@ -28,25 +38,23 @@ export function CommitteeArea(props: { apiBase: string }) {
 
   return (
     <PortalShell
-      title="Committee Portal"
+      title="พอร์ทัลคณะกรรมการ"
       subtitle="คณะกรรมการ 35 คน · ทะเบียนสมาชิก · การเงินละเอียด · ประชุม · ลงมติ"
       navItems={visibleNavItems}
     >
       <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-500">Role view</span>
+          <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as CommitteeRoleView)}
-            className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+            className={`rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
           >
             <option value="chair">ประธานคณะกรรมการ</option>
             <option value="member">กรรมการ</option>
           </select>
-          <span className="text-xs text-slate-500">จำลองสิทธิ์เมนูภายใน committee portal</span>
-          <span className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-400">
-            data: {portalData.loading ? 'loading...' : portalData.source}
-          </span>
+          <span className="text-xs text-slate-500">จำลองสิทธิ์เมนูภายในพอร์ทัลคณะกรรมการ</span>
+          <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
         </div>
       </section>
       <Routes>
@@ -57,7 +65,7 @@ export function CommitteeArea(props: { apiBase: string }) {
         <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} />} />
         <Route path="attendance" element={<CommitteeAttendancePage portalState={portalData} />} />
         <Route path="voting" element={<CommitteeVotingPage portalState={portalData} />} />
-        <Route path="*" element={<NotFoundInline />} />
+        <Route path="*" element={<PortalNotFound scopeLabel={portalNotFoundScopeLabel.committee} />} />
       </Routes>
     </PortalShell>
   )
@@ -73,7 +81,7 @@ function CommitteePlBlock(props: { title: string; entityHint: string; pl: Commit
       <p className="text-xs uppercase tracking-wide text-slate-500">{props.entityHint}</p>
       <h4 className="mt-1 text-base font-medium text-slate-100">{props.title}</h4>
       {!props.pl ? (
-        <p className="mt-3 text-sm text-slate-500">ไม่มีข้อมูล journal ในช่วงเดือนนี้</p>
+        <p className="mt-3 text-sm text-slate-500">ไม่มีข้อมูลสมุดรายวัน (journal) ในช่วงเดือนนี้</p>
       ) : (
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-4">
@@ -105,17 +113,16 @@ function CommitteeFinancePage(props: {
     return (
       <div className="space-y-4">
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <PortalSectionHeader loading={loading} source={source}>
             <div>
               <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การเงิน (สรุป)</h3>
               <p className="mt-2 text-sm text-slate-400">
                 มุมมองกรรมการแสดงเฉพาะกำไรสุทธิโดยสังเขป — รายละเอียดบัญชีเต็มสำหรับประธาน/ผู้ได้รับมอบหมาย
               </p>
             </div>
-            <PortalDataSourceBadge loading={loading} source={source} />
-          </div>
+          </PortalSectionHeader>
           {loading ? (
-            <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+            <PortalContentLoading />
           ) : (
             <ul className="mt-4 space-y-3 text-sm">
               <li className="rounded border border-slate-800 px-3 py-2">
@@ -132,7 +139,7 @@ function CommitteeFinancePage(props: {
               </li>
             </ul>
           )}
-          <p className="mt-4 text-xs text-slate-600">ช่วงอ้างอิง: {monthLabel} (ตาม journal ในระบบ)</p>
+          <p className="mt-4 text-xs text-slate-600">ช่วงอ้างอิง: {monthLabel} (ตามสมุดรายวัน journal ในระบบ)</p>
         </section>
       </div>
     )
@@ -141,7 +148,7 @@ function CommitteeFinancePage(props: {
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การเงินละเอียด</h3>
             <p className="mt-2 text-sm text-slate-400">
@@ -149,10 +156,9 @@ function CommitteeFinancePage(props: {
             </p>
             <p className="mt-1 text-xs text-slate-600">ช่วงเดือน: {monthLabel}</p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : (
           <>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -168,7 +174,7 @@ function CommitteeFinancePage(props: {
           </>
         )}
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/committee/dashboard" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+          <Link to="/committee/dashboard" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             แดชบอร์ด
           </Link>
         </div>
@@ -184,19 +190,18 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">วาระและรอบประชุม</h3>
             <p className="mt-2 text-sm text-slate-400">
-              รายการจาก snapshot (<code className="text-slate-500">meeting_sessions</code> ล่าสุด) — อัปเดตเมื่อโหลดพอร์ทัล
+              รายการจากสแนปช็อต (<code className="text-slate-500">meeting_sessions</code> ล่าสุด) — อัปเดตเมื่อโหลดพอร์ทัล
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : meetings.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">ยังไม่มีรายการประชุมใน snapshot</p>
+          <p className="mt-4 text-sm text-slate-400">ยังไม่มีรายการประชุมในสแนปช็อต</p>
         ) : (
           <ul className="mt-4 space-y-2 text-sm">
             {meetings.map((m, i) => (
@@ -224,10 +229,10 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
           </ul>
         )}
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/committee/dashboard" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+          <Link to="/committee/dashboard" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             กลับแดชบอร์ด
           </Link>
-          <Link to="/committee/voting" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+          <Link to="/committee/voting" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
             หน้าลงมติ (ตัวอย่าง)
           </Link>
         </div>
@@ -254,17 +259,16 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
     <div className="space-y-4">
       <MetricCards items={data.metricCards.slice(0, 2)} />
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ทะเบียนสมาชิก</h3>
             <p className="mt-2 text-sm text-slate-400">
-              สัดส่วนตามรุ่นและรายชื่ออัปเดตล่าสุดจาก snapshot — ค้นหาด้านล่างกรองเฉพาะรายการในรอบนี้ (สูงสุด 40 คน)
+              สัดส่วนตามรุ่นและรายชื่ออัปเดตล่าสุดจากสแนปช็อต — ค้นหาด้านล่างกรองเฉพาะรายการในรอบนี้ (สูงสุด 40 คน)
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : (
           <>
             {data.memberBatchDistribution.length === 0 ? (
@@ -286,7 +290,7 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
               />
             </div>
             {data.memberDirectoryPreview.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-500">ยังไม่มีรายชื่อใน snapshot</p>
+              <p className="mt-4 text-sm text-slate-500">ยังไม่มีรายชื่อในสแนปช็อต</p>
             ) : filtered.length === 0 ? (
               <p className="mt-4 text-sm text-slate-500">ไม่พบรายการที่ตรงกับคำค้น</p>
             ) : (
@@ -318,7 +322,7 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
           </>
         )}
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/committee/dashboard" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+          <Link to="/committee/dashboard" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             แดชบอร์ด
           </Link>
         </div>
@@ -335,7 +339,7 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ลงทะเบียนและลงชื่อประชุม</h3>
             <p className="mt-2 text-sm text-slate-400">
@@ -343,11 +347,10 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
               <code className="text-slate-500">meeting_attendance</code>)
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
 
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : !session ? (
           <p className="mt-4 text-sm text-slate-400">ยังไม่มีรอบประชุมในระบบ — เมื่อมีข้อมูลจะแสดง quorum และรายชื่อผู้ลงชื่อที่นี่</p>
         ) : (
@@ -402,10 +405,10 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
         )}
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/committee/voting" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+          <Link to="/committee/voting" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             ไปหน้าลงมติ
           </Link>
-          <Link to="/committee/meetings" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+          <Link to="/committee/meetings" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
             วาระ/รายงานประชุม
           </Link>
         </div>
@@ -421,18 +424,17 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การลงมติ</h3>
             <p className="mt-2 text-sm text-slate-400">
               วาระที่เปิดรับการลงมติ (<code className="text-slate-500">meeting_agendas</code> status = open)
             </p>
           </div>
-          <PortalDataSourceBadge loading={loading} source={source} />
-        </div>
+        </PortalSectionHeader>
 
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+          <PortalContentLoading />
         ) : agendas.length === 0 ? (
           <p className="mt-4 text-sm text-slate-400">ไม่มีวาระเปิดลงมติในขณะนี้</p>
         ) : (
@@ -455,14 +457,14 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
         )}
 
         <p className="mt-4 text-xs text-slate-600">
-          การลงคะแนนจริงเชื่อมกับบัญชีผู้ใช้และตาราง <code className="text-slate-500">meeting_votes</code> — หน้านี้แสดงรายการวาระจาก snapshot
+          การลงคะแนนจริงเชื่อมกับบัญชีผู้ใช้และตาราง <code className="text-slate-500">meeting_votes</code> — หน้านี้แสดงรายการวาระจากสแนปช็อต
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link to="/committee/attendance" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+          <Link to="/committee/attendance" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             ดูการลงชื่อประชุม
           </Link>
-          <Link to="/committee/meetings" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+          <Link to="/committee/meetings" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
             วาระ/รายงานประชุม
           </Link>
         </div>
@@ -500,13 +502,9 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs uppercase tracking-wide text-slate-500">สรุป snapshot แดชบอร์ด</p>
-          <div className="flex flex-wrap items-center gap-2">
-            {loading ? <span className="text-xs text-slate-500">กำลังโหลด snapshot…</span> : null}
-            <PortalDataSourceBadge loading={loading} source={source} />
-          </div>
-        </div>
+        <PortalSnapshotStatusRow loading={loading} source={source}>
+          <p className="text-xs uppercase tracking-wide text-slate-500">สรุปสแนปช็อตแดชบอร์ด</p>
+        </PortalSnapshotStatusRow>
       </section>
       <MetricCards items={data.metricCards} />
       <MetricCards items={data.roleCards[props.roleView]} />
@@ -514,7 +512,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">แนวโน้มคำร้อง 7 วัน</h3>
           <p className="mt-2 text-sm text-slate-400">
-            จำนวนคำร้องใหม่ต่อวัน (UTC) จาก <code className="text-slate-500">member_update_requests</code> — ใช้ติดตาม backlog
+            จำนวนคำร้องใหม่ต่อวัน (UTC) จาก <code className="text-slate-500">member_update_requests</code> — ใช้ติดตามงานค้าง
           </p>
           <TrendBars items={data.requestTrend} />
         </section>
@@ -524,7 +522,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
             <li className="rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-amber-100">
               {att
                 ? `ลงชื่อประชุมล่าสุด ${att.signedCount}/${att.expectedParticipants} · ${att.title}`
-                : 'ยังไม่มีรอบประชุมใน snapshot — ตรวจ quorum เมื่อเปิดรอบ'}
+                : 'ยังไม่มีรอบประชุมในสแนปช็อต — ตรวจ quorum เมื่อเปิดรอบ'}
             </li>
             <li className="rounded border border-red-900/40 bg-red-950/20 px-3 py-2 text-red-100">
               วาระเปิดลงมติ {openAgendaCount} รายการ (meeting_agendas open)
@@ -534,10 +532,10 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
             </li>
           </ul>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link to="/committee/voting" className="rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700">
+            <Link to="/committee/voting" className={`rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 ${portalFocusRing}`}>
               เปิดหน้าลงมติ
             </Link>
-            <Link to="/committee/attendance" className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+            <Link to="/committee/attendance" className={`rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
               เช็กชื่อประชุม
             </Link>
           </div>
@@ -546,7 +544,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สถานะประชุมวันนี้</h3>
         {data.meetings.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">ยังไม่มีรายการประชุมใน snapshot</p>
+          <p className="mt-3 text-sm text-slate-500">ยังไม่มีรายการประชุมในสแนปช็อต</p>
         ) : (
           <div className="mt-3 space-y-2 text-sm">
             {data.meetings.map((meeting, mi) => (
@@ -575,10 +573,3 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
   )
 }
 
-function NotFoundInline() {
-  return (
-    <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5 text-sm text-slate-400">
-      ไม่พบหน้าที่ร้องขอภายในพอร์ทัลคณะกรรมการ
-    </section>
-  )
-}

@@ -55,7 +55,7 @@ async function readLegalEntityFilter(
   const legalEntityCode = typeof query.legal_entity_code === 'string' ? query.legal_entity_code.trim() : ''
   if (!legalEntityCode) return { legalEntityCode: '', legalEntityId: null, error: null }
   const entity = await getLegalEntity(supabase, legalEntityCode)
-  if (!entity) return { legalEntityCode, legalEntityId: null, error: 'Unknown legal_entity_code' }
+  if (!entity) return { legalEntityCode, legalEntityId: null, error: 'ไม่รู้จัก legal_entity_code' }
   return { legalEntityCode, legalEntityId: String(entity.id), error: null }
 }
 
@@ -75,7 +75,7 @@ financeAdminRouter.get('/bank-accounts', async (req, res) => {
     if (legalEntityCode) {
       const entity = await getLegalEntity(supabase, legalEntityCode)
       if (!entity) {
-        res.status(400).json({ error: 'Unknown legal_entity_code' })
+        res.status(400).json({ error: 'ไม่รู้จัก legal_entity_code' })
         return
       }
       accountsQuery = accountsQuery.eq('legal_entity_id', entity.id)
@@ -83,7 +83,7 @@ financeAdminRouter.get('/bank-accounts', async (req, res) => {
 
     const { data: accounts, error: accErr } = await accountsQuery
     if (accErr) {
-      res.status(500).json({ error: 'Load bank_accounts failed', details: accErr })
+      res.status(500).json({ error: 'โหลด bank_accounts ไม่สำเร็จ', details: accErr })
       return
     }
 
@@ -96,7 +96,7 @@ financeAdminRouter.get('/bank-accounts', async (req, res) => {
         .in('bank_account_id', accountIds)
         .order('signer_name', { ascending: true })
       if (signErr) {
-        res.status(500).json({ error: 'Load bank_account_signers failed', details: signErr })
+        res.status(500).json({ error: 'โหลด bank_account_signers ไม่สำเร็จ', details: signErr })
         return
       }
       for (const s of signers ?? []) {
@@ -114,7 +114,7 @@ financeAdminRouter.get('/bank-accounts', async (req, res) => {
       })),
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -124,7 +124,7 @@ financeAdminRouter.get('/overview', async (_req, res) => {
     const supabase = getServiceSupabase()
     const { data: entities, error: entErr } = await supabase.from('legal_entities').select('id,code,name_th')
     if (entErr) {
-      res.status(500).json({ error: 'Load legal_entities failed', details: entErr })
+      res.status(500).json({ error: 'โหลด legal_entities ไม่สำเร็จ', details: entErr })
       return
     }
 
@@ -133,7 +133,7 @@ financeAdminRouter.get('/overview', async (_req, res) => {
       .select('id,legal_entity_id,amount,status')
       .eq('status', 'pending')
     if (pendErr) {
-      res.status(500).json({ error: 'Load payment_requests failed', details: pendErr })
+      res.status(500).json({ error: 'โหลด payment_requests ไม่สำเร็จ', details: pendErr })
       return
     }
 
@@ -141,7 +141,7 @@ financeAdminRouter.get('/overview', async (_req, res) => {
       .from('donations')
       .select('id,batch,amount,legal_entity_id')
     if (donErr) {
-      res.status(500).json({ error: 'Load donations failed', details: donErr })
+      res.status(500).json({ error: 'โหลด donations ไม่สำเร็จ', details: donErr })
       return
     }
 
@@ -163,7 +163,7 @@ financeAdminRouter.get('/overview', async (_req, res) => {
       donationByEntity,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -188,7 +188,7 @@ financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
 
     const { data: entries, error: eErr } = await entriesQ
     if (eErr) {
-      res.status(500).json({ error: 'Load journal_entries failed', details: eErr })
+      res.status(500).json({ error: 'โหลด journal_entries ไม่สำเร็จ', details: eErr })
       return
     }
 
@@ -207,7 +207,7 @@ financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
       .select('account_id,debit,credit,journal_entry_id')
       .in('journal_entry_id', entryIds)
     if (lErr) {
-      res.status(500).json({ error: 'Load journal_lines failed', details: lErr })
+      res.status(500).json({ error: 'โหลด journal_lines ไม่สำเร็จ', details: lErr })
       return
     }
 
@@ -215,7 +215,7 @@ financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
     if (legalEntityId) chartQ = chartQ.eq('legal_entity_id', legalEntityId)
     const { data: chart, error: cErr } = await chartQ
     if (cErr) {
-      res.status(500).json({ error: 'Load account_chart failed', details: cErr })
+      res.status(500).json({ error: 'โหลด account_chart ไม่สำเร็จ', details: cErr })
       return
     }
 
@@ -282,7 +282,7 @@ financeAdminRouter.get('/reports/pl-summary', async (req, res) => {
       },
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -302,7 +302,7 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
     }
     const { data: entities, error: eErr } = await supabase.from('legal_entities').select('id,code,name_th')
     if (eErr) {
-      res.status(500).json({ error: 'Load legal_entities failed', details: eErr })
+      res.status(500).json({ error: 'โหลด legal_entities ไม่สำเร็จ', details: eErr })
       return
     }
     const entityCodeById = new Map<string, string>()
@@ -317,7 +317,7 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
     if (toDate) donationsQ = donationsQ.lte('created_at', `${toDate}T23:59:59.999Z`)
     const { data: donations, error: dErr } = await donationsQ
     if (dErr) {
-      res.status(500).json({ error: 'Load donations failed', details: dErr })
+      res.status(500).json({ error: 'โหลด donations ไม่สำเร็จ', details: dErr })
       return
     }
 
@@ -331,7 +331,7 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
         .select('id,first_name,last_name,batch')
         .in('id', memberIds)
       if (mErr) {
-        res.status(500).json({ error: 'Load members for donations failed', details: mErr })
+        res.status(500).json({ error: 'โหลดข้อมูลสมาชิกสำหรับ donations ไม่สำเร็จ', details: mErr })
         return
       }
       for (const m of members ?? []) {
@@ -390,7 +390,7 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
       byDonor: byDonorRows,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -420,7 +420,7 @@ financeAdminRouter.get('/exports/donations.csv', async (req, res) => {
     if (toDate) donationsQ = donationsQ.lte('created_at', `${toDate}T23:59:59.999Z`)
     const { data: donations, error } = await donationsQ
     if (error) {
-      res.status(500).json({ error: 'Load donations failed', details: error })
+      res.status(500).json({ error: 'โหลด donations ไม่สำเร็จ', details: error })
       return
     }
 
@@ -443,7 +443,7 @@ financeAdminRouter.get('/exports/donations.csv', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="finance-donations.csv"')
     res.send(csv)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -475,7 +475,7 @@ financeAdminRouter.get('/exports/payment-requests.csv', async (req, res) => {
     if (toDate) paymentQ = paymentQ.lte('requested_at', `${toDate}T23:59:59.999Z`)
     const { data: reqs, error } = await paymentQ
     if (error) {
-      res.status(500).json({ error: 'Load payment_requests failed', details: error })
+      res.status(500).json({ error: 'โหลด payment_requests ไม่สำเร็จ', details: error })
       return
     }
 
@@ -505,7 +505,7 @@ financeAdminRouter.get('/exports/payment-requests.csv', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="finance-payment-requests.csv"')
     res.send(csv)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -536,7 +536,7 @@ financeAdminRouter.get('/exports/meeting-sessions.csv', async (req, res) => {
     if (toDate) sessionsQ = sessionsQ.lte('created_at', `${toDate}T23:59:59.999Z`)
     const { data: sessions, error: sErr } = await sessionsQ
     if (sErr) {
-      res.status(500).json({ error: 'Load meeting_sessions failed', details: sErr })
+      res.status(500).json({ error: 'โหลด meeting_sessions ไม่สำเร็จ', details: sErr })
       return
     }
 
@@ -548,7 +548,7 @@ financeAdminRouter.get('/exports/meeting-sessions.csv', async (req, res) => {
         .select('meeting_session_id')
         .in('meeting_session_id', sessionIds)
       if (aErr) {
-        res.status(500).json({ error: 'Load meeting_attendance failed', details: aErr })
+        res.status(500).json({ error: 'โหลด meeting_attendance ไม่สำเร็จ', details: aErr })
         return
       }
       for (const a of attendance ?? []) {
@@ -585,7 +585,7 @@ financeAdminRouter.get('/exports/meeting-sessions.csv', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="finance-meeting-sessions.csv"')
     res.send(csv)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -610,14 +610,14 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
         : null
 
     if (!legal_entity_code || !purpose || !Number.isFinite(amount) || amount <= 0) {
-      res.status(400).json({ error: 'legal_entity_code, purpose, amount > 0 are required' })
+      res.status(400).json({ error: 'ต้องระบุ legal_entity_code, purpose และ amount > 0' })
       return
     }
 
     const supabase = getServiceSupabase()
     const entity = await getLegalEntity(supabase, legal_entity_code)
     if (!entity) {
-      res.status(400).json({ error: 'Unknown legal_entity_code' })
+      res.status(400).json({ error: 'ไม่รู้จัก legal_entity_code' })
       return
     }
 
@@ -625,7 +625,7 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
 
     if (policy.rule === 'committee_35_over_20000' && !meeting_session_id) {
       res.status(400).json({
-        error: 'meeting_session_id is required for payment > 20,000 (ประชุม + มติ)',
+        error: 'ต้องระบุ meeting_session_id สำหรับการจ่ายเงิน > 20,000 (ประชุม + มติ)',
       })
       return
     }
@@ -633,7 +633,7 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
     if (policy.rule === 'committee_3of5_upto_20000') {
       if (!bank_account_id) {
         res.status(400).json({
-          error: 'bank_account_id is required for <= 20,000 (อนุมัติผู้ลงนาม 3 ใน 5)',
+          error: 'ต้องระบุ bank_account_id สำหรับยอด <= 20,000 (อนุมัติผู้ลงนาม 3 ใน 5)',
         })
         return
       }
@@ -644,7 +644,7 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
         .eq('active', true)
         .eq('in_kbiz', true)
       if (sErr) {
-        res.status(500).json({ error: 'Load bank account signers failed', details: sErr })
+        res.status(500).json({ error: 'โหลดรายชื่อผู้ลงนามบัญชีธนาคารไม่สำเร็จ', details: sErr })
         return
       }
       if ((signers ?? []).length < 5) {
@@ -673,13 +673,13 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
       .single()
 
     if (insErr || !row) {
-      res.status(500).json({ error: 'Create payment request failed', details: insErr })
+      res.status(500).json({ error: 'สร้างคำขอจ่ายเงินไม่สำเร็จ', details: insErr })
       return
     }
 
     res.status(201).json({ ok: true, paymentRequest: row, policy })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -696,7 +696,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
     const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : null
 
     if (!id || (!approver_name && !approver_signer_id) || !approver_role_code) {
-      res.status(400).json({ error: 'id, approver_name or approver_signer_id, approver_role_code are required' })
+      res.status(400).json({ error: 'ต้องระบุ id, approver_name หรือ approver_signer_id และ approver_role_code' })
       return
     }
 
@@ -708,16 +708,16 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       .maybeSingle()
 
     if (reqErr || !reqRow) {
-      res.status(reqErr ? 500 : 404).json({ error: reqErr ? 'Load request failed' : 'Not found', details: reqErr })
+      res.status(reqErr ? 500 : 404).json({ error: reqErr ? 'โหลดคำขอไม่สำเร็จ' : 'ไม่พบข้อมูล', details: reqErr })
       return
     }
     if (reqRow.status !== 'pending') {
-      res.status(400).json({ error: 'Request is not pending', status: reqRow.status })
+      res.status(400).json({ error: 'คำขอไม่ได้อยู่ในสถานะ pending', status: reqRow.status })
       return
     }
     if (approver_role_code !== reqRow.required_role_code) {
       res.status(403).json({
-        error: 'Role not allowed for this request',
+        error: 'role นี้ไม่สามารถอนุมัติคำขอนี้ได้',
         required_role_code: reqRow.required_role_code,
       })
       return
@@ -725,7 +725,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
 
     if (reqRow.approval_rule === 'committee_3of5_upto_20000') {
       if (!reqRow.bank_account_id) {
-        res.status(400).json({ error: 'Request missing bank_account_id' })
+        res.status(400).json({ error: 'คำขอนี้ไม่มี bank_account_id' })
         return
       }
       let signerQuery = supabase
@@ -741,12 +741,12 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       }
       const { data: signer, error: sigErr } = await signerQuery.maybeSingle()
       if (sigErr) {
-        res.status(500).json({ error: 'Signer lookup failed', details: sigErr })
+        res.status(500).json({ error: 'ค้นหาผู้ลงนามไม่สำเร็จ', details: sigErr })
         return
       }
       if (!signer) {
         res.status(403).json({
-          error: 'approver_name is not an active KBiz signer for this bank account',
+          error: 'approver_name ไม่ใช่ผู้ลงนาม KBiz ที่ active สำหรับบัญชีนี้',
         })
         return
       }
@@ -767,7 +767,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
         typeof reqRow.meeting_session_id === 'string' ? reqRow.meeting_session_id : ''
       if (!meetingSessionId) {
         res.status(400).json({
-          error: 'meeting_session_id is required for this approval rule',
+          error: 'ต้องระบุ meeting_session_id สำหรับกฎการอนุมัตินี้',
         })
         return
       }
@@ -778,7 +778,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
         .maybeSingle()
       if (sessErr || !session) {
         res.status(sessErr ? 500 : 404).json({
-          error: sessErr ? 'Load meeting session failed' : 'Meeting session not found',
+          error: sessErr ? 'โหลดรอบประชุมไม่สำเร็จ' : 'ไม่พบรอบประชุม',
           details: sessErr,
         })
         return
@@ -807,7 +807,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       comment,
     })
     if (appErr) {
-      res.status(500).json({ error: 'Insert approval failed', details: appErr })
+      res.status(500).json({ error: 'บันทึกการอนุมัติไม่สำเร็จ', details: appErr })
       return
     }
 
@@ -817,7 +817,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
         .update({ status: 'rejected', updated_at: new Date().toISOString() })
         .eq('id', id)
       if (upErr) {
-        res.status(500).json({ error: 'Reject finalize failed', details: upErr })
+        res.status(500).json({ error: 'ปิดคำขอแบบปฏิเสธไม่สำเร็จ', details: upErr })
         return
       }
       res.json({ ok: true, status: 'rejected' })
@@ -831,7 +831,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       .eq('approver_role_code', approver_role_code)
       .eq('decision', 'approve')
     if (countErr) {
-      res.status(500).json({ error: 'Count approvals failed', details: countErr })
+      res.status(500).json({ error: 'นับจำนวนการอนุมัติไม่สำเร็จ', details: countErr })
       return
     }
 
@@ -845,7 +845,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
         .update({ status: 'approved', updated_at: new Date().toISOString() })
         .eq('id', id)
       if (upErr) {
-        res.status(500).json({ error: 'Approve finalize failed', details: upErr })
+        res.status(500).json({ error: 'ปิดคำขอแบบอนุมัติไม่สำเร็จ', details: upErr })
         return
       }
     }
@@ -859,7 +859,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       quorumRequired: quorumNeed,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -877,7 +877,7 @@ financeAdminRouter.post('/meeting-sessions', async (req, res) => {
 
     if (!legal_entity_code || !title || !Number.isFinite(expectedParticipants) || expectedParticipants <= 0) {
       res.status(400).json({
-        error: 'legal_entity_code, title, expected_participants > 0 are required',
+        error: 'ต้องระบุ legal_entity_code, title และ expected_participants > 0',
       })
       return
     }
@@ -885,7 +885,7 @@ financeAdminRouter.post('/meeting-sessions', async (req, res) => {
     const supabase = getServiceSupabase()
     const entity = await getLegalEntity(supabase, legal_entity_code)
     if (!entity) {
-      res.status(400).json({ error: 'Unknown legal_entity_code' })
+      res.status(400).json({ error: 'ไม่รู้จัก legal_entity_code' })
       return
     }
 
@@ -900,7 +900,7 @@ financeAdminRouter.post('/meeting-sessions', async (req, res) => {
       .select('*')
       .single()
     if (error || !row) {
-      res.status(500).json({ error: 'Create meeting session failed', details: error })
+      res.status(500).json({ error: 'สร้างรอบประชุมไม่สำเร็จ', details: error })
       return
     }
 
@@ -910,7 +910,7 @@ financeAdminRouter.post('/meeting-sessions', async (req, res) => {
       quorumRequired: quorumRequired(expectedParticipants),
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -924,12 +924,12 @@ financeAdminRouter.post('/meeting-sessions/:id/sign-attendance', async (req, res
     const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : null
 
     if (!id || !attendee_name || !attendee_role_code) {
-      res.status(400).json({ error: 'id, attendee_name, attendee_role_code are required' })
+      res.status(400).json({ error: 'ต้องระบุ id, attendee_name และ attendee_role_code' })
       return
     }
     if (!['committee', 'cram_executive'].includes(attendee_role_code)) {
       res.status(400).json({
-        error: 'attendee_role_code must be committee or cram_executive',
+        error: 'attendee_role_code ต้องเป็น committee หรือ cram_executive',
       })
       return
     }
@@ -948,13 +948,13 @@ financeAdminRouter.post('/meeting-sessions/:id/sign-attendance', async (req, res
       .single()
 
     if (error || !row) {
-      res.status(500).json({ error: 'Sign attendance failed', details: error })
+      res.status(500).json({ error: 'ลงชื่อเข้าประชุมไม่สำเร็จ', details: error })
       return
     }
 
     res.status(201).json({ ok: true, attendance: row })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })
@@ -969,7 +969,7 @@ financeAdminRouter.get('/meeting-sessions/:id/summary', async (req, res) => {
       .eq('id', id)
       .maybeSingle()
     if (error || !session) {
-      res.status(error ? 500 : 404).json({ error: error ? 'Load meeting failed' : 'Meeting not found', details: error })
+      res.status(error ? 500 : 404).json({ error: error ? 'โหลดข้อมูลประชุมไม่สำเร็จ' : 'ไม่พบข้อมูลประชุม', details: error })
       return
     }
 
@@ -986,7 +986,7 @@ financeAdminRouter.get('/meeting-sessions/:id/summary', async (req, res) => {
       majorityRequired: majorityNeed,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
   }
 })

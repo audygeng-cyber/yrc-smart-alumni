@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { HEADER_TO_MEMBER_KEY, MEMBER_SELF_EDIT_HEADERS } from '../memberImportMap'
+import { portalFocusRing } from '../portal/portalLabels'
 
 type MemberRow = Record<string, unknown>
 
@@ -64,7 +65,7 @@ export function MemberProfileSection({ apiBase, lineUid, member, onMemberUpdated
             <input
               value={selfEdit[h] ?? ''}
               onChange={(e) => setSelfEdit((prev) => ({ ...prev, [h]: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-emerald-700"
+              className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-emerald-700 ${portalFocusRing}`}
             />
           </label>
         ))}
@@ -73,7 +74,7 @@ export function MemberProfileSection({ apiBase, lineUid, member, onMemberUpdated
         type="button"
         disabled={loading || !lineUid.trim()}
         onClick={submitSelfUpdate}
-        className="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+        className={`mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
       >
         บันทึกข้อมูล
       </button>

@@ -99,7 +99,7 @@ describe.sequential('createApp', () => {
     const app = createApp()
     const res = await request(app).get('/api/admin/members/summary')
     expect(res.status).toBe(401)
-    expect(res.body.error).toBe('Unauthorized')
+    expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
   })
 
   it('GET /api/admin/cram/classrooms requires admin key', async () => {
@@ -107,7 +107,7 @@ describe.sequential('createApp', () => {
     const app = createApp()
     const res = await request(app).get('/api/admin/cram/classrooms')
     expect(res.status).toBe(401)
-    expect(res.body.error).toBe('Unauthorized')
+    expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
   })
 
   it('GET /api/admin/school-activities requires admin key', async () => {
@@ -115,7 +115,7 @@ describe.sequential('createApp', () => {
     const app = createApp()
     const res = await request(app).get('/api/admin/school-activities')
     expect(res.status).toBe(401)
-    expect(res.body.error).toBe('Unauthorized')
+    expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
   })
 
   it('CORS reflects FRONTEND_ORIGINS when set', async () => {

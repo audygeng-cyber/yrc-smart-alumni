@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { portalFocusRing } from '../portal/portalLabels'
 import { MemberProfileSection } from './MemberProfileSection'
 
 type MemberRow = Record<string, unknown>
@@ -42,9 +44,9 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
           <span className="ml-2 text-sm font-normal text-slate-400">รุ่น {batch}</span>
         </h2>
         {lineDisplayName ? (
-          <p className="mt-1 text-xs text-slate-500">LINE: {lineDisplayName}</p>
+          <p className="mt-1 text-xs text-slate-500">ชื่อ LINE: {lineDisplayName}</p>
         ) : null}
-        <p className="mt-2 break-all font-mono text-xs text-slate-500">UID: {lineUid}</p>
+        <p className="mt-2 break-all font-mono text-xs text-slate-500">LINE UID: {lineUid}</p>
       </header>
 
       <nav className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
@@ -53,7 +55,7 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
             key={id}
             type="button"
             onClick={() => setSection(id)}
-            className={`rounded-lg px-3 py-2 text-sm font-medium ${
+            className={`rounded-lg px-3 py-2 text-sm font-medium ${portalFocusRing} ${
               section === id
                 ? 'bg-emerald-800 text-white'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -85,6 +87,12 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
             </li>
             <li>สรุปยอดบริจาคแยกตามรุ่น และแดชบอร์ดภาพรวมเงินบริจาค</li>
           </ul>
+          <PortalRelatedLinks
+            links={[
+              { to: '/member/donations', label: 'สนับสนุนกิจกรรม' },
+              { to: '/member/statistics', label: 'สถิติสมาชิก' },
+            ]}
+          />
         </PlaceholderBlock>
       )}
 
@@ -94,20 +102,50 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
             <li>แดชบอร์ดสถิติแยกตามรุ่น และภาพรวมทั้งหมด</li>
             <li>เชื่อมกับข้อมูลสมาชิกในทะเบียนหลังมีการนำเข้าและอัปเดต</li>
           </ul>
+          <PortalRelatedLinks links={[{ to: '/member/statistics', label: 'สถิติสมาชิก' }]} />
         </PlaceholderBlock>
       )}
 
       {section === 'association' && (
         <PlaceholderBlock title="กิจกรรมสมาคมศิษย์เก่า">
           <p>รายละเอียดกิจกรรมแต่ละประเภท — เพิ่มเนื้อหา/แกลเลอรี/ลงทะเบียนเข้าร่วม (ระบุรายละเอียดในรอบถัดไป)</p>
+          <PortalRelatedLinks
+            links={[
+              { to: '/member/donations', label: 'สนับสนุนกิจกรรม' },
+              { to: '/member/meetings', label: 'ประชุมและการเงิน' },
+            ]}
+          />
         </PlaceholderBlock>
       )}
 
       {section === 'cram' && (
         <PlaceholderBlock title="โรงเรียนกวดวิชา">
           <p>หัวข้อและรายละเอียดย่อยตามที่องค์กรกำหนด — แยกจากสมาคมศิษย์เก่าได้ตามโครงสร้างที่จะกำหนดต่อ</p>
+          <PortalRelatedLinks
+            links={[
+              { to: '/academy/dashboard', label: 'แดชบอร์ดโรงเรียนกวดวิชา (Academy)' },
+              { to: '/academy/courses', label: 'คอร์สเรียน' },
+            ]}
+          />
         </PlaceholderBlock>
       )}
+    </div>
+  )
+}
+
+function PortalRelatedLinks(props: { links: Array<{ to: string; label: string }> }) {
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      <span className="text-xs text-slate-500">ลิงก์ที่เกี่ยวข้อง:</span>
+      {props.links.map((l) => (
+        <Link
+          key={l.to}
+          to={l.to}
+          className={`rounded border border-emerald-900/45 bg-emerald-950/25 px-2.5 py-1 text-xs text-emerald-200 hover:bg-emerald-900/35 ${portalFocusRing}`}
+        >
+          {l.label}
+        </Link>
+      ))}
     </div>
   )
 }

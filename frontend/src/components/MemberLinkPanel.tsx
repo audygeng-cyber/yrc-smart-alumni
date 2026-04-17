@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MEMBER_REGISTER_EXTRA_HEADERS } from '../memberImportMap'
+import { portalFocusRing } from '../portal/portalLabels'
 
 type Props = {
   apiBase: string
@@ -236,18 +237,18 @@ export function MemberLinkPanel({
           <button
             type="button"
             onClick={onStartLineLogin}
-            className="w-full rounded-lg bg-[#06C755] px-4 py-3 text-sm font-semibold text-white hover:opacity-95"
+            className={`w-full rounded-lg bg-[#06C755] px-4 py-3 text-sm font-semibold text-white hover:opacity-95 ${portalFocusRing}`}
           >
             เข้าสู่ระบบด้วย LINE
           </button>
           {lineUidFromOAuth && lineUid ? (
             <div className="rounded-lg border border-slate-700 bg-slate-950/80 p-3 text-sm">
-              <p className="text-slate-400">Line UID (จาก LINE)</p>
+              <p className="text-slate-400">LINE UID (จาก LINE)</p>
               <p className="mt-1 break-all font-mono text-emerald-300">{lineUid}</p>
               <button
                 type="button"
                 onClick={onClearLineSession}
-                className="mt-3 text-xs text-amber-400 underline hover:text-amber-300"
+                className={`mt-3 rounded-sm text-xs text-amber-400 underline hover:text-amber-300 ${portalFocusRing}`}
               >
                 ออกจากบัญชี LINE นี้
               </button>
@@ -256,26 +257,26 @@ export function MemberLinkPanel({
           <button
             type="button"
             onClick={() => setShowManualUid((v) => !v)}
-            className="text-xs text-slate-500 underline hover:text-slate-400"
+            className={`text-xs text-slate-500 underline hover:text-slate-400 ${portalFocusRing} rounded-sm`}
           >
-            {showManualUid ? 'ซ่อนการใส่ Line UID เอง (ทดสอบ)' : 'ทดสอบ — ใส่ Line UID เอง'}
+            {showManualUid ? 'ซ่อนการใส่ LINE UID เอง (ทดสอบ)' : 'ทดสอบ — ใส่ LINE UID เอง'}
           </button>
         </div>
       ) : (
         <p className="mt-2 text-xs text-amber-200/80">
-          ยังไม่ได้ตั้งค่า VITE_LINE_CHANNEL_ID / VITE_LINE_REDIRECT_URI — ใช้การใส่ Line UID ด้านล่างได้
+          ยังไม่ได้ตั้งค่า VITE_LINE_CHANNEL_ID / VITE_LINE_REDIRECT_URI — ใช้การใส่ LINE UID ด้านล่างได้
         </p>
       )}
 
       {(showManualUid || !lineLoginAvailable) && (
         <label className="mt-4 block text-sm text-slate-300">
-          Line UID {lineUidFromOAuth ? '' : '(ทดสอบ)'}
+          LINE UID {lineUidFromOAuth ? '' : '(ทดสอบ)'}
           <input
             value={lineUid}
             onChange={(e) => onLineUidChange(e.target.value)}
             readOnly={lineUidFromOAuth && !showManualUid}
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none read-only:opacity-80 focus:border-emerald-700"
-            placeholder="ได้หลังเข้า LINE หรือใส่เองเมื่อ dev"
+            className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none read-only:opacity-80 focus-visible:border-emerald-700 ${portalFocusRing}`}
+            placeholder="ได้หลังเข้า LINE หรือใส่เองในโหมดทดสอบ"
           />
         </label>
       )}
@@ -286,7 +287,7 @@ export function MemberLinkPanel({
 
       {lineUid.trim() ? (
         <section className={`mt-4 rounded-lg border p-4 text-sm ${requestStatusTone}`}>
-          <p className="text-xs font-medium uppercase tracking-wide opacity-80">Registration Request Status</p>
+          <p className="text-xs font-medium uppercase tracking-wide opacity-80">สถานะคำร้องสมัครสมาชิก</p>
           {requestStatusLoading ? (
             <p className="mt-2">กำลังตรวจสอบสถานะคำร้องล่าสุดของ LINE UID นี้...</p>
           ) : requestStatus ? (
@@ -310,7 +311,7 @@ export function MemberLinkPanel({
                       <button
                         type="button"
                         onClick={applyApprovedRequestData}
-                        className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
+                        className={`rounded-lg bg-emerald-800 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 ${portalFocusRing}`}
                       >
                         ใช้ข้อมูลจากคำร้องล่าสุด
                       </button>
@@ -318,7 +319,7 @@ export function MemberLinkPanel({
                         type="button"
                         disabled={loading}
                         onClick={autoLinkFromApprovedRequest}
-                        className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                        className={`rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50 ${portalFocusRing}`}
                       >
                         ผูกอัตโนมัติ
                       </button>
@@ -350,7 +351,7 @@ export function MemberLinkPanel({
         type="button"
         disabled={loading || !lineUid.trim()}
         onClick={verifyLink}
-        className="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+        className={`mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
       >
         ตรวจสอบและผูก
       </button>
@@ -375,7 +376,7 @@ export function MemberLinkPanel({
             type="button"
             disabled={loading || !lineUid.trim()}
             onClick={submitRegister}
-            className="mt-4 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+            className={`mt-4 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
           >
             ส่งคำร้องสมัครใหม่
           </button>
@@ -408,7 +409,7 @@ function Field({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-emerald-700"
+        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-emerald-700 ${portalFocusRing}`}
       />
     </label>
   )

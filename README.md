@@ -4,6 +4,7 @@ Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 
 - **ความปลอดภัย / git-secret:** ดู [`SECURITY.md`](SECURITY.md)
 - **Cursor Agent (บริบทโปรเจกต์):** [`.cursor/skills/yrc-smart-alumni/SKILL.md`](.cursor/skills/yrc-smart-alumni/SKILL.md) — skill ชุมชนจาก [skills.sh](https://skills.sh/) vendor ไว้ใน `.cursor/skills/` (ดู [`.cursor/skills/VENDORED_SKILLS.md`](.cursor/skills/VENDORED_SKILLS.md)); อัปเดตด้วย `powershell -File scripts/sync-cursor-community-skills.ps1`
+- **มาตรฐานคำศัพท์/การเข้าถึง + handoff ล่าสุด:** [`docs/UI_TH_TERMINOLOGY_CHECKLIST.md`](docs/UI_TH_TERMINOLOGY_CHECKLIST.md), [`docs/LOCALIZATION_A11Y_HANDOFF.md`](docs/LOCALIZATION_A11Y_HANDOFF.md)
 
 ## ความต้องการ
 
@@ -54,16 +55,16 @@ git push -u origin master
 
 (ถ้าต้องการใช้ชื่อ branch `main` แทน: `git branch -M main` แล้ว `git push -u origin main` และตั้ง default branch บน GitHub ให้ตรง)
 
-## นำเข้าสมาชิก (Admin)
+## นำเข้าสมาชิก (ผู้ดูแล / Admin)
 
 **เทมเพลตหัวคอลัมน์** (แถวแรกครบทุกฟิลด์ที่รองรับ — ดาวน์โหลดจากเว็บแท็บ Admin หรือเรียก API):
 
 - `GET /api/admin/members/import-template.xlsx`
 - `GET /api/admin/members/import-template.csv`  
 
-ไม่ต้องใช้ `x-admin-key` สำหรับดาวน์โหลดเทมเพลต
+ไม่ต้องใช้ `Admin key (x-admin-key)` สำหรับดาวน์โหลดเทมเพลต
 
-**ตรวจสอบหลังนำเข้าอัตโนมัติ** (ต้องมี `x-admin-key`):
+**ตรวจสอบหลังนำเข้าอัตโนมัติ** (ต้องมี `Admin key (x-admin-key)`):
 
 - `GET /api/admin/members/summary` — สรุปภาพรวมทั้งหมด
 - `GET /api/admin/members/summary?importBatchId=<id>` — สรุปเฉพาะรอบที่นำเข้า
@@ -85,9 +86,9 @@ curl -X DELETE http://localhost:4000/api/admin/members/all ^
 
 ไฟล์ `.xlsx` / `.csv` ที่มีข้อมูลส่วนบุคคล **ไม่ควร commit** — มีใน `.gitignore` แล้ว
 
-## API สมาชิก (ไม่ต้องใช้ x-admin-key)
+## API สมาชิก (ไม่ต้องใช้ Admin key)
 
-**ผูก Line UID** — ต้องมีแถวใน `members` ที่ `รุ่น` + `ชื่อ` + `นามสกุล` ตรงกันหนึ่งแถวเท่านั้น
+**ผูก LINE UID** — ต้องมีแถวใน `members` ที่ `รุ่น` + `ชื่อ` + `นามสกุล` ตรงกันหนึ่งแถวเท่านั้น
 
 `POST /api/members/verify-link`  
 Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name": "…" }`  
@@ -126,9 +127,9 @@ Response: `{ "line_uid": "…", "name": …, "picture": … }`
 
 ## คำร้องสมาชิก (อนุมัติ 2 ชั้น)
 
-- `GET /api/admin/member-requests` — **เฉพาะ** `x-admin-key` — query `?status=...` (optional)
-- `POST .../president-approve` และ `POST .../reject` — header **`x-admin-key`** (Admin ทำแทนได้) หรือ **`x-president-key`** ตรงกับ `PRESIDENT_UPLOAD_KEY` ใน `backend/.env`
-- `POST .../admin-approve` — **เฉพาะ** `x-admin-key` — สำหรับ `new_registration` จะ **insert** เข้า `members`
+- `GET /api/admin/member-requests` — **เฉพาะ** `Admin key (x-admin-key)` — query `?status=...` (optional)
+- `POST .../president-approve` และ `POST .../reject` — header **`Admin key (x-admin-key)`** (Admin ทำแทนได้) หรือ **`x-president-key`** ตรงกับ `PRESIDENT_UPLOAD_KEY` ใน `backend/.env`
+- `POST .../admin-approve` — **เฉพาะ** `Admin key (x-admin-key)` — สำหรับ `new_registration` จะ **insert** เข้า `members`
 
 หน้าเว็บแท็บ **คำร้อง** มีช่องใส่ทั้ง admin key และ president key
 
@@ -139,7 +140,7 @@ Response: `{ "line_uid": "…", "name": …, "picture": … }`
 `PRESIDENT_KEYS_JSON={"0507":"key-a","1002":"key-b"}`
 
 - ประธานรุ่น 0507 ส่ง `x-president-key: key-a` ได้เฉพาะคำร้องที่ `requested_data.batch` เป็น `0507` (หลัง trim/normalize)  
-- Admin ยังใช้ `x-admin-key` ได้ทุกรุ่น  
+- Admin ยังใช้ `Admin key (x-admin-key)` ได้ทุกรุ่น  
 - ถ้าไม่ตั้ง JSON แต่ตั้ง `PRESIDENT_UPLOAD_KEY` อย่างเดียว = คีย์เดียวใช้ได้ทุกรุ่น (จนกว่าจะเปลี่ยนเป็น JSON)
 
 ## Web Push (แจ้งเตือนคำร้องสมาชิกใหม่)

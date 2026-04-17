@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY, adminJsonHeaders, normalizeApiBase } from '../lib/adminApi'
+import { portalFocusRing } from '../portal/portalLabels'
 
 type Activity = {
   id: string
@@ -41,7 +42,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
 
   const loadActivities = useCallback(async () => {
     if (!adminKey.trim()) {
-      setMsg('ใส่ x-admin-key ก่อน')
+      setMsg('ใส่ Admin key ก่อน')
       return
     }
     setLoading(true)
@@ -64,7 +65,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
 
   async function addActivity() {
     if (!adminKey.trim()) {
-      setMsg('ใส่ x-admin-key ก่อน')
+      setMsg('ใส่ Admin key ก่อน')
       return
     }
     if (!newTitle.trim() || !newCategory.trim()) {
@@ -195,19 +196,19 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
 
   return (
     <section className="mt-8 rounded-xl border border-amber-900/40 bg-amber-950/10 p-6">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200">Admin — คอร์ส / กิจกรรม (school_activities)</h2>
+      <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200">Admin — คอร์ส / กิจกรรม (ตาราง school_activities)</h2>
       <p className="mt-2 text-xs text-slate-500">
-        รายการที่แสดงใน Academy พอร์ทัล (หน้าคอร์สเรียน) — ใช้ key เดียวกับนำเข้าสมาชิก
+        รายการที่แสดงในพอร์ทัลโรงเรียนกวดวิชา (Academy) หน้าคอร์สเรียน — ใช้ Admin key เดียวกับการนำเข้าสมาชิก
       </p>
       <label className="mt-4 block text-sm text-slate-300">
-        x-admin-key
+        Admin key (x-admin-key)
         <input
           type="password"
           autoComplete="off"
           value={adminKey}
           onChange={(e) => setAdminKey(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-amber-600"
-          placeholder="ADMIN_UPLOAD_KEY"
+          className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-amber-600 ${portalFocusRing}`}
+          placeholder="ค่า ADMIN_UPLOAD_KEY"
         />
       </label>
 
@@ -216,26 +217,26 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={() => void loadActivities()}
-          className="rounded-lg bg-amber-800 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50"
+          className={`rounded-lg bg-amber-800 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
         >
           โหลดรายการ
         </button>
       </div>
 
       <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950/50 p-4">
-        <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">เพิ่มรายการ</h3>
+        <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">เพิ่มคอร์ส/กิจกรรม</h3>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <input
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             placeholder="หมวด (เช่น วิชาหลัก)"
-            className="rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm"
+            className={`rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm ${portalFocusRing}`}
           />
           <input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="ชื่อคอร์ส / กิจกรรม"
-            className="rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm"
+            className={`rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm ${portalFocusRing}`}
           />
         </div>
         <textarea
@@ -243,13 +244,13 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           onChange={(e) => setNewDescription(e.target.value)}
           placeholder="รายละเอียด (ถ้ามี)"
           rows={2}
-          className="mt-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-200"
+          className={`mt-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-200 ${portalFocusRing}`}
         />
         <button
           type="button"
           disabled={loading}
           onClick={() => void addActivity()}
-          className="mt-2 rounded bg-emerald-800 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+          className={`mt-2 rounded bg-emerald-800 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
         >
           เพิ่ม
         </button>
@@ -282,13 +283,13 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                         <input
                           value={editCategory}
                           onChange={(e) => setEditCategory(e.target.value)}
-                          className="flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm"
+                          className={`flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
                           aria-label="หมวด"
                         />
                         <input
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
-                          className="flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm"
+                          className={`flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
                           aria-label="ชื่อ"
                         />
                       </div>
@@ -296,7 +297,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
                         rows={2}
-                        className="mt-2 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm"
+                        className={`mt-2 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
                         aria-label="รายละเอียด"
                       />
                     </td>
@@ -305,12 +306,16 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          className="text-xs text-emerald-400 hover:underline"
+                          className={`rounded-sm text-xs text-emerald-400 hover:underline ${portalFocusRing}`}
                           onClick={() => void saveEdit(a.id)}
                         >
                           บันทึก
                         </button>
-                        <button type="button" className="text-xs text-slate-400 hover:underline" onClick={cancelEdit}>
+                        <button
+                          type="button"
+                          className={`rounded-sm text-xs text-slate-400 hover:underline ${portalFocusRing}`}
+                          onClick={cancelEdit}
+                        >
                           ยกเลิก
                         </button>
                       </div>
@@ -327,7 +332,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                       <button
                         type="button"
                         onClick={() => void toggleActive(a)}
-                        className={`text-xs underline ${a.active ? 'text-emerald-400' : 'text-slate-500'}`}
+                        className={`rounded-sm text-xs underline ${portalFocusRing} ${a.active ? 'text-emerald-400' : 'text-slate-500'}`}
                       >
                         {a.active ? 'เปิด' : 'ปิด'}
                       </button>
@@ -336,14 +341,14 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                       <div className="flex flex-wrap gap-3">
                         <button
                           type="button"
-                          className="text-xs text-amber-300 hover:underline"
+                          className={`rounded-sm text-xs text-amber-300 hover:underline ${portalFocusRing}`}
                           onClick={() => startEdit(a)}
                         >
                           แก้ไข
                         </button>
                         <button
                           type="button"
-                          className="text-xs text-red-400 hover:underline"
+                          className={`rounded-sm text-xs text-red-400 hover:underline ${portalFocusRing}`}
                           onClick={() => void deleteActivity(a.id)}
                         >
                           ลบ
@@ -359,7 +364,11 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
       </div>
 
       {msg ? (
-        <pre className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400">
+        <pre
+          className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400"
+          role="status"
+          aria-live="polite"
+        >
           {msg}
         </pre>
       ) : null}

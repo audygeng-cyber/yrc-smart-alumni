@@ -27,6 +27,10 @@ const lineChannelId = import.meta.env.VITE_LINE_CHANNEL_ID ?? ''
 const lineRedirectUri = import.meta.env.VITE_LINE_REDIRECT_URI ?? ''
 type RoleView = 'all' | 'member' | 'committee' | 'academy'
 
+/** วงโฟกัสคีย์บอร์ด — ใช้ร่วมกับปุ่ม/ลิงก์ในแอปหลัก */
+const appFocusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950'
+
 function getInitialVerifiedMember(): Record<string, unknown> | null {
   const uid = readLineUid()
   const snap = readMemberSnapshot()
@@ -197,36 +201,46 @@ export default function App() {
   const showAcademyNav = roleView === 'all' || roleView === 'academy'
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100">
+      <a
+        href="#app-main"
+        className={`absolute left-4 top-0 z-[100] -translate-y-full rounded-b bg-emerald-800 px-4 py-2 text-sm font-medium text-white shadow transition focus-visible:translate-y-0 ${appFocusRing}`}
+      >
+        ข้ามไปยังเนื้อหาหลัก
+      </a>
       <header className="border-b border-slate-800 bg-slate-900/80 px-6 py-4 backdrop-blur">
         <h1 className="text-xl font-semibold tracking-tight">YRC Smart Alumni</h1>
-        <p className="mt-1 text-sm text-slate-400">Member · Committee · Academy portals</p>
+        <p className="mt-1 text-sm text-slate-400">พอร์ทัลสมาชิก · คณะกรรมการ · โรงเรียนกวดวิชา (Academy)</p>
         <div className="mt-3 flex items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-500">Role view</span>
+          <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as RoleView)}
-            className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+            className={`rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${appFocusRing}`}
           >
-            <option value="all">All portals</option>
-            <option value="member">Member only</option>
-            <option value="committee">Committee only</option>
-            <option value="academy">Academy only</option>
+            <option value="all">ทุกพอร์ทัล</option>
+            <option value="member">เฉพาะสมาชิก</option>
+            <option value="committee">เฉพาะคณะกรรมการ</option>
+            <option value="academy">เฉพาะโรงเรียนกวดวิชา (Academy)</option>
           </select>
           <span className="text-xs text-slate-500">จำลองการมองเห็นเมนูตามสิทธิ์</span>
         </div>
-        <nav className="mt-4 flex flex-wrap gap-2">
+        <nav className="mt-4 flex flex-wrap gap-2" aria-label="เมนูหลัก">
           <NavPill to="/" label="หน้าหลัก" active={location.pathname === '/'} />
           <NavPill to="/auth/link" label="ผูกบัญชี" active={location.pathname.startsWith('/auth/link')} />
           {showMemberNav ? <NavPill to="/member/dashboard" label="สมาชิก" active={location.pathname.startsWith('/member')} /> : null}
           {showCommitteeNav ? <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} /> : null}
           {showAcademyNav ? <NavPill to="/academy/dashboard" label="โรงเรียนกวดวิชา" active={location.pathname.startsWith('/academy')} /> : null}
           <NavPill to="/requests" label="คำร้อง" active={location.pathname.startsWith('/requests')} />
-          <NavPill to="/admin" label="Admin" active={location.pathname.startsWith('/admin')} />
+          <NavPill to="/admin" label="ผู้ดูแล (Admin)" active={location.pathname.startsWith('/admin')} />
         </nav>
       </header>
 
-      <main className={`mx-auto px-6 py-10 ${portalWidthClass}`}>
+      <main
+        id="app-main"
+        tabIndex={-1}
+        className={`mx-auto px-6 py-10 outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/45 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${portalWidthClass}`}
+      >
         <Routes>
           <Route
             path="/"
@@ -296,7 +310,7 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
   return (
     <Link
       to={to}
-      className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+      className={`rounded-lg px-3 py-1.5 text-sm font-medium ${appFocusRing} ${
         active ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
       }`}
     >
@@ -307,15 +321,47 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
 
 function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">Backend /health</h2>
-      <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-left text-sm text-emerald-300">{health}</pre>
-      <p className="mt-4 text-sm text-slate-500">
-        ตั้งค่า <code className="text-slate-300">VITE_API_URL</code> ใน <code className="text-slate-300">frontend/.env</code>{' '}
-        และค่า LINE ใน <code className="text-slate-300">VITE_LINE_*</code> / backend <code className="text-slate-300">LINE_*</code>
-      </p>
-      <PushOptIn apiBase={apiBase} />
-    </section>
+    <div className="space-y-6">
+      <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">สถานะระบบ Backend (/health)</h2>
+        <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-left text-sm text-emerald-300">{health}</pre>
+        <p className="mt-4 text-sm text-slate-500">
+          ตั้งค่า <code className="text-slate-300">VITE_API_URL</code> ใน <code className="text-slate-300">frontend/.env</code>{' '}
+          และค่า LINE ใน <code className="text-slate-300">VITE_LINE_*</code> / backend <code className="text-slate-300">LINE_*</code>
+        </p>
+        <PushOptIn apiBase={apiBase} />
+      </section>
+      <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ทางลัดพอร์ทัล (โหมดพัฒนา)</h2>
+        <p className="mt-2 text-sm text-slate-500">เปิดสแนปช็อตแดชบอร์ดตามบทบาท — ใช้เมนูด้านบนหรือลิงก์ด้านล่าง</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            to="/member/dashboard"
+            className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+          >
+            สมาชิก
+          </Link>
+          <Link
+            to="/committee/dashboard"
+            className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+          >
+            คณะกรรมการ
+          </Link>
+          <Link
+            to="/academy/dashboard"
+            className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+          >
+            พอร์ทัลโรงเรียนกวดวิชา (Academy)
+          </Link>
+          <Link
+            to="/auth/link"
+            className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+          >
+            ผูกบัญชี
+          </Link>
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -338,9 +384,9 @@ function LinkPage(props: {
       <section className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Member Session Status</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">สถานะการเชื่อมสมาชิก</p>
             {props.restoringMemberSession ? (
-              <p className="mt-1 text-emerald-200">กำลังกู้ session สมาชิกจาก LINE UID...</p>
+              <p className="mt-1 text-emerald-200">กำลังกู้เซสชันสมาชิกจาก LINE UID...</p>
             ) : hasMember ? (
               <p className="mt-1 text-emerald-200">
                 ผูกสมาชิกแล้ว: {props.verifiedMemberName || 'สมาชิกที่ผูกไว้'}{' '}
@@ -349,11 +395,14 @@ function LinkPage(props: {
             ) : props.lineUid ? (
               <p className="mt-1 text-amber-200">มี LINE UID แล้ว แต่ยังไม่ได้ผูกสมาชิกในรอบนี้</p>
             ) : (
-              <p className="mt-1 text-slate-400">ยังไม่มี LINE session หรือ member session</p>
+              <p className="mt-1 text-slate-400">ยังไม่มี LINE เซสชัน หรือเซสชันสมาชิก</p>
             )}
           </div>
           {hasMember ? (
-            <Link to="/member/dashboard" className="rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700">
+            <Link
+              to="/member/dashboard"
+              className={`rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${appFocusRing}`}
+            >
               ไปหน้าสมาชิก
             </Link>
           ) : null}
@@ -361,7 +410,7 @@ function LinkPage(props: {
       </section>
       {props.restoringMemberSession ? (
         <section className="mb-4 rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-4 text-sm text-emerald-100/90">
-          กำลังกู้ session สมาชิกจาก LINE UID...
+          กำลังกู้เซสชันสมาชิกจาก LINE UID...
         </section>
       ) : null}
       <MemberLinkPanel
@@ -382,7 +431,10 @@ function MissingMemberSession() {
   return (
     <section className="rounded-xl border border-amber-900/40 bg-amber-950/20 p-6 text-sm text-amber-100/90">
       <p>ยังไม่มีข้อมูลสมาชิกในวาระนี้ — ไปที่หน้า &quot;ผูกบัญชี&quot; แล้วกด &quot;ตรวจสอบและผูก&quot; เมื่อพบในทะเบียน</p>
-      <Link to="/auth/link" className="mt-4 inline-flex rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700">
+      <Link
+        to="/auth/link"
+        className={`mt-4 inline-flex rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${appFocusRing}`}
+      >
         ไปหน้าผูกบัญชี
       </Link>
     </section>
@@ -392,9 +444,12 @@ function MissingMemberSession() {
 function NotFound() {
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-slate-300">Not Found</h2>
+      <h2 className="text-sm font-medium uppercase tracking-wide text-slate-300">ไม่พบหน้า</h2>
       <p className="mt-3 text-sm text-slate-400">ไม่พบหน้านี้</p>
-      <Link to="/" className="mt-4 inline-flex rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700">
+      <Link
+        to="/"
+        className={`mt-4 inline-flex rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 ${appFocusRing}`}
+      >
         กลับหน้าหลัก
       </Link>
     </section>
