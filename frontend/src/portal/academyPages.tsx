@@ -42,7 +42,7 @@ export function AcademyArea(props: { apiBase: string }) {
       </section>
       <Routes>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<AcademyDashboardPage roleView={roleView} portalData={portalData.data} />} />
+        <Route path="dashboard" element={<AcademyDashboardPage roleView={roleView} portalState={portalData} />} />
         <Route
           path="students"
           element={<AcademyStudentsPage roleView={roleView} portalState={portalData} />}
@@ -452,7 +452,8 @@ function AcademyReportsPage(props: { roleView: AcademyRoleView; portalState: Por
   )
 }
 
-function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: AcademyPortalData }) {
+function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: PortalDataState<AcademyPortalData> }) {
+  const { data, loading, source } = props.portalState
   const roleSummary =
     props.roleView === 'admin'
       ? 'ผู้บริหารเห็นภาพรวมทั้งหมด'
@@ -462,8 +463,8 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: Ac
           ? 'นักเรียนเห็นข้อมูลส่วนตัว/คอร์ส/ผลคะแนนของตน'
           : 'ผู้ปกครองเห็นข้อมูลของบุตรหลานและความคืบหน้า'
 
-  const roleCards = props.portalData.roleCards[props.roleView]
-  const cramPl = props.portalData.cramSchoolMonthlyPl
+  const roleCards = data.roleCards[props.roleView]
+  const cramPl = data.cramSchoolMonthlyPl
   const cramFinanceCards =
     cramPl !== null
       ? [
@@ -488,9 +489,15 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: Ac
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
-        <p className="text-sm text-slate-200">{roleSummary}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-slate-200">{roleSummary}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {loading ? <span className="text-xs text-slate-500">กำลังโหลด snapshot…</span> : null}
+            <PortalDataSourceBadge loading={loading} source={source} />
+          </div>
+        </div>
       </section>
-      <MetricCards items={props.portalData.metricCards} />
+      <MetricCards items={data.metricCards} />
       <MetricCards items={roleCards} />
       {cramFinanceCards.length > 0 ? (
         <section className="rounded-lg border border-violet-900/40 bg-violet-950/20 p-4">
@@ -505,24 +512,28 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalData: Ac
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ผลคะแนนเฉลี่ยตามห้อง</h3>
           <p className="mt-2 text-sm text-slate-400">ดูคุณภาพการเรียนรายห้องเพื่อวางแผนเสริมจุดอ่อน</p>
-          <div className="mt-4 space-y-2 text-sm">
-            {props.portalData.classes.map((row) => (
-              <div key={row.room} className="rounded border border-slate-800 px-3 py-2">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-slate-100">{row.room}</p>
-                  <p className="text-xs text-slate-400">{row.students} คน</p>
+          {data.classes.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">ยังไม่มีข้อมูลห้องเรียนจาก snapshot (เช่น ยังไม่มี cram_classrooms ที่ active)</p>
+          ) : (
+            <div className="mt-4 space-y-2 text-sm">
+              {data.classes.map((row) => (
+                <div key={row.room} className="rounded border border-slate-800 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-slate-100">{row.room}</p>
+                    <p className="text-xs text-slate-400">{row.students} คน</p>
+                  </div>
+                  <div className="mt-2 h-2 rounded bg-slate-800">
+                    <div className="h-full rounded bg-cyan-500/80" style={{ width: `${Math.min(100, row.avgScore)}%` }} />
+                  </div>
+                  <p className="mt-1 text-xs text-cyan-200">คะแนนเฉลี่ย {row.avgScore}</p>
                 </div>
-                <div className="mt-2 h-2 rounded bg-slate-800">
-                  <div className="h-full rounded bg-cyan-500/80" style={{ width: `${Math.min(100, row.avgScore)}%` }} />
-                </div>
-                <p className="mt-1 text-xs text-cyan-200">คะแนนเฉลี่ย {row.avgScore}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">Funnel สมัครเรียน</h3>
-          <TrendBars items={props.portalData.enrollmentFunnel} color="violet" />
+          <TrendBars items={data.enrollmentFunnel} color="violet" />
           <div className="mt-4 flex flex-wrap gap-2">
             <Link to="/academy/enrollment" className="rounded bg-violet-800 px-3 py-1.5 text-xs text-white hover:bg-violet-700">
               ไปหน้าสมัครเรียน

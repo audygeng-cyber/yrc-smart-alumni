@@ -51,7 +51,7 @@ export function CommitteeArea(props: { apiBase: string }) {
       </section>
       <Routes>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<CommitteeDashboardPage roleView={roleView} portalData={portalData.data} />} />
+        <Route path="dashboard" element={<CommitteeDashboardPage roleView={roleView} portalState={portalData} />} />
         <Route path="members" element={<CommitteeMembersPage portalState={portalData} />} />
         <Route path="finance" element={<CommitteeFinancePage roleView={roleView} portalState={portalData} />} />
         <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} />} />
@@ -491,22 +491,32 @@ function signedViaLabel(v: string) {
   return v
 }
 
-function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalData: CommitteePortalData }) {
-  const att = props.portalData.attendanceSession
-  const openAgendaCount = props.portalData.openAgendas.length
-  const payPending = props.portalData.paymentRequestsPending
+function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalState: PortalDataState<CommitteePortalData> }) {
+  const { data, loading, source } = props.portalState
+  const att = data.attendanceSession
+  const openAgendaCount = data.openAgendas.length
+  const payPending = data.paymentRequestsPending
 
   return (
     <div className="space-y-4">
-      <MetricCards items={props.portalData.metricCards} />
-      <MetricCards items={props.portalData.roleCards[props.roleView]} />
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs uppercase tracking-wide text-slate-500">สรุป snapshot แดชบอร์ด</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {loading ? <span className="text-xs text-slate-500">กำลังโหลด snapshot…</span> : null}
+            <PortalDataSourceBadge loading={loading} source={source} />
+          </div>
+        </div>
+      </section>
+      <MetricCards items={data.metricCards} />
+      <MetricCards items={data.roleCards[props.roleView]} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">แนวโน้มคำร้อง 7 วัน</h3>
           <p className="mt-2 text-sm text-slate-400">
             จำนวนคำร้องใหม่ต่อวัน (UTC) จาก <code className="text-slate-500">member_update_requests</code> — ใช้ติดตาม backlog
           </p>
-          <TrendBars items={props.portalData.requestTrend} />
+          <TrendBars items={data.requestTrend} />
         </section>
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">งานด่วนวันนี้</h3>
@@ -535,27 +545,31 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalData
       </div>
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สถานะประชุมวันนี้</h3>
-        <div className="mt-3 space-y-2 text-sm">
-          {props.portalData.meetings.map((meeting) => (
-            <div key={meeting.topic} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
-              <div>
-                <p className="text-slate-100">{meeting.topic}</p>
-                <p className="text-xs text-slate-400">เริ่ม {meeting.time}</p>
+        {data.meetings.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">ยังไม่มีรายการประชุมใน snapshot</p>
+        ) : (
+          <div className="mt-3 space-y-2 text-sm">
+            {data.meetings.map((meeting) => (
+              <div key={meeting.topic} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
+                <div>
+                  <p className="text-slate-100">{meeting.topic}</p>
+                  <p className="text-xs text-slate-400">เริ่ม {meeting.time}</p>
+                </div>
+                <span
+                  className={`rounded px-2 py-0.5 text-xs ${
+                    meeting.status === 'ready'
+                      ? 'bg-emerald-900/40 text-emerald-200'
+                      : meeting.status === 'pending_vote'
+                        ? 'bg-amber-900/40 text-amber-200'
+                        : 'bg-sky-900/40 text-sky-200'
+                  }`}
+                >
+                  {committeeMeetingStatusLabel(meeting.status)}
+                </span>
               </div>
-              <span
-                className={`rounded px-2 py-0.5 text-xs ${
-                  meeting.status === 'ready'
-                    ? 'bg-emerald-900/40 text-emerald-200'
-                    : meeting.status === 'pending_vote'
-                      ? 'bg-amber-900/40 text-amber-200'
-                      : 'bg-sky-900/40 text-sky-200'
-                }`}
-              >
-                {committeeMeetingStatusLabel(meeting.status)}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )
