@@ -7,6 +7,7 @@ Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 - **มาตรฐานคำศัพท์/การเข้าถึง + handoff ล่าสุด:** [`docs/UI_TH_TERMINOLOGY_CHECKLIST.md`](docs/UI_TH_TERMINOLOGY_CHECKLIST.md), [`docs/LOCALIZATION_A11Y_HANDOFF.md`](docs/LOCALIZATION_A11Y_HANDOFF.md)
 - **บันทึกผลหลังปล่อยล่าสุด:** [`docs/POST_MERGE_VERIFICATION_2026-04-17.md`](docs/POST_MERGE_VERIFICATION_2026-04-17.md), [`docs/SMOKE_TEST_EXECUTION_2026-04-17.md`](docs/SMOKE_TEST_EXECUTION_2026-04-17.md)
 - **เช็กลิสต์หมุนคีย์ลับ (incident response):** [`docs/SECRET_ROTATION_CHECKLIST.md`](docs/SECRET_ROTATION_CHECKLIST.md)
+- **แม่แบบบันทึกผลการหมุนคีย์:** [`docs/SECRET_ROTATION_LOG_TEMPLATE.md`](docs/SECRET_ROTATION_LOG_TEMPLATE.md)
 
 ## ความต้องการ
 
