@@ -8,6 +8,7 @@ Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 - **บันทึกผลหลังปล่อยล่าสุด:** [`docs/POST_MERGE_VERIFICATION_2026-04-17.md`](docs/POST_MERGE_VERIFICATION_2026-04-17.md), [`docs/SMOKE_TEST_EXECUTION_2026-04-17.md`](docs/SMOKE_TEST_EXECUTION_2026-04-17.md)
 - **เช็กลิสต์หมุนคีย์ลับ (incident response):** [`docs/SECRET_ROTATION_CHECKLIST.md`](docs/SECRET_ROTATION_CHECKLIST.md)
 - **แม่แบบบันทึกผลการหมุนคีย์:** [`docs/SECRET_ROTATION_LOG_TEMPLATE.md`](docs/SECRET_ROTATION_LOG_TEMPLATE.md)
+- **บันทึก incident ล่าสุด (เติมระหว่างหมุนคีย์):** [`docs/SECRET_ROTATION_LOG_2026-04-17.md`](docs/SECRET_ROTATION_LOG_2026-04-17.md)
 
 ## ความต้องการ
 
