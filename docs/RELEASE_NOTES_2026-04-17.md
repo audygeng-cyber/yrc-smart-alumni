@@ -41,6 +41,8 @@
 
 - GitHub Actions CI ของ commit ล่าสุดผ่าน (`success`)
 - การตรวจในเครื่อง (`npm run ci`) ผ่านครบ (build/lint/test)
+- บันทึกผลหลัง merge: `docs/POST_MERGE_VERIFICATION_2026-04-17.md`
+- บันทึกผล smoke test execution: `docs/SMOKE_TEST_EXECUTION_2026-04-17.md`
 
 ## Follow-up (Recommended)
 
