@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { MetricCards, PortalShell, SectionPlaceholder, TrendBars } from './ui'
+import { MetricCards, PortalDataSourceBadge, PortalShell, SectionPlaceholder, TrendBars } from './ui'
 import {
   type CommitteePortalData,
   type CommitteeRoleView,
+  type PortalDataState,
   useCommitteePortalData,
 } from './dataAdapter'
 
@@ -71,15 +72,7 @@ export function CommitteeArea(props: { apiBase: string }) {
             )
           }
         />
-        <Route
-          path="meetings"
-          element={
-            <SectionPlaceholder
-              title="วาระและรายงานการประชุม"
-              description="จัดการวาระประชุม, รายงานการประชุม และสรุปผลแต่ละครั้ง"
-            />
-          }
-        />
+        <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} />} />
         <Route
           path="attendance"
           element={
@@ -101,6 +94,68 @@ export function CommitteeArea(props: { apiBase: string }) {
         <Route path="*" element={<NotFoundInline />} />
       </Routes>
     </PortalShell>
+  )
+}
+
+function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePortalData> }) {
+  const { data, loading, source } = props.portalState
+  const meetings = data.meetings
+
+  const statusLabel = (s: (typeof meetings)[number]['status']) =>
+    s === 'ready' ? 'พร้อม' : s === 'pending_vote' ? 'รอลงมติ' : 'ตรวจสอบ'
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">วาระและรอบประชุม</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              รายการจาก snapshot (<code className="text-slate-500">meeting_sessions</code> ล่าสุด) — อัปเดตเมื่อโหลดพอร์ทัล
+            </p>
+          </div>
+          <PortalDataSourceBadge loading={loading} source={source} />
+        </div>
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">กำลังโหลด…</p>
+        ) : meetings.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-400">ยังไม่มีรายการประชุมใน snapshot</p>
+        ) : (
+          <ul className="mt-4 space-y-2 text-sm">
+            {meetings.map((m, i) => (
+              <li
+                key={`${m.topic}-${i}`}
+                className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2.5"
+              >
+                <div>
+                  <p className="font-medium text-slate-100">{m.topic}</p>
+                  <p className="text-xs text-slate-500">เวลา {m.time}</p>
+                </div>
+                <span
+                  className={`rounded px-2 py-0.5 text-xs ${
+                    m.status === 'ready'
+                      ? 'bg-emerald-900/40 text-emerald-200'
+                      : m.status === 'pending_vote'
+                        ? 'bg-amber-900/40 text-amber-200'
+                        : 'bg-sky-900/40 text-sky-200'
+                  }`}
+                >
+                  {statusLabel(m.status)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link to="/committee/dashboard" className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700">
+            กลับแดชบอร์ด
+          </Link>
+          <Link to="/committee/voting" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
+            หน้าลงมติ (ตัวอย่าง)
+          </Link>
+        </div>
+      </section>
+    </div>
   )
 }
 
