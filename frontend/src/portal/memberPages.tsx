@@ -47,9 +47,7 @@ export function MemberArea(props: {
             <option value="staff">เจ้าหน้าที่สมาคม</option>
           </select>
           <span className="text-xs text-slate-500">จำลองสิทธิ์เมนูภายใน member portal</span>
-          <span className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-400">
-            data: {portalData.loading ? 'loading...' : portalData.source}
-          </span>
+          <PortalDataSourceBadge loading={portalData.loading} source={portalData.source} />
         </div>
       </section>
       <Routes>
@@ -57,13 +55,16 @@ export function MemberArea(props: {
         <Route
           path="dashboard"
           element={
-            <MemberPortal
-              apiBase={props.apiBase}
-              lineUid={props.lineUid}
-              member={props.member}
-              onMemberUpdated={props.onMemberUpdated}
-              lineDisplayName={props.lineDisplayName}
-            />
+            <>
+              <MemberDashboardSnapshotBar portalState={portalData} />
+              <MemberPortal
+                apiBase={props.apiBase}
+                lineUid={props.lineUid}
+                member={props.member}
+                onMemberUpdated={props.onMemberUpdated}
+                lineDisplayName={props.lineDisplayName}
+              />
+            </>
           }
         />
         <Route path="card" element={<MemberCardPage member={props.member} />} />
@@ -78,6 +79,28 @@ export function MemberArea(props: {
         <Route path="*" element={<NotFoundInline />} />
       </Routes>
     </PortalShell>
+  )
+}
+
+function MemberDashboardSnapshotBar(props: { portalState: PortalDataState<MemberPortalData> }) {
+  const { loading } = props.portalState
+  return (
+    <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 gap-y-2">
+        <p className="text-xs text-slate-500">
+          สถิติสมาคมจาก snapshot — กราฟคำร้อง 7 วันและสัดส่วนรุ่นอยู่ที่เมนูสถิติ (แหล่งข้อมูลดูที่แถบด้านบน)
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {loading ? <span className="text-xs text-slate-500">กำลังโหลด snapshot…</span> : null}
+          <Link
+            to="/member/statistics"
+            className="rounded-lg bg-emerald-900/50 px-2.5 py-1 text-xs font-medium text-emerald-100 hover:bg-emerald-800/60"
+          >
+            ไปสถิติสมาชิก
+          </Link>
+        </div>
+      </div>
+    </section>
   )
 }
 

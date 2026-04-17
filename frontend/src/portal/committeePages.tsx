@@ -201,7 +201,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
           <ul className="mt-4 space-y-2 text-sm">
             {meetings.map((m, i) => (
               <li
-                key={`${m.topic}-${i}`}
+                key={`${m.topic}-${m.time}-${i}`}
                 className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2.5"
               >
                 <div>
@@ -549,8 +549,8 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
           <p className="mt-3 text-sm text-slate-500">ยังไม่มีรายการประชุมใน snapshot</p>
         ) : (
           <div className="mt-3 space-y-2 text-sm">
-            {data.meetings.map((meeting) => (
-              <div key={meeting.topic} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
+            {data.meetings.map((meeting, mi) => (
+              <div key={`${meeting.topic}-${meeting.time}-${mi}`} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
                 <div>
                   <p className="text-slate-100">{meeting.topic}</p>
                   <p className="text-xs text-slate-400">เริ่ม {meeting.time}</p>
