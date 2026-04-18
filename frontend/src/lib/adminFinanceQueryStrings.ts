@@ -78,3 +78,34 @@ export function financePeriodClosingsQuerySuffix(params: {
   const s = q.toString()
   return s ? `?${s}` : ''
 }
+
+export type MeetingAgendaScope = 'association' | 'cram_school'
+export type MeetingAgendaStatusFilter = 'all' | 'open' | 'closed'
+
+/** query สำหรับ `GET /api/admin/finance/meeting-agendas` */
+export function meetingAgendasQuerySuffix(params: {
+  scope: MeetingAgendaScope
+  agendaStatusFilter: MeetingAgendaStatusFilter
+  meetingSessionId: string
+}): string {
+  const q = new URLSearchParams()
+  q.set('scope', params.scope)
+  if (params.agendaStatusFilter !== 'all') q.set('status', params.agendaStatusFilter)
+  if (params.meetingSessionId.trim()) q.set('meeting_session_id', params.meetingSessionId.trim())
+  const s = q.toString()
+  return s ? `?${s}` : ''
+}
+
+/** query สำหรับ `GET /api/admin/finance/meeting-documents` */
+export function meetingDocumentsQuerySuffix(params: {
+  scope: MeetingAgendaScope
+  meetingSessionId: string
+  agendaId: string
+}): string {
+  const q = new URLSearchParams()
+  q.set('scope', params.scope)
+  if (params.meetingSessionId.trim()) q.set('meeting_session_id', params.meetingSessionId.trim())
+  if (params.agendaId.trim()) q.set('agenda_id', params.agendaId.trim())
+  const s = q.toString()
+  return s ? `?${s}` : ''
+}

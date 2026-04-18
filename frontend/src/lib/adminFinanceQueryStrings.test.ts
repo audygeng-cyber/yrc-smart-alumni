@@ -5,6 +5,8 @@ import {
   financeJournalsQuerySuffix,
   financePeriodClosingsQuerySuffix,
   financeReportQuerySuffix,
+  meetingAgendasQuerySuffix,
+  meetingDocumentsQuerySuffix,
 } from './adminFinanceQueryStrings'
 
 describe('financeReportQuerySuffix', () => {
@@ -68,5 +70,29 @@ describe('financeGlQuerySuffix', () => {
     ).toBe(
       '?legal_entity_code=association&from=2026-01-01&to=2026-12-31&account_code=5110',
     )
+  })
+})
+
+describe('meetingAgendasQuerySuffix', () => {
+  it('รวม scope และ status เมื่อไม่ใช่ all', () => {
+    expect(
+      meetingAgendasQuerySuffix({
+        scope: 'association',
+        agendaStatusFilter: 'open',
+        meetingSessionId: 'ms-1',
+      }),
+    ).toBe('?scope=association&status=open&meeting_session_id=ms-1')
+  })
+})
+
+describe('meetingDocumentsQuerySuffix', () => {
+  it('รวม meeting_session_id และ agenda_id เมื่อมีค่า', () => {
+    expect(
+      meetingDocumentsQuerySuffix({
+        scope: 'cram_school',
+        meetingSessionId: 'x',
+        agendaId: 'y',
+      }),
+    ).toBe('?scope=cram_school&meeting_session_id=x&agenda_id=y')
   })
 })

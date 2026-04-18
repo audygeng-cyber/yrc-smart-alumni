@@ -22,11 +22,20 @@ import {
   fetchPeriodClosingsList,
 } from '../lib/adminFinanceJournalPeriodApi'
 import {
+  fetchAgendaVoteSummaryAdmin,
+  fetchMeetingAgendas,
+  fetchMeetingDocumentsList,
+  fetchMeetingMinutesAdmin,
+  fetchMeetingSessionSummary,
+} from '../lib/adminFinanceMeetingApi'
+import {
   financeBalanceSheetQuerySuffix,
   financeGlQuerySuffix,
   financeJournalsQuerySuffix,
   financePeriodClosingsQuerySuffix,
   financeReportQuerySuffix,
+  meetingAgendasQuerySuffix,
+  meetingDocumentsQuerySuffix,
 } from '../lib/adminFinanceQueryStrings'
 import {
   buildBuiltinReportPresets,
@@ -1681,10 +1690,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/summary`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchMeetingSessionSummary(base, adminKey, meetingId.trim())
       if (!p.ok) return setMsg(formatFetchError('สรุปประชุม', p.status, p.payload, p.rawText))
       setMeetingSummary(JSON.stringify(p.payload, null, 2))
       setMsg('โหลดสรุปประชุมแล้ว')
@@ -1701,10 +1707,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchMeetingMinutesAdmin(base, adminKey, meetingId.trim())
       if (!p.ok) return setMsg(formatFetchError('โหลดรายงานการประชุม', p.status, p.payload, p.rawText))
       const payload = (p.payload ?? {}) as {
         meetingSession?: {
@@ -1817,14 +1820,12 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const qs = new URLSearchParams()
-      qs.set('scope', meetingEntity)
-      if (agendaStatusFilter !== 'all') qs.set('status', agendaStatusFilter)
-      if (meetingId.trim()) qs.set('meeting_session_id', meetingId.trim())
-      const r = await fetch(`${base}/api/admin/finance/meeting-agendas?${qs.toString()}`, {
-        headers: financeAdminHeaders(adminKey),
+      const qs = meetingAgendasQuerySuffix({
+        scope: meetingEntity,
+        agendaStatusFilter,
+        meetingSessionId: meetingId,
       })
-      const p = await readApiJson(r)
+      const p = await fetchMeetingAgendas(base, adminKey, qs)
       if (!p.ok) return setMsg(formatFetchError('โหลดวาระประชุม', p.status, p.payload, p.rawText))
       const payload = (p.payload ?? {}) as { agendas?: MeetingAgendaItem[] }
       setAgendas(Array.isArray(payload.agendas) ? payload.agendas : [])
@@ -1906,10 +1907,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaId.trim()}/vote-summary`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchAgendaVoteSummaryAdmin(base, adminKey, agendaId.trim())
       if (!p.ok) return setMsg(formatFetchError('สรุปผลโหวตวาระ', p.status, p.payload, p.rawText))
       setAgendaVoteSummary(JSON.stringify(p.payload, null, 2))
       setMsg('โหลดสรุปผลโหวตวาระแล้ว')
@@ -1994,14 +1992,12 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const qs = new URLSearchParams()
-      qs.set('scope', meetingEntity)
-      if (documentMeetingId.trim()) qs.set('meeting_session_id', documentMeetingId.trim())
-      if (documentAgendaId.trim()) qs.set('agenda_id', documentAgendaId.trim())
-      const r = await fetch(`${base}/api/admin/finance/meeting-documents?${qs.toString()}`, {
-        headers: financeAdminHeaders(adminKey),
+      const qs = meetingDocumentsQuerySuffix({
+        scope: meetingEntity,
+        meetingSessionId: documentMeetingId,
+        agendaId: documentAgendaId,
       })
-      const p = await readApiJson(r)
+      const p = await fetchMeetingDocumentsList(base, adminKey, qs)
       if (!p.ok) return setMsg(formatFetchError('โหลดเอกสารประชุม', p.status, p.payload, p.rawText))
       const payload = (p.payload ?? {}) as { documents?: MeetingDocumentItem[] }
       setDocuments(Array.isArray(payload.documents) ? payload.documents : [])
