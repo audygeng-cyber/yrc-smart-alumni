@@ -3,6 +3,15 @@ import { normalizeApiBase } from '../lib/adminApi'
 import { PAGE_SIZE } from '../lib/adminFinanceConstants'
 import { financeAdminHeaders, financeAdminJsonHeaders } from '../lib/adminFinanceHttp'
 import {
+  fetchDonationsReport,
+  fetchFinanceBankAccounts,
+  fetchFinanceOverview,
+  fetchPlAndDonationsParallel,
+  fetchPlDonationsTrialParallel,
+  fetchPlSummaryReport,
+  fetchTrialBalanceReport,
+} from '../lib/adminFinanceReportApi'
+import {
   financeBalanceSheetQuerySuffix,
   financeGlQuerySuffix,
   financeJournalsQuerySuffix,
@@ -553,15 +562,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const q = financeReportQuerySuffix(preset.legalEntityCode, preset.from, preset.to)
-      const [plResp, donationsResp] = await Promise.all([
-        fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
-          headers: financeAdminHeaders(adminKey),
-        }),
-        fetch(`${base}/api/admin/finance/reports/donations${q}`, {
-          headers: financeAdminHeaders(adminKey),
-        }),
-      ])
-      const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])
+      const [pl, donations] = await fetchPlAndDonationsParallel(base, adminKey, q)
       if (!pl.ok || !donations.ok) {
         const errors: string[] = []
         if (!pl.ok) errors.push(formatFetchError('โหลดสรุป P/L', pl.status, pl.payload, pl.rawText))
@@ -736,20 +737,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r1 = await fetch(`${base}/api/admin/finance/overview`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p1 = await readApiJson(r1)
+      const p1 = await fetchFinanceOverview(base, adminKey)
       if (!p1.ok) {
         setMsg(formatFetchError('โหลดภาพรวม Finance', p1.status, p1.payload, p1.rawText))
         return
       }
       setOverview((p1.payload ?? null) as OverviewPayload | null)
 
-      const r2 = await fetch(`${base}/api/admin/finance/bank-accounts`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p2 = await readApiJson(r2)
+      const p2 = await fetchFinanceBankAccounts(base, adminKey)
       if (!p2.ok) {
         setMsg(formatFetchError('โหลดบัญชีธนาคาร', p2.status, p2.payload, p2.rawText))
         return
@@ -771,10 +766,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/pl-summary${getReportQueryString()}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchPlSummaryReport(base, adminKey, getReportQueryString())
       if (!p.ok) return setMsg(formatFetchError('โหลดสรุป P/L', p.status, p.payload, p.rawText))
       setPlSummary((p.payload ?? null) as PlSummaryPayload | null)
       setPlPage(1)
@@ -793,10 +785,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/donations${getReportQueryString()}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchDonationsReport(base, adminKey, getReportQueryString())
       if (!p.ok) return setMsg(formatFetchError('โหลดแดชบอร์ดเงินบริจาค', p.status, p.payload, p.rawText))
       setDonationsReport((p.payload ?? null) as DonationsReportPayload | null)
       setDonorPage(1)
@@ -817,10 +806,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/trial-balance${getReportQueryString()}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchTrialBalanceReport(base, adminKey, getReportQueryString())
       if (!p.ok) return setMsg(formatFetchError('โหลด Trial Balance', p.status, p.payload, p.rawText))
       setTrialBalance((p.payload ?? null) as TrialBalancePayload | null)
       setMsg('โหลด Trial Balance แล้ว')
@@ -839,18 +825,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const q = getReportQueryString()
-      const [plResp, donationsResp, trialResp] = await Promise.all([
-        fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
-          headers: financeAdminHeaders(adminKey),
-        }),
-        fetch(`${base}/api/admin/finance/reports/donations${q}`, {
-          headers: financeAdminHeaders(adminKey),
-        }),
-        fetch(`${base}/api/admin/finance/reports/trial-balance${q}`, {
-          headers: financeAdminHeaders(adminKey),
-        }),
-      ])
-      const [pl, donations, trial] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp), readApiJson(trialResp)])
+      const [pl, donations, trial] = await fetchPlDonationsTrialParallel(base, adminKey, q)
 
       const errors: string[] = []
       if (pl.ok) {
