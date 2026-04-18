@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MemberPortal } from '../components/MemberPortal'
 import { portalFocusRing, portalNotFoundScopeLabel } from './portalLabels'
@@ -89,7 +89,17 @@ export function MemberArea(props: {
         <Route path="card" element={<MemberCardPage member={props.member} />} />
         <Route path="profile" element={<MemberProfilePage member={props.member} />} />
         <Route path="statistics" element={<MemberStatisticsPage roleView={roleView} portalState={portalData} />} />
-        <Route path="donations" element={<MemberDonationsPage portalState={portalData} />} />
+        <Route
+          path="donations"
+          element={
+            <MemberDonationsPage
+              apiBase={props.apiBase}
+              lineUid={props.lineUid}
+              member={props.member}
+              portalState={portalData}
+            />
+          }
+        />
         <Route path="meetings" element={<MemberMeetingsPage portalState={portalData} />} />
         <Route
           path="documents"
@@ -311,43 +321,198 @@ function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: Po
   )
 }
 
-function MemberDonationsPage(props: { portalState: PortalDataState<MemberPortalData> }) {
+function MemberDonationsPage(props: {
+  apiBase: string
+  lineUid: string
+  member: Record<string, unknown>
+  portalState: PortalDataState<MemberPortalData>
+}) {
   const { data, loading, source } = props.portalState
+  const [activityId, setActivityId] = useState('')
+  const [amount, setAmount] = useState('')
+  const [transferAt, setTransferAt] = useState('')
+  const [slipUrl, setSlipUrl] = useState('')
+  const [note, setNote] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [formMsg, setFormMsg] = useState<string | null>(null)
+
+  const donorName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || '—'
+  const donorBatch = props.member.batch != null ? String(props.member.batch) : '—'
+  const donorBatchName = props.member.batch_name != null ? String(props.member.batch_name) : '—'
+
+  const submitDonation = useCallback(async () => {
+    if (!props.lineUid.trim()) {
+      setFormMsg('ต้องลงชื่อเข้าใช้ด้วย LINE และผูกสมาชิกก่อนบริจาค')
+      return
+    }
+    if (!activityId.trim()) {
+      setFormMsg('เลือกกิจกรรม/โครงการ')
+      return
+    }
+    const n = Number(amount)
+    if (!Number.isFinite(n) || n <= 0) {
+      setFormMsg('กรอกจำนวนเงินที่มากกว่า 0')
+      return
+    }
+    setSubmitting(true)
+    setFormMsg(null)
+    try {
+      const body: Record<string, unknown> = {
+        line_uid: props.lineUid.trim(),
+        activity_id: activityId.trim(),
+        amount: n,
+      }
+      if (transferAt.trim()) body.transfer_at = new Date(transferAt).toISOString()
+      if (slipUrl.trim()) body.slip_file_url = slipUrl.trim()
+      if (note.trim()) body.note = note.trim()
+      const r = await fetch(`${props.apiBase.replace(/\/$/, '')}/api/members/donations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const j = (await r.json().catch(() => ({}))) as { error?: string; ok?: boolean }
+      if (!r.ok) {
+        setFormMsg(j.error ?? `ไม่สำเร็จ (HTTP ${r.status})`)
+        return
+      }
+      setFormMsg('บันทึกการบริจาคแล้ว ขอบคุณที่สนับสนุน')
+      setAmount('')
+      setSlipUrl('')
+      setNote('')
+      void props.portalState.refetch()
+    } catch {
+      setFormMsg('เรียกเซิร์ฟเวอร์ไม่สำเร็จ')
+    } finally {
+      setSubmitting(false)
+    }
+  }, [activityId, amount, note, props.apiBase, props.lineUid, props.portalState, slipUrl, transferAt])
+
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สนับสนุนกิจกรรมโรงเรียน</h3>
-            <p className="mt-2 text-sm text-slate-400">เลือกโครงการที่ต้องการสนับสนุนและแนบสลิปเพื่อยืนยันรายการ</p>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สนับสนุนกิจกรรมโรงเรียนยุพราชวิทยาลัย</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              เลือกโครงการ (เช่น ทุนอาหารกลางวัน ทุนการศึกษา) กรอกยอดโอน และแนบลิงก์สลิป — ยอดกองนี้แยกจากรายรับของสมาคมศิษย์เก่าและโรงเรียนกวดวิชา
+            </p>
           </div>
         </PortalSectionHeader>
         {loading ? (
           <PortalContentLoading />
         ) : (
           <>
-            <div className="mt-4 grid gap-3 md:grid-cols-2" role="list" aria-label="รายการโครงการรับบริจาค">
+            <div
+              className="mt-4 rounded border border-slate-800/80 bg-slate-900/30 p-3 text-sm text-slate-300"
+              aria-label="ข้อมูลผู้บริจาคจากทะเบียนสมาชิก"
+            >
+              <p>
+                <span className="text-slate-500">ผู้บริจาค:</span> {donorName}{' '}
+                <span className="text-slate-500">· รุ่น</span> {donorBatch}{' '}
+                <span className="text-slate-500">· ชื่อรุ่น</span> {donorBatchName}
+              </p>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2" role="list" aria-label="โครงการโรงเรียนยุพราช (กองแยกจากนิติบุคคลสมาคม/กวดวิชา)">
+              {data.yupparajDonationActivities.length === 0 ? (
+                <p className="text-sm text-amber-200/90 md:col-span-2">
+                  ยังไม่มีรายการกิจกรรมประเภทโรงเรียนยุพราชในระบบ — ผู้ดูแลสามารถเพิ่มที่ Admin → คอร์ส/กิจกรรม และตั้งค่าเป็น &quot;กองโรงเรียนยุพราช&quot;
+                </p>
+              ) : (
+                data.yupparajDonationActivities.map((a) => {
+                  const pct =
+                    a.targetAmount != null && a.targetAmount > 0
+                      ? Math.min(100, Math.round((a.raisedAmount / a.targetAmount) * 100))
+                      : 0
+                  return (
+                    <div key={a.id} role="listitem">
+                      <DonationCampaignCard
+                        title={`${a.title} (${a.category})`}
+                        progress={pct}
+                        target={a.targetAmount != null ? Math.round(a.targetAmount).toLocaleString('th-TH') : '—'}
+                        raised={Math.round(a.raisedAmount).toLocaleString('th-TH')}
+                      />
+                    </div>
+                  )
+                })
+              )}
+            </div>
+            <div className="mt-6 space-y-3 rounded-lg border border-emerald-900/40 bg-emerald-950/15 p-4" aria-label="ฟอร์มบันทึกการบริจาค">
+              <p className="text-xs font-medium uppercase tracking-wide text-emerald-200/90">บันทึกการโอน</p>
+              <label className="block text-xs text-slate-400">
+                เลือกโครงการ
+                <select
+                  value={activityId}
+                  onChange={(e) => setActivityId(e.target.value)}
+                  className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+                >
+                  <option value="">— เลือก —</option>
+                  {data.yupparajDonationActivities.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.title} ({a.category})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs text-slate-400">
+                จำนวนเงิน (บาท)
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+                  placeholder="เช่น 500"
+                />
+              </label>
+              <label className="block text-xs text-slate-400">
+                วันเวลาโอน (ถ้ามี)
+                <input
+                  type="datetime-local"
+                  value={transferAt}
+                  onChange={(e) => setTransferAt(e.target.value)}
+                  className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+                />
+              </label>
+              <label className="block text-xs text-slate-400">
+                ลิงก์แนบสลิป (URL รูปภาพหรือไฟล์ที่อัปโหลดแล้ว)
+                <input
+                  type="url"
+                  value={slipUrl}
+                  onChange={(e) => setSlipUrl(e.target.value)}
+                  className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+                  placeholder="https://..."
+                />
+              </label>
+              <label className="block text-xs text-slate-400">
+                หมายเหตุ (ถ้ามี)
+                <input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+                />
+              </label>
+              {formMsg ? (
+                <p className={`text-sm ${formMsg.includes('แล้ว') ? 'text-emerald-300' : 'text-amber-300'}`} role="status">
+                  {formMsg}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                disabled={submitting || data.yupparajDonationActivities.length === 0}
+                onClick={() => void submitDonation()}
+                aria-label="ส่งข้อมูลการบริจาค"
+                className={`rounded bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
+              >
+                {submitting ? 'กำลังส่ง…' : 'ยืนยันการบริจาค'}
+              </button>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 opacity-90" role="list" aria-label="ภาพรวมเดโม (แคมเปญอื่น)">
               {data.donationCampaigns.map((campaign) => (
                 <div key={campaign.title} role="listitem">
                   <DonationCampaignCard title={campaign.title} progress={campaign.progress} target={campaign.target} raised={campaign.raised} />
                 </div>
               ))}
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="เครื่องมือสนับสนุนกิจกรรมและประวัติการบริจาค">
-              <button
-                type="button"
-                aria-label="เปิดฟอร์มบริจาคและแนบสลิป"
-                className={`rounded bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${portalFocusRing}`}
-              >
-                บริจาคและแนบสลิป
-              </button>
-              <button
-                type="button"
-                aria-label="ดูประวัติการบริจาคของสมาชิก"
-                className={`rounded border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
-              >
-                ดูประวัติการบริจาค
-              </button>
             </div>
           </>
         )}

@@ -32,6 +32,16 @@ export const memberPortalPayload = {
     { title: 'กองทุนทุนการศึกษา', progress: 72, target: '500,000', raised: '360,000' },
     { title: 'พัฒนาห้องเรียนอัจฉริยะ', progress: 41, target: '800,000', raised: '328,000' },
   ],
+  /** โครงสร้างเดียวกับ buildMemberPortalFromDb — กิจกรรมโรงเรียนยุพราช (แยกจากรายได้สมาคม/กวดวิชา) */
+  yupparajDonationActivities: [] as Array<{
+    id: string
+    title: string
+    category: string
+    description: string | null
+    fundScope: 'yupparaj_school'
+    targetAmount: number | null
+    raisedAmount: number
+  }>,
   financeCards: [
     { label: 'รายรับเดือนนี้', value: '฿ 482,000', hint: 'รวมรายรับที่เปิดเผยต่อสมาชิก' },
     { label: 'รายจ่ายเดือนนี้', value: '฿ 351,400', hint: 'ค่าใช้จ่ายกิจกรรมและงานบริหาร' },

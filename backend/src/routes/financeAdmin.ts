@@ -436,7 +436,7 @@ financeAdminRouter.get('/overview', async (_req, res) => {
 
     const { data: donations, error: donErr } = await supabase
       .from('donations')
-      .select('id,batch,amount,legal_entity_id')
+      .select('id,batch,amount,legal_entity_id,fund_scope')
     if (donErr) {
       res.status(500).json({ error: 'โหลด donations ไม่สำเร็จ', details: donErr })
       return
@@ -445,6 +445,9 @@ financeAdminRouter.get('/overview', async (_req, res) => {
     const donationByBatch: Record<string, number> = {}
     const donationByEntity: Record<string, number> = {}
     for (const d of donations ?? []) {
+      if (String((d as { fund_scope?: string | null }).fund_scope ?? '') === 'yupparaj_school') {
+        continue
+      }
       const b = typeof d.batch === 'string' && d.batch.trim() ? d.batch.trim() : '(ไม่ระบุรุ่น)'
       const a = Number(d.amount ?? 0)
       donationByBatch[b] = (donationByBatch[b] ?? 0) + a
@@ -607,16 +610,20 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
 
     let donationsQ = supabase
       .from('donations')
-      .select('id,legal_entity_id,batch,amount,member_id,app_user_id,created_at')
+      .select('id,legal_entity_id,batch,amount,member_id,app_user_id,created_at,fund_scope')
       .order('created_at', { ascending: false })
     if (legalEntityId) donationsQ = donationsQ.eq('legal_entity_id', legalEntityId)
     if (fromDate) donationsQ = donationsQ.gte('created_at', `${fromDate}T00:00:00.000Z`)
     if (toDate) donationsQ = donationsQ.lte('created_at', `${toDate}T23:59:59.999Z`)
-    const { data: donations, error: dErr } = await donationsQ
+    const { data: donationsRaw, error: dErr } = await donationsQ
     if (dErr) {
       res.status(500).json({ error: 'โหลด donations ไม่สำเร็จ', details: dErr })
       return
     }
+
+    const donations = (donationsRaw ?? []).filter(
+      (d) => String((d as { fund_scope?: string | null }).fund_scope ?? '') !== 'yupparaj_school',
+    )
 
     const memberIds = Array.from(
       new Set((donations ?? []).map((d) => (d.member_id == null ? '' : String(d.member_id))).filter(Boolean)),
@@ -678,6 +685,8 @@ financeAdminRouter.get('/reports/donations', async (_req, res) => {
         from: fromDate || null,
         to: toDate || null,
       },
+      note:
+        'รายงานนี้ไม่รวมบริจาคกองโรงเรียนยุพราช (fund_scope=yupparaj_school) — ดูสรุปแยกที่ /api/admin/school-activities/donations/summary',
       totals: {
         donations: (donations ?? []).length,
         totalAmount: (donations ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0),
@@ -710,16 +719,22 @@ financeAdminRouter.get('/exports/donations.csv', async (req, res) => {
 
     let donationsQ = supabase
       .from('donations')
-      .select('id,created_at,legal_entity_id,batch,amount,member_id,app_user_id,slip_file_url,note')
+      .select(
+        'id,created_at,legal_entity_id,batch,amount,member_id,app_user_id,slip_file_url,note,fund_scope,donor_first_name,donor_last_name,donor_batch,donor_batch_name,activity_id',
+      )
       .order('created_at', { ascending: false })
     if (legalEntityId) donationsQ = donationsQ.eq('legal_entity_id', legalEntityId)
     if (fromDate) donationsQ = donationsQ.gte('created_at', `${fromDate}T00:00:00.000Z`)
     if (toDate) donationsQ = donationsQ.lte('created_at', `${toDate}T23:59:59.999Z`)
-    const { data: donations, error } = await donationsQ
+    const { data: donationsRaw, error } = await donationsQ
     if (error) {
       res.status(500).json({ error: 'โหลด donations ไม่สำเร็จ', details: error })
       return
     }
+
+    const donations = (donationsRaw ?? []).filter(
+      (d) => String((d as { fund_scope?: string | null }).fund_scope ?? '') !== 'yupparaj_school',
+    )
 
     const rows = (donations ?? []).map((d) => ({
       donation_id: d.id,

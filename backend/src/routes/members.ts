@@ -320,3 +320,115 @@ membersRouter.post('/register-request', async (req, res) => {
     res.status(500).json({ error: message })
   }
 })
+
+type FundScope = 'yupparaj_school' | 'association' | 'cram_school'
+
+function isFundScope(s: string): s is FundScope {
+  return s === 'yupparaj_school' || s === 'association' || s === 'cram_school'
+}
+
+/**
+ * บริจาคผ่านพอร์ทัลสมาชิก (กิจกรรมโรงเรียนยุพราช / สมาคม / กวดวิชา — ตาม fund_scope ของกิจกรรม)
+ * Body: { line_uid, activity_id, amount, transfer_at?, slip_file_url?, note? }
+ * ยอด yupparaj_school ไม่ผูก legal_entity ของสมาคม/กวดวิชา (แยกบัญชีเชิงนโยบาย)
+ */
+membersRouter.post('/donations', async (req, res) => {
+  try {
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
+    const activity_id = typeof req.body?.activity_id === 'string' ? req.body.activity_id.trim() : ''
+    const amount = Number(req.body?.amount)
+    const note = typeof req.body?.note === 'string' && req.body.note.trim() ? req.body.note.trim() : null
+    const slip_file_url =
+      typeof req.body?.slip_file_url === 'string' && req.body.slip_file_url.trim()
+        ? req.body.slip_file_url.trim()
+        : null
+    let transfer_at: string | null = null
+    if (typeof req.body?.transfer_at === 'string' && req.body.transfer_at.trim()) {
+      const t = new Date(req.body.transfer_at.trim())
+      transfer_at = Number.isFinite(t.getTime()) ? t.toISOString() : null
+    }
+
+    if (!line_uid || !activity_id || !Number.isFinite(amount) || amount <= 0) {
+      res.status(400).json({ error: 'ต้องระบุ line_uid, activity_id และ amount > 0' })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: member, error: mErr } = await supabase.from('members').select('*').eq('line_uid', line_uid).maybeSingle()
+    if (mErr) {
+      res.status(500).json({ error: 'โหลดข้อมูลสมาชิกไม่สำเร็จ', details: mErr })
+      return
+    }
+    if (!member) {
+      res.status(403).json({ error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้' })
+      return
+    }
+
+    const { data: activity, error: aErr } = await supabase
+      .from('school_activities')
+      .select('id, active, fund_scope')
+      .eq('id', activity_id)
+      .maybeSingle()
+    if (aErr) {
+      res.status(500).json({ error: 'โหลดกิจกรรมไม่สำเร็จ', details: aErr })
+      return
+    }
+    if (!activity || activity.active !== true) {
+      res.status(400).json({ error: 'ไม่พบกิจกรรมหรือกิจกรรมปิดรับบริจาค' })
+      return
+    }
+
+    const rawScope = typeof activity.fund_scope === 'string' ? activity.fund_scope.trim() : 'association'
+    const fund_scope: FundScope = isFundScope(rawScope) ? rawScope : 'association'
+
+    let legal_entity_id: string | null = null
+    if (fund_scope === 'association' || fund_scope === 'cram_school') {
+      const code = fund_scope === 'association' ? 'association' : 'cram_school'
+      const { data: ent, error: eErr } = await supabase.from('legal_entities').select('id').eq('code', code).maybeSingle()
+      if (eErr) {
+        res.status(500).json({ error: 'โหลดนิติบุคคลไม่สำเร็จ', details: eErr })
+        return
+      }
+      legal_entity_id = ent?.id ? String(ent.id) : null
+    }
+
+    const { data: appUser } = await supabase.from('app_users').select('id').eq('line_uid', line_uid).maybeSingle()
+
+    const donor_first_name = typeof member.first_name === 'string' ? member.first_name : null
+    const donor_last_name = typeof member.last_name === 'string' ? member.last_name : null
+    const donor_batch = typeof member.batch === 'string' ? member.batch : null
+    const donor_batch_name = typeof member.batch_name === 'string' ? member.batch_name : null
+
+    const { data: row, error: insErr } = await supabase
+      .from('donations')
+      .insert({
+        activity_id,
+        member_id: member.id,
+        app_user_id: appUser?.id ?? null,
+        batch: donor_batch,
+        amount,
+        currency: 'THB',
+        transfer_at,
+        slip_file_url,
+        note,
+        legal_entity_id,
+        fund_scope,
+        donor_first_name,
+        donor_last_name,
+        donor_batch,
+        donor_batch_name,
+      })
+      .select('id,amount,activity_id,fund_scope,created_at')
+      .single()
+
+    if (insErr || !row) {
+      res.status(500).json({ error: 'บันทึกการบริจาคไม่สำเร็จ', details: insErr })
+      return
+    }
+
+    res.status(201).json({ ok: true, donation: row })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})

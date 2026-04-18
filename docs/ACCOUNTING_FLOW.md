@@ -43,6 +43,7 @@
 - `payment_request_approvals` รายการอนุมัติ/ปฏิเสธรายคน
 - `meeting_sessions`, `meeting_attendance` ลงชื่อเข้าประชุมทาง LINE / manual
 - `account_chart`, `journal_entries`, `journal_lines` โครงบัญชีแบบ double-entry
+- `school_activities.fund_scope` + `target_amount` — แยก **กองโรงเรียนยุพราชวิทยาลัย** (`yupparaj_school`) ออกจากนิติบุคคลสมาคม/กวดวิชา; บริจาคกองยุพราชบันทึกใน `donations` พร้อม `fund_scope` และ snapshot ชื่อ–รุ่น (`donor_*`) สำหรับรายงาน
 
 ## API เบื้องต้น (Admin)
 

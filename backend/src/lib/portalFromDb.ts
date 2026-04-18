@@ -12,6 +12,15 @@ type MetricCard = { label: string; value: string; hint: string }
 type TrendItem = { label: string; value: number }
 type MeetingReport = { title: string; date: string }
 type DonationCampaign = { title: string; progress: number; target: string; raised: string }
+type YupparajDonationActivity = {
+  id: string
+  title: string
+  category: string
+  description: string | null
+  fundScope: 'yupparaj_school'
+  targetAmount: number | null
+  raisedAmount: number
+}
 type MeetingRow = { topic: string; time: string; status: 'ready' | 'pending_vote' | 'in_review' }
 
 type MemberPortalMerged = {
@@ -19,6 +28,8 @@ type MemberPortalMerged = {
   roleCards: { member: MetricCard[]; staff: MetricCard[] }
   batchDistribution: TrendItem[]
   donationCampaigns: DonationCampaign[]
+  /** กิจกรรมโรงเรียนยุพราช (ไม่รวมรายได้สมาคม/กวดวิชา) */
+  yupparajDonationActivities: YupparajDonationActivity[]
   financeCards: MetricCard[]
   meetingReports: MeetingReport[]
   requestTrend: TrendItem[]
@@ -265,12 +276,13 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
   } else {
     const { data: donationsMonth, error: e5 } = await supabase
       .from('donations')
-      .select('amount')
+      .select('amount,fund_scope')
       .gte('created_at', start)
       .lt('created_at', end)
     if (e5) throw e5
 
-    const donationTotal = (donationsMonth ?? []).reduce((s, r: { amount?: string | number | null }) => {
+    const donationTotal = (donationsMonth ?? []).reduce((s, r: { amount?: string | number | null; fund_scope?: string | null }) => {
+      if (r.fund_scope === 'yupparaj_school') return s
       const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
       return s + (Number.isFinite(n) ? n : 0)
     }, 0)
@@ -330,6 +342,53 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
   const memberReqTrend = await tryMemberUpdateRequestsTrendLast7Days(supabase)
   if (memberReqTrend && memberReqTrend.length === 7) {
     base.requestTrend = memberReqTrend
+  }
+
+  const { data: yupActs, error: yupErr } = await supabase
+    .from('school_activities')
+    .select('id,title,category,description,target_amount,fund_scope')
+    .eq('active', true)
+    .eq('fund_scope', 'yupparaj_school')
+    .order('category', { ascending: true })
+    .order('title', { ascending: true })
+    .limit(100)
+  if (!yupErr && yupActs && yupActs.length > 0) {
+    const ids = yupActs.map((r: { id: string }) => String(r.id))
+    const { data: amtRows, error: amtErr } = await supabase
+      .from('donations')
+      .select('activity_id,amount')
+      .in('activity_id', ids)
+    const raisedByActivity = new Map<string, number>()
+    if (!amtErr && amtRows) {
+      for (const r of amtRows as { activity_id?: string | null; amount?: string | number | null }[]) {
+        const aid = r.activity_id == null ? '' : String(r.activity_id)
+        if (!aid) continue
+        const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
+        raisedByActivity.set(aid, (raisedByActivity.get(aid) ?? 0) + (Number.isFinite(n) ? n : 0))
+      }
+    }
+    base.yupparajDonationActivities = (
+      yupActs as {
+        id: string
+        title: string
+        category: string
+        description: string | null
+        target_amount?: string | number | null
+        fund_scope?: string
+      }[]
+    ).map((a) => {
+      const tgt = a.target_amount != null ? Number(a.target_amount) : null
+      const raised = raisedByActivity.get(String(a.id)) ?? 0
+      return {
+        id: String(a.id),
+        title: String(a.title ?? '').trim() || '—',
+        category: String(a.category ?? '').trim() || 'ทั่วไป',
+        description: a.description != null && String(a.description).trim() ? String(a.description) : null,
+        fundScope: 'yupparaj_school' as const,
+        targetAmount: tgt != null && Number.isFinite(tgt) ? tgt : null,
+        raisedAmount: raised,
+      }
+    })
   }
 
   return base

@@ -39,6 +39,7 @@ describe.sequential('createApp', () => {
     expect(Array.isArray(res.body.meetingReports)).toBe(true)
     expect(Array.isArray(res.body.requestTrend)).toBe(true)
     expect(res.body.requestTrend?.length).toBe(7)
+    expect(Array.isArray(res.body.yupparajDonationActivities)).toBe(true)
   })
 
   it('GET /api/portal/committee returns dashboard snapshot', async () => {

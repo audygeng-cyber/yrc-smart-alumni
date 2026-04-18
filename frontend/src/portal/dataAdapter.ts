@@ -46,11 +46,23 @@ export type CommitteeRoleView = 'chair' | 'member'
 export type AcademyRoleView = 'admin' | 'teacher' | 'student' | 'parent'
 export type PortalDataSource = 'api' | 'mock'
 
+export type YupparajDonationActivityItem = {
+  id: string
+  title: string
+  category: string
+  description: string | null
+  fundScope: 'yupparaj_school'
+  targetAmount: number | null
+  raisedAmount: number
+}
+
 export type MemberPortalData = {
   statsCards: MetricItem[]
   roleCards: Record<MemberRoleView, MetricItem[]>
   batchDistribution: TrendItem[]
   donationCampaigns: DonationCampaign[]
+  /** กิจกรรมโรงเรียนยุพราช — บริจาคไม่นับเป็นรายรับสมาคม/กวดวิชา */
+  yupparajDonationActivities: YupparajDonationActivityItem[]
   financeCards: MetricItem[]
   meetingReports: MeetingReportItem[]
   /** คำร้องใหม่ต่อวัน (UTC) 7 วัน — จาก member_update_requests */
@@ -163,6 +175,17 @@ const memberPortalMockData: MemberPortalData = {
   },
   batchDistribution: memberBatchDistribution,
   donationCampaigns: memberDonationCampaigns,
+  yupparajDonationActivities: [
+    {
+      id: 'mock-yup-1',
+      title: 'ทุนอาหารกลางวัน',
+      category: 'สวัสดิการนักเรียน',
+      description: 'ตัวอย่าง — เชื่อมต่อ API จะโหลดจากฐานข้อมูล',
+      fundScope: 'yupparaj_school',
+      targetAmount: 200000,
+      raisedAmount: 85000,
+    },
+  ],
   financeCards: memberFinanceCards,
   meetingReports: memberMeetingReports,
   requestTrend: memberRequestTrendMock,
@@ -223,6 +246,9 @@ export function normalizeMemberPortalData(raw: unknown, fallback: MemberPortalDa
     donationCampaigns: Array.isArray(raw.donationCampaigns)
       ? (raw.donationCampaigns as MemberPortalData['donationCampaigns'])
       : fallback.donationCampaigns,
+    yupparajDonationActivities: Array.isArray(raw.yupparajDonationActivities)
+      ? (raw.yupparajDonationActivities as MemberPortalData['yupparajDonationActivities'])
+      : fallback.yupparajDonationActivities,
     financeCards: Array.isArray(raw.financeCards) ? (raw.financeCards as MemberPortalData['financeCards']) : fallback.financeCards,
     meetingReports: Array.isArray(raw.meetingReports)
       ? (raw.meetingReports as MemberPortalData['meetingReports'])

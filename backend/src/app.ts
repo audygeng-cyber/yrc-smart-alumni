@@ -55,6 +55,7 @@ export function createApp(): express.Express {
         lineToken: 'POST /api/auth/line/token',
         membersVerify: 'POST /api/members/verify-link',
         membersSession: 'POST /api/members/session-member (line_uid — โหลดสมาชิกที่ผูกไว้แล้วสำหรับกู้เซสชัน)',
+        membersDonations: 'POST /api/members/donations (line_uid + activity_id + amount — บริจาคกิจกรรม)',
         membersRequestStatus: 'POST /api/members/request-status (line_uid — ดูคำร้องล่าสุดของสมาชิก)',
         membersUpdateSelf: 'POST /api/members/update-self (line_uid + updates — หลังผูกแล้ว)',
         membersRegister: 'POST /api/members/register-request',
@@ -73,7 +74,7 @@ export function createApp(): express.Express {
         cramSchool:
           'GET/POST/PATCH /api/admin/cram/classrooms, GET/POST/PATCH/DELETE /api/admin/cram/students (Admin key: x-admin-key) — ห้อง/นักเรียนกวดวิชา',
         schoolActivities:
-          'GET/POST/PATCH/DELETE /api/admin/school-activities (Admin key: x-admin-key) — คอร์ส/กิจกรรม school_activities',
+          'GET/POST/PATCH/DELETE /api/admin/school-activities | GET /api/admin/school-activities/donations/summary | GET /api/admin/school-activities/donations/yupparaj-export.csv (Admin key: x-admin-key)',
       },
     })
   })
