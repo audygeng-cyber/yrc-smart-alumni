@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchFinanceOverview } from './adminFinanceReportApi'
+import { fetchFinanceOverview, fetchIncomeStatementReport } from './adminFinanceReportApi'
 
 describe('fetchFinanceOverview', () => {
   afterEach(() => {
@@ -18,5 +18,25 @@ describe('fetchFinanceOverview', () => {
     expect(fetchMock).toHaveBeenCalledWith('http://localhost:4000/api/admin/finance/overview', {
       headers: { 'x-admin-key': 'secret-key' },
     })
+  })
+})
+
+describe('fetchIncomeStatementReport', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('เรียก income-statement พร้อม query suffix', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await fetchIncomeStatementReport('http://localhost:4000', 'k', '?from=2026-01-01')
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:4000/api/admin/finance/reports/income-statement?from=2026-01-01',
+      { headers: { 'x-admin-key': 'k' } },
+    )
   })
 })

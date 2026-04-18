@@ -42,6 +42,32 @@ export async function fetchTrialBalanceReport(
   return getJson(base, `/api/admin/finance/reports/trial-balance${querySuffix}`, adminKey)
 }
 
+export async function fetchIncomeStatementReport(
+  base: string,
+  adminKey: string,
+  querySuffix: string,
+): Promise<ApiJsonResult> {
+  return getJson(base, `/api/admin/finance/reports/income-statement${querySuffix}`, adminKey)
+}
+
+/** `querySuffix` จาก `financeBalanceSheetQuerySuffix` */
+export async function fetchBalanceSheetReport(
+  base: string,
+  adminKey: string,
+  querySuffix: string,
+): Promise<ApiJsonResult> {
+  return getJson(base, `/api/admin/finance/reports/balance-sheet${querySuffix}`, adminKey)
+}
+
+/** `querySuffix` จาก `financeGlQuerySuffix` */
+export async function fetchGeneralLedgerReport(
+  base: string,
+  adminKey: string,
+  querySuffix: string,
+): Promise<ApiJsonResult> {
+  return getJson(base, `/api/admin/finance/reports/general-ledger${querySuffix}`, adminKey)
+}
+
 /** โหลด P/L + บริจาค + Trial Balance พร้อมกัน (ตัวกรองช่วงวันที่เดียวกัน) */
 export async function fetchPlDonationsTrialParallel(
   base: string,

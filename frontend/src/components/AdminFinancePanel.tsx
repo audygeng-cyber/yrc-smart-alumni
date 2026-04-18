@@ -3,9 +3,12 @@ import { normalizeApiBase } from '../lib/adminApi'
 import { PAGE_SIZE } from '../lib/adminFinanceConstants'
 import { financeAdminHeaders, financeAdminJsonHeaders } from '../lib/adminFinanceHttp'
 import {
+  fetchBalanceSheetReport,
   fetchDonationsReport,
   fetchFinanceBankAccounts,
   fetchFinanceOverview,
+  fetchGeneralLedgerReport,
+  fetchIncomeStatementReport,
   fetchPlAndDonationsParallel,
   fetchPlDonationsTrialParallel,
   fetchPlSummaryReport,
@@ -1511,10 +1514,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/income-statement${getReportQueryString()}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchIncomeStatementReport(base, adminKey, getReportQueryString())
       if (!p.ok) return setMsg(formatFetchError('โหลดงบกำไรขาดทุน', p.status, p.payload, p.rawText))
       const payload = p.payload as IncomeStatementPayload & { ok?: boolean }
       setIncomeStatement({
@@ -1538,16 +1538,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(
-        `${base}/api/admin/finance/reports/balance-sheet${financeBalanceSheetQuerySuffix({
+      const p = await fetchBalanceSheetReport(
+        base,
+        adminKey,
+        financeBalanceSheetQuerySuffix({
           reportEntity,
           bsAsOf,
-        })}`,
-        {
-          headers: financeAdminHeaders(adminKey),
-        },
+        }),
       )
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดงบดุล', p.status, p.payload, p.rawText))
       const payload = p.payload as BalanceSheetPayload & { ok?: boolean; filters?: unknown }
       setBalanceSheet({
@@ -1579,18 +1577,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(
-        `${base}/api/admin/finance/reports/general-ledger${financeGlQuerySuffix({
+      const p = await fetchGeneralLedgerReport(
+        base,
+        adminKey,
+        financeGlQuerySuffix({
           reportEntity,
           reportFrom,
           reportTo,
           glAccountCode,
-        })}`,
-        {
-          headers: financeAdminHeaders(adminKey),
-        },
+        }),
       )
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดสมุดบัญชีแยกประเภท', p.status, p.payload, p.rawText))
       const payload = p.payload as GeneralLedgerPayload & { ok?: boolean }
       setGeneralLedger({
