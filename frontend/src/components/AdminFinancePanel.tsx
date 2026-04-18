@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Navigate, useParams } from 'react-router-dom'
 import { normalizeApiBase } from '../lib/adminApi'
 import { downloadBlobFromAdminGet, triggerBrowserFileDownload } from '../lib/adminFinanceDownload'
 import {
@@ -82,7 +83,12 @@ import { FinanceAdminPanelHeader } from './adminFinance/FinanceAdminPanelHeader'
 import { FinanceAdminPanelSection } from './adminFinance/FinanceAdminPanelSection'
 import { FinanceAdminToolbarRegion } from './adminFinance/FinanceAdminToolbarRegion'
 import { FinanceAutoRefreshBar } from './adminFinance/FinanceAutoRefreshBar'
-import { FinanceAdminMeetingPaymentSection } from './adminFinance/FinanceAdminMeetingPaymentSection'
+import { FinanceAccountingRoadmapNote } from './adminFinance/FinanceAccountingRoadmapNote'
+import { FinanceAdminKeyField } from './adminFinance/FinanceAdminKeyField'
+import { FinanceAdminMeetingColumn } from './adminFinance/FinanceAdminMeetingColumn'
+import type { FinanceAdminTab } from './adminFinance/FinanceAdminSubNav'
+import { FinanceAdminSubNav } from './adminFinance/FinanceAdminSubNav'
+import { PaymentRequestTools } from './adminFinance/PaymentRequestTools'
 import { useFinanceAutoRefresh } from './adminFinance/useFinanceAutoRefresh'
 import { useFinanceActivityLogView } from './adminFinance/useFinanceActivityLogView'
 import { useFinanceMeetingColumn } from './adminFinance/useFinanceMeetingColumn'
@@ -94,6 +100,7 @@ import { FinanceQuickActionsBar } from './adminFinance/FinanceQuickActionsBar'
 import { FinanceReportFilters } from './adminFinance/FinanceReportFilters'
 import { FinanceReportPresets } from './adminFinance/FinanceReportPresets'
 export function AdminFinancePanel({ apiBase }: Props) {
+  const { tab } = useParams<{ tab: string }>()
   const base = normalizeApiBase(apiBase)
   const [adminKey, setAdminKey] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1302,9 +1309,22 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
   }
 
+  const financeTabs: FinanceAdminTab[] = ['accounting', 'meetings', 'payments']
+  if (!tab || !financeTabs.includes(tab as FinanceAdminTab)) {
+    return <Navigate to="/admin/finance/accounting" replace />
+  }
+  const section = tab as FinanceAdminTab
+
   return (
     <FinanceAdminPanelSection loading={loading}>
       <FinanceAdminPanelHeader />
+
+      <FinanceAdminKeyField adminKey={adminKey} setAdminKey={setAdminKey} />
+      <FinanceAdminSubNav />
+
+      {section === 'accounting' ? (
+        <>
+          <FinanceAccountingRoadmapNote />
 
       <FinanceAdminToolbarRegion>
         <FinanceQuickActionsBar
@@ -1595,8 +1615,24 @@ export function AdminFinancePanel({ apiBase }: Props) {
           }
         />
       </FinanceAdminAccountingRegion>
+        </>
+      ) : null}
 
-      <FinanceAdminMeetingPaymentSection meeting={meeting} payment={payment} />
+      {section === 'meetings' ? (
+        <div
+          className="mt-6 rounded-lg border border-slate-700 bg-slate-950/60 p-4"
+          role="group"
+          aria-label="เครื่องมือสร้างและติดตามรอบประชุม"
+        >
+          <FinanceAdminMeetingColumn {...meeting} />
+        </div>
+      ) : null}
+
+      {section === 'payments' ? (
+        <div className="mt-6" role="group" aria-label="คำขอจ่ายเงินและอนุมัติ">
+          <PaymentRequestTools {...payment} />
+        </div>
+      ) : null}
 
       <FinanceAdminFeedbackFooter msg={msg} isErrorMsg={isErrorMsg} loading={loading} />
     </FinanceAdminPanelSection>

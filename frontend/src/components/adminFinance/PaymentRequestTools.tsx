@@ -78,7 +78,7 @@ export function PaymentRequestTools({
 }: PaymentRequestToolsProps) {
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-4" role="group" aria-label="เครื่องมือสร้างและอนุมัติคำขอจ่ายเงิน">
-      <h3 className="text-sm font-medium text-slate-200">2) สร้าง/อนุมัติคำขอจ่ายเงิน</h3>
+      <h3 className="text-sm font-medium text-slate-200">สร้าง/อนุมัติคำขอจ่ายเงิน</h3>
       <p className="mt-2 text-xs leading-relaxed text-slate-400">
         บัญชี = ความถูกต้องและหลักฐาน · การอนุมัติ = อำนาจจ่าย — ควรเป็นสายเดียว โดยคำขอจ่ายควรสัมพันธ์กับงานบัญชี ไม่ใช่กรอกแยกสองชุดที่ไม่ผูกกัน
       </p>

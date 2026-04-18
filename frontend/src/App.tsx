@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AppRolesProvider } from './context/AppRolesProvider'
 import { useAppRoles } from './context/useAppRoles'
 import { enforceAppRbac, RBAC_NAV, rolesAllow } from './lib/appRoles'
@@ -503,6 +503,14 @@ function AppChrome(props: AppChromeProps) {
             />
             <Route
               path="finance"
+              element={
+                <Suspense fallback={adminPanelSuspenseFallback}>
+                  <Navigate to="/admin/finance/accounting" replace />
+                </Suspense>
+              }
+            />
+            <Route
+              path="finance/:tab"
               element={
                 <Suspense fallback={adminPanelSuspenseFallback}>
                   <AdminFinancePanel apiBase={props.apiBase} />

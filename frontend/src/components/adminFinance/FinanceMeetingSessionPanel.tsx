@@ -64,7 +64,7 @@ export function FinanceMeetingSessionPanel({
 }: FinanceMeetingSessionPanelProps) {
   return (
     <>
-      <h3 className="text-sm font-medium text-slate-200">1) สร้างประชุม</h3>
+      <h3 className="text-sm font-medium text-slate-200">สร้างประชุม</h3>
       <select
         value={meetingEntity}
         onChange={(e) => setMeetingEntity(e.target.value as 'association' | 'cram_school')}

@@ -105,10 +105,10 @@ export function AdminHomePage() {
 
       <AdminSection id="admin-section-finance" title="การเงินและบัญชี">
         <AdminCard
-          to="/admin/finance"
+          to="/admin/finance/accounting"
           badge="บัญชี"
-          title="บันทึกบัญชี รายงาน และงานประชุม"
-          description="รายงาน สมุดรายวัน งวดบัญชี คำขอเบิกจ่าย และเครื่องมือที่เกี่ยวข้อง"
+          title="บัญชี-การเงิน · ประชุม · คำขอจ่ายเงิน"
+          description="แยกแท็บ: สมุดรายวันและรายงานบัญชี สร้างการประชุม และสร้าง/อนุมัติคำขอจ่ายเงิน"
         />
       </AdminSection>
 
