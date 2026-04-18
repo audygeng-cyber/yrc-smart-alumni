@@ -5,8 +5,6 @@ import { portalFocusRing } from '../../portal/portalLabels'
 export type FinanceAutoRefreshBarProps = {
   autoRefreshEnabled: boolean
   onToggleAutoRefresh: (enabled: boolean) => void
-  autoRefreshSeconds: 30 | 60
-  setAutoRefreshSeconds: Dispatch<SetStateAction<30 | 60>>
   lastAutoRefreshAt: string | null
   autoRefreshPausedByError: boolean
   isAutoRefreshing: boolean
@@ -22,8 +20,6 @@ export type FinanceAutoRefreshBarProps = {
 export function FinanceAutoRefreshBar({
   autoRefreshEnabled,
   onToggleAutoRefresh,
-  autoRefreshSeconds,
-  setAutoRefreshSeconds,
   lastAutoRefreshAt,
   autoRefreshPausedByError,
   isAutoRefreshing,
@@ -42,21 +38,19 @@ export function FinanceAutoRefreshBar({
           type="checkbox"
           checked={autoRefreshEnabled}
           onChange={(e) => onToggleAutoRefresh(e.target.checked)}
+          aria-describedby="finance-auto-refresh-schedule-hint"
           aria-label="เปิดหรือปิดรีเฟรชรายงานอัตโนมัติ"
           className={portalFocusRing}
         />
         รีเฟรชรายงานอัตโนมัติ
       </label>
-      <select
-        value={autoRefreshSeconds}
-        onChange={(e) => setAutoRefreshSeconds(Number(e.target.value) as 30 | 60)}
-        aria-label="เลือกรอบเวลารีเฟรชอัตโนมัติ"
-        className={`rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs ${portalFocusRing}`}
-        disabled={!autoRefreshEnabled}
+      <span
+        id="finance-auto-refresh-schedule-hint"
+        className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200"
+        title="รีเฟรชตามเวลาเครื่องของคุณ — ครั้งแรกทันทีเมื่อเปิด แล้วทุกต้นชั่วโมงถัดไป"
       >
-        <option value={30}>ทุก 30 วินาที</option>
-        <option value={60}>ทุก 60 วินาที</option>
-      </select>
+        ทุกต้นชั่วโมง (เช่น 10:00, 11:00)
+      </span>
       <span role="status" aria-live="polite" aria-atomic="true">
         ล่าสุด: {lastAutoRefreshAt ? lastAutoRefreshAt : '-'}
       </span>

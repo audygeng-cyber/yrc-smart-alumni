@@ -249,7 +249,6 @@ export type ActivityLimit = 10 | 20 | 'all'
 
 export type AutoRefreshSettings = {
   enabled: boolean
-  seconds: 30 | 60
   alertOnPause: boolean
   soundOnPause: boolean
 }

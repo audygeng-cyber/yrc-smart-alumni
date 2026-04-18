@@ -19,7 +19,6 @@ export type FinancePanelSessionSyncParams = {
   activitySearch: string
   activityLimit: ActivityLimit
   autoRefreshEnabled: boolean
-  autoRefreshSeconds: 30 | 60
   alertOnPause: boolean
   soundOnPause: boolean
   setAdminKey: Dispatch<SetStateAction<string>>
@@ -29,7 +28,6 @@ export type FinancePanelSessionSyncParams = {
   setActivitySearch: Dispatch<SetStateAction<string>>
   setActivityLimit: Dispatch<SetStateAction<ActivityLimit>>
   setAutoRefreshEnabled: Dispatch<SetStateAction<boolean>>
-  setAutoRefreshSeconds: Dispatch<SetStateAction<30 | 60>>
   setAlertOnPause: Dispatch<SetStateAction<boolean>>
   setSoundOnPause: Dispatch<SetStateAction<boolean>>
 }
@@ -43,7 +41,6 @@ export function useFinancePanelSessionSync(p: FinancePanelSessionSyncParams): vo
     activitySearch,
     activityLimit,
     autoRefreshEnabled,
-    autoRefreshSeconds,
     alertOnPause,
     soundOnPause,
     setAdminKey,
@@ -53,7 +50,6 @@ export function useFinancePanelSessionSync(p: FinancePanelSessionSyncParams): vo
     setActivitySearch,
     setActivityLimit,
     setAutoRefreshEnabled,
-    setAutoRefreshSeconds,
     setAlertOnPause,
     setSoundOnPause,
   } = p
@@ -111,7 +107,6 @@ export function useFinancePanelSessionSync(p: FinancePanelSessionSyncParams): vo
       if (rawAutoRefresh) {
         const parsed = JSON.parse(rawAutoRefresh) as Partial<AutoRefreshSettings>
         if (typeof parsed.enabled === 'boolean') setAutoRefreshEnabled(parsed.enabled)
-        if (parsed.seconds === 30 || parsed.seconds === 60) setAutoRefreshSeconds(parsed.seconds)
         if (typeof parsed.alertOnPause === 'boolean') setAlertOnPause(parsed.alertOnPause)
         if (typeof parsed.soundOnPause === 'boolean') setSoundOnPause(parsed.soundOnPause)
       }
@@ -140,7 +135,6 @@ export function useFinancePanelSessionSync(p: FinancePanelSessionSyncParams): vo
     setAdminKey,
     setAlertOnPause,
     setAutoRefreshEnabled,
-    setAutoRefreshSeconds,
     setCustomPresets,
     setSoundOnPause,
   ])
@@ -168,10 +162,9 @@ export function useFinancePanelSessionSync(p: FinancePanelSessionSyncParams): vo
   useEffect(() => {
     const value: AutoRefreshSettings = {
       enabled: autoRefreshEnabled,
-      seconds: autoRefreshSeconds,
       alertOnPause,
       soundOnPause,
     }
     sessionStorage.setItem(AUTO_REFRESH_SETTINGS_KEY, JSON.stringify(value))
-  }, [alertOnPause, autoRefreshEnabled, autoRefreshSeconds, soundOnPause])
+  }, [alertOnPause, autoRefreshEnabled, soundOnPause])
 }

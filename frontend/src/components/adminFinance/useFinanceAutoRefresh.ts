@@ -1,6 +1,7 @@
 import { useEffect, useRef, useLayoutEffect } from 'react'
 import { AUTO_REFRESH_MAX_FAILURES } from '../../lib/adminFinanceConstants'
 import { financeAdminHeaders } from '../../lib/adminFinanceHttp'
+import { msUntilNextHour } from '../../lib/adminFinanceSchedule'
 import { formatFetchError, readApiJson } from '../../lib/adminHttp'
 import type {
   ActivityItem,
@@ -14,7 +15,6 @@ export type UseFinanceAutoRefreshParams = {
   adminKey: string
   autoRefreshEnabled: boolean
   autoRefreshPausedByError: boolean
-  autoRefreshSeconds: 30 | 60
   alertOnPause: boolean
   soundOnPause: boolean
   autoRefreshFailureCount: number
@@ -30,7 +30,7 @@ export type UseFinanceAutoRefreshParams = {
   addActivity: (level: ActivityItem['level'], message: string) => void
 }
 
-/** รีเฟรช P/L + รายงานบริจาคตามช่วงเวลา, แจ้งเตือนเมื่อหยุดเพราะ error ต่อเนื่อง */
+/** รีเฟรช P/L + รายงานบริจาค — รันครั้งแรกทันทีเมื่อเปิด แล้วตามต้นชั่วโมงถัดไป (เช่น 10:00, 11:00 ตามเวลาเครื่อง); แจ้งเตือนเมื่อหยุดเพราะ error ต่อเนื่อง */
 export function useFinanceAutoRefresh(
   p: UseFinanceAutoRefreshParams,
 ): {
@@ -42,7 +42,6 @@ export function useFinanceAutoRefresh(
     adminKey,
     autoRefreshEnabled,
     autoRefreshPausedByError,
-    autoRefreshSeconds,
     alertOnPause,
     soundOnPause,
     autoRefreshFailureCount,
@@ -152,19 +151,27 @@ export function useFinanceAutoRefresh(
     }
 
     void run()
-    const timer = window.setInterval(() => {
-      void run()
-    }, autoRefreshSeconds * 1000)
+
+    let timeoutId: number | undefined
+    const scheduleNextHourly = () => {
+      if (cancelled) return
+      const ms = msUntilNextHour()
+      timeoutId = window.setTimeout(() => {
+        if (cancelled) return
+        void run()
+        scheduleNextHourly()
+      }, ms)
+    }
+    scheduleNextHourly()
 
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
     }
   }, [
     adminKey,
     autoRefreshEnabled,
     autoRefreshPausedByError,
-    autoRefreshSeconds,
     base,
     getReportQueryString,
     setAutoRefreshFailureCount,

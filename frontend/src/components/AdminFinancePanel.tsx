@@ -136,7 +136,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [entitySortKey, setEntitySortKey] = useState<EntitySortKey>('totalAmount')
   const [entitySortDir, setEntitySortDir] = useState<SortDirection>('desc')
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false)
-  const [autoRefreshSeconds, setAutoRefreshSeconds] = useState<30 | 60>(30)
   const [lastAutoRefreshAt, setLastAutoRefreshAt] = useState<string | null>(null)
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false)
   const [lastAutoRefreshError, setLastAutoRefreshError] = useState<string | null>(null)
@@ -306,7 +305,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
     activitySearch,
     activityLimit,
     autoRefreshEnabled,
-    autoRefreshSeconds,
     alertOnPause,
     soundOnPause,
     setAdminKey,
@@ -316,7 +314,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setActivitySearch,
     setActivityLimit,
     setAutoRefreshEnabled,
-    setAutoRefreshSeconds,
     setAlertOnPause,
     setSoundOnPause,
   })
@@ -337,7 +334,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
     adminKey,
     autoRefreshEnabled,
     autoRefreshPausedByError,
-    autoRefreshSeconds,
     alertOnPause,
     soundOnPause,
     autoRefreshFailureCount,
@@ -2309,8 +2305,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
         <FinanceAutoRefreshBar
           autoRefreshEnabled={autoRefreshEnabled}
           onToggleAutoRefresh={toggleAutoRefresh}
-          autoRefreshSeconds={autoRefreshSeconds}
-          setAutoRefreshSeconds={setAutoRefreshSeconds}
           lastAutoRefreshAt={lastAutoRefreshAt}
           autoRefreshPausedByError={autoRefreshPausedByError}
           isAutoRefreshing={isAutoRefreshing}
