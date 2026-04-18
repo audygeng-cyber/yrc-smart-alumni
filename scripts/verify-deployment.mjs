@@ -6,6 +6,8 @@
  * Usage:
  *   node scripts/verify-deployment.mjs <API_BASE_URL> [FRONTEND_ORIGIN] [--deep]
  *   VERIFY_DEEP=1 VERIFY_API_BASE=... VERIFY_FRONTEND_ORIGIN=... node scripts/verify-deployment.mjs
+ *
+ * ลำดับความสำคัญ: อาร์กิวเมนต์บนบรรทัดคำสั่ง (argv) **มาก่อน** env — กันค่า VERIFY_API_BASE=placeholder ใน shell ทับ URL จริง
  */
 
 const argv = process.argv.slice(2).filter((a) => a !== '--deep')
@@ -14,8 +16,8 @@ const deep =
   process.env.VERIFY_DEEP === 'true' ||
   process.argv.includes('--deep')
 
-const apiBase = process.env.VERIFY_API_BASE || argv[0]
-const frontendOrigin = process.env.VERIFY_FRONTEND_ORIGIN || argv[1]
+const apiBase = (argv[0]?.trim() || process.env.VERIFY_API_BASE || '').trim()
+const frontendOrigin = (argv[1]?.trim() || process.env.VERIFY_FRONTEND_ORIGIN || '').trim()
 
 if (!apiBase?.trim()) {
   console.error(

@@ -24,6 +24,8 @@ PowerShell:
 $env:VERIFY_API_BASE="https://xxx.run.app"; $env:VERIFY_FRONTEND_ORIGIN="https://yyy.vercel.app"; npm run verify:deploy
 ```
 
+**ลำดับความสำคัญ:** URL ที่ส่งเป็นอาร์กิวเมนต์หลัง `node scripts/verify-deployment.mjs` **มาก่อน** ค่า `VERIFY_*` ใน env — กันค่า placeholder ใน shell ทับ URL จริง ถ้าเคยตั้ง `VERIFY_API_BASE` ผิดในเซสชัน PowerShell ให้ `Remove-Item Env:VERIFY_API_BASE` หรือพิมพ์ URL บนบรรทัดคำสั่ง
+
 คำสั่งนี้เรียก `GET /health` ตรวจว่า `GET /api/admin/members/summary` มีอยู่ (probe ไม่ใส่ key) และถ้ามี origin ของ Vercel จะตรวจ CORS
 
 **ตรวจแบบละเอียด** (เทมเพลตนำเข้า, VAPID, **LINE route** (POST ว่างต้องได้ 400 ตามที่ออกแบบ), CORS preflight, และว่า bundle หน้าเว็บฝัง host ของ API ตรงกับ URL ที่ให้):
