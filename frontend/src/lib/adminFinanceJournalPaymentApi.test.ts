@@ -1,0 +1,98 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { postJournalDraft, postPaymentRequest, postPaymentRequestApprove } from './adminFinanceJournalPaymentApi'
+
+describe('postJournalDraft', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('POST /api/admin/finance/journals', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ journal: { id: 'j1' } }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await postJournalDraft('http://localhost:4000', 'k', {
+      legal_entity_code: 'association',
+      entry_date: '2026-04-18',
+      reference_no: null,
+      memo: null,
+      created_by: 'finance-admin',
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:4000/api/admin/finance/journals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': 'k' },
+      body: JSON.stringify({
+        legal_entity_code: 'association',
+        entry_date: '2026-04-18',
+        reference_no: null,
+        memo: null,
+        created_by: 'finance-admin',
+      }),
+    })
+  })
+})
+
+describe('postPaymentRequest', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('POST payment-requests', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ paymentRequest: { id: 'p1' } }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await postPaymentRequest('http://localhost:4000', 'k', {
+      legal_entity_code: 'association',
+      purpose: 'ค่าไฟ',
+      amount: 5000,
+      vat_rate: 0.07,
+      wht_rate: 0,
+      bank_account_id: 'ba-1',
+      requested_by: 'admin-ui',
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:4000/api/admin/finance/payment-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': 'k' },
+      body: JSON.stringify({
+        legal_entity_code: 'association',
+        purpose: 'ค่าไฟ',
+        amount: 5000,
+        vat_rate: 0.07,
+        wht_rate: 0,
+        bank_account_id: 'ba-1',
+        requested_by: 'admin-ui',
+      }),
+    })
+  })
+})
+
+describe('postPaymentRequestApprove', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('POST approve พร้อม encode id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await postPaymentRequestApprove('http://localhost:4000', 'k', 'pr/1', {
+      approver_role_code: 'committee',
+      decision: 'approve',
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:4000/api/admin/finance/payment-requests/pr%2F1/approve',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          approver_role_code: 'committee',
+          decision: 'approve',
+        }),
+      }),
+    )
+  })
+})
