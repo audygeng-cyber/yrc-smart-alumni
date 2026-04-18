@@ -3,6 +3,38 @@
  * (รันใน process เดียวเพื่อหลีกเลี่ยงปัญหา libuv บน Windows เมื่อ spawn child หลัง fetch)
  */
 
+/**
+ * @param {string} label
+ * @param {string} value
+ * @returns {boolean}
+ */
+export function isValidHttpBaseUrl(label, value) {
+  const v = String(value).trim()
+  if (!v) {
+    console.error(`\nสรุป: ${label} ว่าง`)
+    return false
+  }
+  if (/[<>]/.test(v) || /URL-Cloud-Run/i.test(v) || /^https?:\/\/<|^<\/?URL/i.test(v)) {
+    console.error(
+      `\nสรุป: ${label} ต้องเป็น URL จริง ไม่ใช่ตัวยึด เช่น <URL-Cloud-Run>\n` +
+        'ตัวอย่าง Cloud Run: https://yrc-api-xxxxx.asia-southeast1.run.app\n' +
+        'รัน: npm run verify:line -- https://…run.app https://ชื่อ-app.vercel.app/\n',
+    )
+    return false
+  }
+  try {
+    const u = new URL(v)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      console.error(`\nสรุป: ${label} ต้องเป็น http(s):`, v)
+      return false
+    }
+    return true
+  } catch {
+    console.error(`\nสรุป: ${label} ไม่ใช่ URL ที่อ่านได้:`, v)
+    return false
+  }
+}
+
 /** LINE มักใช้ redirect ที่ลงท้าย / — ลองทั้งแบบมีและไม่มี / */
 export function redirectCandidates(originLike) {
   const u = String(originLike).trim().replace(/\/+$/, '')
@@ -27,6 +59,13 @@ async function postToken(apiBase, redirectUri) {
 export async function runVerifyLineConfigProbe(apiBase, fe) {
   const base = apiBase.replace(/\/$/, '').trim()
   const feTrim = String(fe).trim()
+
+  if (!isValidHttpBaseUrl('API_BASE (อาร์กิวเมนต์แรก — URL ฐานของ Cloud Run)', base)) {
+    return 1
+  }
+  if (!isValidHttpBaseUrl('FRONTEND_URL (อาร์กิวเมนต์ที่สอง — URL หรือ Origin ของ Vercel)', feTrim)) {
+    return 1
+  }
 
   console.log('API:', base)
   console.log('Frontend:', feTrim)

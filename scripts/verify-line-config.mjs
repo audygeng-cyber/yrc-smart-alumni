@@ -20,7 +20,8 @@ const fe = process.env.VERIFY_FRONTEND_URL || process.argv[3]
 if (!apiBase?.trim() || !fe?.trim()) {
   console.error(
     'Usage: node scripts/verify-line-config.mjs <API_BASE> <FRONTEND_URL>\n' +
-      'Example: node scripts/verify-line-config.mjs https://xxx.run.app https://yyy.vercel.app/',
+      'Example: node scripts/verify-line-config.mjs https://yrc-api-xxxxx.asia-southeast1.run.app https://yrc-smart-alumni-frontend.vercel.app/\n' +
+      '(แทนที่ด้วย URL Cloud Run จริง — ห้ามพิมพ์ <URL-Cloud-Run> เป็นตัวอักษร)',
   )
   process.exit(1)
 }
