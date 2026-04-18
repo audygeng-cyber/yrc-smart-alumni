@@ -1,14 +1,5 @@
-import { financeAdminHeaders } from './adminFinanceHttp'
-import { readApiJson, type ApiJsonResult } from './adminHttp'
-
-async function getJson(
-  base: string,
-  pathWithQuery: string,
-  adminKey: string,
-): Promise<ApiJsonResult> {
-  const r = await fetch(`${base}${pathWithQuery}`, { headers: financeAdminHeaders(adminKey) })
-  return readApiJson(r)
-}
+import { financeAdminGetJson } from './adminFinanceJsonFetch'
+import type { ApiJsonResult } from './adminHttp'
 
 /** `querySuffix` จาก `financeJournalsQuerySuffix` */
 export async function fetchJournalsList(
@@ -16,7 +7,7 @@ export async function fetchJournalsList(
   adminKey: string,
   querySuffix: string,
 ): Promise<ApiJsonResult> {
-  return getJson(base, `/api/admin/finance/journals${querySuffix}`, adminKey)
+  return financeAdminGetJson(base, `/api/admin/finance/journals${querySuffix}`, adminKey)
 }
 
 export async function fetchJournalDetail(
@@ -25,7 +16,7 @@ export async function fetchJournalDetail(
   journalId: string,
 ): Promise<ApiJsonResult> {
   const safeId = encodeURIComponent(journalId.trim())
-  return getJson(base, `/api/admin/finance/journals/${safeId}`, adminKey)
+  return financeAdminGetJson(base, `/api/admin/finance/journals/${safeId}`, adminKey)
 }
 
 /** `querySuffix` จาก `financePeriodClosingsQuerySuffix` */
@@ -34,7 +25,7 @@ export async function fetchPeriodClosingsList(
   adminKey: string,
   querySuffix: string,
 ): Promise<ApiJsonResult> {
-  return getJson(base, `/api/admin/finance/period-closing${querySuffix}`, adminKey)
+  return financeAdminGetJson(base, `/api/admin/finance/period-closing${querySuffix}`, adminKey)
 }
 
 export async function fetchPeriodClosingDetail(
@@ -43,5 +34,5 @@ export async function fetchPeriodClosingDetail(
   periodClosingId: string,
 ): Promise<ApiJsonResult> {
   const safeId = encodeURIComponent(periodClosingId.trim())
-  return getJson(base, `/api/admin/finance/period-closing/${safeId}`, adminKey)
+  return financeAdminGetJson(base, `/api/admin/finance/period-closing/${safeId}`, adminKey)
 }

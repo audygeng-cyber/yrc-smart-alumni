@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { normalizeApiBase } from '../lib/adminApi'
 import { PAGE_SIZE } from '../lib/adminFinanceConstants'
 import { downloadBlobFromAdminGet, fetchFinanceAdminRaw, triggerBrowserFileDownload } from '../lib/adminFinanceDownload'
-import { financeAdminHeaders, financeAdminJsonHeaders } from '../lib/adminFinanceHttp'
 import {
   fetchBalanceSheetReport,
   fetchDonationsReport,
@@ -16,11 +15,32 @@ import {
   fetchTrialBalanceReport,
 } from '../lib/adminFinanceReportApi'
 import {
+  postJournalDraft,
+  postJournalLine,
+  postJournalPost,
+  postJournalVoid,
+  postPaymentRequest,
+  postPaymentRequestApprove,
+} from '../lib/adminFinanceJournalPaymentApi'
+import {
   fetchJournalDetail,
   fetchJournalsList,
   fetchPeriodClosingDetail,
   fetchPeriodClosingsList,
 } from '../lib/adminFinanceJournalPeriodApi'
+import {
+  fetchFixedAssetsList,
+  fetchFiscalYearsList,
+  fetchTaxMonthlyReport,
+  postFixedAssetCreate,
+  postFixedAssetRunDepreciation,
+  postFiscalYearClose,
+  postFiscalYearCreate,
+  postPeriodClosingClose,
+  postPeriodClosingMarkAuditorCompleted,
+  postPeriodClosingMarkAuditorSent,
+  postTaxCalculate,
+} from '../lib/adminFinanceOpsApi'
 import {
   deleteMeetingDocumentAdmin,
   fetchAgendaVoteSummaryAdmin,
@@ -931,18 +951,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/period-closing`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          legal_entity_code: reportEntity,
-          period_from: closePeriodFrom,
-          period_to: closePeriodTo,
-          closed_by: closeBy.trim() || 'finance-admin',
-          note: closeNote.trim() || null,
-        }),
+      const p = await postPeriodClosingClose(base, adminKey, {
+        legal_entity_code: reportEntity,
+        period_from: closePeriodFrom,
+        period_to: closePeriodTo,
+        closed_by: closeBy.trim() || 'finance-admin',
+        note: closeNote.trim() || null,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('ปิดงวดบัญชี', p.status, p.payload, p.rawText))
       setMsg('ปิดงวดบัญชีสำเร็จ และบันทึกสำหรับผู้ตรวจสอบแล้ว')
       addActivity('info', `ปิดงวดบัญชีสำเร็จ: ${reportEntity} ${closePeriodFrom} ถึง ${closePeriodTo}`)
@@ -1009,16 +1024,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const safeId = encodeURIComponent(id)
-      const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/mark-auditor-sent`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          auditor_sent_by: auditorSentBy.trim() || 'finance-admin',
-          auditor_handoff_note: auditorHandoffNote.trim() || null,
-        }),
+      const p = await postPeriodClosingMarkAuditorSent(base, adminKey, id, {
+        auditor_sent_by: auditorSentBy.trim() || 'finance-admin',
+        auditor_handoff_note: auditorHandoffNote.trim() || null,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('ยืนยันการส่งผู้ตรวจสอบ', p.status, p.payload, p.rawText))
       setMsg(`ยืนยันการส่งผู้ตรวจสอบงวด ${label} แล้ว`)
       addActivity('info', `ยืนยันส่งผู้ตรวจสอบสำเร็จ: ${label}`)
@@ -1036,16 +1045,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const safeId = encodeURIComponent(id)
-      const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/mark-auditor-completed`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          auditor_completed_by: auditorCompletedBy.trim() || 'finance-admin',
-          auditor_completed_note: auditorCompletedNote.trim() || null,
-        }),
+      const p = await postPeriodClosingMarkAuditorCompleted(base, adminKey, id, {
+        auditor_completed_by: auditorCompletedBy.trim() || 'finance-admin',
+        auditor_completed_note: auditorCompletedNote.trim() || null,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('ยืนยันปิดงานผู้ตรวจสอบ', p.status, p.payload, p.rawText))
       setMsg(`ยืนยันปิดงานผู้ตรวจสอบงวด ${label} แล้ว`)
       addActivity('info', `ยืนยันปิดงานผู้ตรวจสอบสำเร็จ: ${label}`)
@@ -1063,12 +1066,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const q = new URLSearchParams()
-      q.set('legal_entity_code', toolsEntity)
-      const r = await fetch(`${base}/api/admin/finance/fiscal-years?${q}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchFiscalYearsList(base, adminKey, toolsEntity)
       if (!p.ok) return setMsg(formatFetchError('โหลดรอบปีบัญชี', p.status, p.payload, p.rawText))
       const payload = (p.payload ?? {}) as { rows?: FiscalYearRow[] }
       setFiscalYears(Array.isArray(payload.rows) ? payload.rows : [])
@@ -1090,17 +1088,12 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/fiscal-years`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          legal_entity_code: toolsEntity,
-          period_from: fiscalPeriodFrom,
-          period_to: fiscalPeriodTo,
-          fiscal_label: fiscalLabel.trim() || null,
-        }),
+      const p = await postFiscalYearCreate(base, adminKey, {
+        legal_entity_code: toolsEntity,
+        period_from: fiscalPeriodFrom,
+        period_to: fiscalPeriodTo,
+        fiscal_label: fiscalLabel.trim() || null,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('สร้างรอบปีบัญชี', p.status, p.payload, p.rawText))
       setMsg('สร้างรอบปีบัญชีแล้ว')
       addActivity('info', `สร้างรอบปีบัญชีสำเร็จ: ${toolsEntity} ${fiscalPeriodFrom}–${fiscalPeriodTo}`)
@@ -1118,17 +1111,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const safeId = encodeURIComponent(id)
-      const r = await fetch(`${base}/api/admin/finance/fiscal-years/${safeId}/close`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          closed_by: fiscalCloseBy.trim() || 'finance-admin',
-          close_note: fiscalCloseNote.trim() || null,
-          accumulated_surplus_account_code: fiscalCloseSurplusCode.trim() || '3110',
-        }),
+      const p = await postFiscalYearClose(base, adminKey, id, {
+        closed_by: fiscalCloseBy.trim() || 'finance-admin',
+        close_note: fiscalCloseNote.trim() || null,
+        accumulated_surplus_account_code: fiscalCloseSurplusCode.trim() || '3110',
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('ปิดรอบปีบัญชี', p.status, p.payload, p.rawText))
       setMsg(`ปิดรอบปีบัญชี ${label} แล้ว`)
       addActivity('info', `ปิดรอบปีบัญชีสำเร็จ: ${label}`)
@@ -1146,12 +1133,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const q = new URLSearchParams()
-      q.set('legal_entity_code', toolsEntity)
-      const r = await fetch(`${base}/api/admin/finance/fixed-assets?${q}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchFixedAssetsList(base, adminKey, toolsEntity)
       if (!p.ok) return setMsg(formatFetchError('โหลดทะเบียนสินทรัพย์', p.status, p.payload, p.rawText))
       const payload = (p.payload ?? {}) as { rows?: FixedAssetRow[] }
       setFixedAssets(Array.isArray(payload.rows) ? payload.rows : [])
@@ -1180,24 +1162,19 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/fixed-assets`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          legal_entity_code: toolsEntity,
-          asset_code: faCode.trim(),
-          asset_name: faName.trim(),
-          purchase_date: faPurchaseDate,
-          cost,
-          residual_value: Number.isFinite(residual) && residual >= 0 ? residual : 0,
-          useful_life_months: Math.floor(life),
-          depreciation_account_code: faDepAccCode.trim(),
-          accumulated_depreciation_account_code: faAccumAccCode.trim(),
-          note: faNote.trim() || null,
-          created_by: faCreatedBy.trim() || 'finance-admin',
-        }),
+      const p = await postFixedAssetCreate(base, adminKey, {
+        legal_entity_code: toolsEntity,
+        asset_code: faCode.trim(),
+        asset_name: faName.trim(),
+        purchase_date: faPurchaseDate,
+        cost,
+        residual_value: Number.isFinite(residual) && residual >= 0 ? residual : 0,
+        useful_life_months: Math.floor(life),
+        depreciation_account_code: faDepAccCode.trim(),
+        accumulated_depreciation_account_code: faAccumAccCode.trim(),
+        note: faNote.trim() || null,
+        created_by: faCreatedBy.trim() || 'finance-admin',
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('สร้างสินทรัพย์ถาวร', p.status, p.payload, p.rawText))
       setMsg('บันทึกสินทรัพย์ถาวรแล้ว')
       addActivity('info', `สร้างสินทรัพย์ถาวรสำเร็จ: ${faCode.trim()}`)
@@ -1218,16 +1195,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/fixed-assets/run-depreciation`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          legal_entity_code: toolsEntity,
-          month: depMonth.trim(),
-          posted_by: faCreatedBy.trim() || 'finance-admin',
-        }),
+      const p = await postFixedAssetRunDepreciation(base, adminKey, {
+        legal_entity_code: toolsEntity,
+        month: depMonth.trim(),
+        posted_by: faCreatedBy.trim() || 'finance-admin',
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('รันค่าเสื่อม', p.status, p.payload, p.rawText))
       const body = p.payload as { posted?: boolean; reason?: string; journal_entry_id?: string; asset_count?: number }
       if (body.posted) {
@@ -1253,13 +1225,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const q = new URLSearchParams()
-      q.set('month', taxMonth.trim())
-      q.set('legal_entity_code', toolsEntity)
-      const r = await fetch(`${base}/api/admin/finance/reports/tax-monthly?${q}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchTaxMonthlyReport(base, adminKey, taxMonth.trim(), toolsEntity)
       if (!p.ok) return setMsg(formatFetchError('โหลดรายงานภาษีรายเดือน', p.status, p.payload, p.rawText))
       const payload = p.payload as {
         totals?: { base_amount: number; vat_amount: number; wht_amount: number }
@@ -1288,12 +1254,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/tax/calculate`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({ base_amount: baseAmount, vat_rate: vatRate, wht_rate: whtRate }),
+      const p = await postTaxCalculate(base, adminKey, {
+        base_amount: baseAmount,
+        vat_rate: vatRate,
+        wht_rate: whtRate,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('คำนวณภาษี', p.status, p.payload, p.rawText))
       const body = p.payload as {
         baseAmount?: number
@@ -1388,18 +1353,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/journals`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          legal_entity_code: journalDraftEntity,
-          entry_date: journalDraftDate,
-          reference_no: journalDraftRef.trim() || null,
-          memo: journalDraftMemo.trim() || null,
-          created_by: journalDraftBy.trim() || 'finance-admin',
-        }),
+      const p = await postJournalDraft(base, adminKey, {
+        legal_entity_code: journalDraftEntity,
+        entry_date: journalDraftDate,
+        reference_no: journalDraftRef.trim() || null,
+        memo: journalDraftMemo.trim() || null,
+        created_by: journalDraftBy.trim() || 'finance-admin',
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('สร้างร่างสมุดรายวัน', p.status, p.payload, p.rawText))
       const j = (p.payload as { journal?: { id?: string } }).journal
       if (j?.id) setJournalActiveId(String(j.id))
@@ -1425,19 +1385,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const safeId = encodeURIComponent(journalActiveId.trim())
-      const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/lines`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          account_code: journalLineAccount.trim(),
-          debit_amount: Number.isFinite(debit) && debit > 0 ? debit : 0,
-          credit_amount: Number.isFinite(credit) && credit > 0 ? credit : 0,
-          description: journalLineDesc.trim() || null,
-          actor: journalLineBy.trim() || 'finance-admin',
-        }),
+      const p = await postJournalLine(base, adminKey, journalActiveId.trim(), {
+        account_code: journalLineAccount.trim(),
+        debit_amount: Number.isFinite(debit) && debit > 0 ? debit : 0,
+        credit_amount: Number.isFinite(credit) && credit > 0 ? credit : 0,
+        description: journalLineDesc.trim() || null,
+        actor: journalLineBy.trim() || 'finance-admin',
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('เพิ่มบรรทัดสมุดรายวัน', p.status, p.payload, p.rawText))
       setMsg('เพิ่มบรรทัดแล้ว')
       setJournalLineDebit('')
@@ -1460,13 +1414,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const safeId = encodeURIComponent(journalActiveId.trim())
-      const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/post`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({ posted_by: journalPostBy.trim() || 'finance-admin' }),
+      const p = await postJournalPost(base, adminKey, journalActiveId.trim(), {
+        posted_by: journalPostBy.trim() || 'finance-admin',
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โพสต์สมุดรายวัน', p.status, p.payload, p.rawText))
       setMsg('โพสต์สมุดรายวันแล้ว')
       addActivity('info', `โพสต์ journal ${journalActiveId}`)
@@ -1487,16 +1437,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const safeId = encodeURIComponent(journalActiveId.trim())
-      const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/void`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          voided_by: journalVoidBy.trim() || 'finance-admin',
-          reason: journalVoidReason.trim(),
-        }),
+      const p = await postJournalVoid(base, adminKey, journalActiveId.trim(), {
+        voided_by: journalVoidBy.trim() || 'finance-admin',
+        reason: journalVoidReason.trim(),
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('ยกเลิกสมุดรายวัน', p.status, p.payload, p.rawText))
       setMsg('บันทึก void สมุดรายวันแล้ว')
       addActivity('warn', `void journal ${journalActiveId}`)
@@ -2150,23 +2094,18 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/payment-requests`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          legal_entity_code: paymentEntity,
-          purpose: paymentPurpose.trim(),
-          purpose_category: paymentPurposeCategory || undefined,
-          amount,
-          vat_rate: Number(paymentVatRate),
-          wht_rate: Number(paymentWhtRate),
-          taxpayer_id: paymentTaxpayerId.trim() || undefined,
-          bank_account_id: amount <= 20000 ? paymentBankAccountId : undefined,
-          meeting_session_id: amount > 20000 ? paymentMeetingId.trim() : undefined,
-          requested_by: 'admin-ui',
-        }),
+      const p = await postPaymentRequest(base, adminKey, {
+        legal_entity_code: paymentEntity,
+        purpose: paymentPurpose.trim(),
+        purpose_category: paymentPurposeCategory || undefined,
+        amount,
+        vat_rate: Number(paymentVatRate),
+        wht_rate: Number(paymentWhtRate),
+        taxpayer_id: paymentTaxpayerId.trim() || undefined,
+        bank_account_id: amount <= 20000 ? paymentBankAccountId : undefined,
+        meeting_session_id: amount > 20000 ? paymentMeetingId.trim() : undefined,
+        requested_by: 'admin-ui',
       })
-      const p = await readApiJson(r)
       if (!p.ok) {
         addActivity('error', `สร้างคำขอจ่ายเงินไม่สำเร็จ: ${paymentPurpose.trim()} (${formatThNumber(amount)})`)
         return setMsg(formatFetchError('สร้างคำขอจ่ายเงิน', p.status, p.payload, p.rawText))
@@ -2192,17 +2131,12 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/payment-requests/${paymentRequestId.trim()}/approve`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          approver_role_code: approveRoleCode,
-          approver_signer_id: approveRoleCode === 'bank_signer_3of5' ? approveSignerId.trim() : undefined,
-          approver_name: approveRoleCode === 'committee' ? 'committee-voter' : undefined,
-          decision: approveDecision,
-        }),
+      const p = await postPaymentRequestApprove(base, adminKey, paymentRequestId.trim(), {
+        approver_role_code: approveRoleCode,
+        approver_signer_id: approveRoleCode === 'bank_signer_3of5' ? approveSignerId.trim() : undefined,
+        approver_name: approveRoleCode === 'committee' ? 'committee-voter' : undefined,
+        decision: approveDecision,
       })
-      const p = await readApiJson(r)
       if (!p.ok) {
         addActivity(
           'error',
