@@ -27,20 +27,15 @@ export function AppRolesProvider({
   const [fetchNonce, setFetchNonce] = useState(0)
 
   const refetchRoles = useCallback(() => {
-    if (!enforced) return
     if (!lineUid.trim()) return
     setFetchNonce((n) => n + 1)
-  }, [enforced, lineUid])
+  }, [lineUid])
 
+  /**
+   * เรียก app-roles ทุกครั้งที่มี line_uid — ให้ backend สร้าง/ซิงก์ app_users และบันทึก entry แม้ไม่เปิด VITE_ENFORCE_APP_RBAC
+   * โหลดแบบบล็อก (loading) เฉพาะเมื่อ enforced — กันเมนูหายชั่วคราวในโหมด production RBAC
+   */
   useEffect(() => {
-    if (!enforced) {
-      queueMicrotask(() => {
-        setRoles([])
-        setLoading(false)
-        setRolesFetchFailed(false)
-      })
-      return
-    }
     const uid = lineUid.trim()
     if (!uid) {
       queueMicrotask(() => {
@@ -51,10 +46,12 @@ export function AppRolesProvider({
       return
     }
     let cancelled = false
-    queueMicrotask(() => {
-      setLoading(true)
-      setRolesFetchFailed(false)
-    })
+    if (enforced) {
+      queueMicrotask(() => {
+        setLoading(true)
+        setRolesFetchFailed(false)
+      })
+    }
     const entry_source = readLineEntrySource()
     fetch(`${apiBase}/api/members/app-roles`, {
       method: 'POST',
@@ -69,21 +66,21 @@ export function AppRolesProvider({
         if (cancelled) return
         if (!r.ok || j.ok !== true) {
           setRoles([])
-          setRolesFetchFailed(true)
+          if (enforced) setRolesFetchFailed(true)
           return
         }
         const raw = j.roles
         setRoles(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [])
-        setRolesFetchFailed(false)
+        if (enforced) setRolesFetchFailed(false)
       })
       .catch(() => {
         if (!cancelled) {
           setRoles([])
-          setRolesFetchFailed(true)
+          if (enforced) setRolesFetchFailed(true)
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled && enforced) setLoading(false)
       })
     return () => {
       cancelled = true
