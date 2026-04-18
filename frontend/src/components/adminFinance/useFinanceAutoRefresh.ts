@@ -1,5 +1,6 @@
 import { useEffect, useRef, useLayoutEffect } from 'react'
 import { AUTO_REFRESH_MAX_FAILURES } from '../../lib/adminFinanceConstants'
+import { financeAdminHeaders } from '../../lib/adminFinanceHttp'
 import { formatFetchError, readApiJson } from '../../lib/adminHttp'
 import type {
   ActivityItem,
@@ -81,10 +82,10 @@ export function useFinanceAutoRefresh(
         const q = getReportQueryString()
         const [plResp, donationsResp] = await Promise.all([
           fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
-            headers: { 'x-admin-key': adminKey.trim() },
+            headers: financeAdminHeaders(adminKey),
           }),
           fetch(`${base}/api/admin/finance/reports/donations${q}`, {
-            headers: { 'x-admin-key': adminKey.trim() },
+            headers: financeAdminHeaders(adminKey),
           }),
         ])
         const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])

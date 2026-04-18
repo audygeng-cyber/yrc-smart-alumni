@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { normalizeApiBase } from '../lib/adminApi'
 import { PAGE_SIZE } from '../lib/adminFinanceConstants'
+import { financeAdminHeaders, financeAdminJsonHeaders } from '../lib/adminFinanceHttp'
 import {
   financeBalanceSheetQuerySuffix,
   financeGlQuerySuffix,
@@ -554,10 +555,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const q = financeReportQuerySuffix(preset.legalEntityCode, preset.from, preset.to)
       const [plResp, donationsResp] = await Promise.all([
         fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
-          headers: { 'x-admin-key': adminKey.trim() },
+          headers: financeAdminHeaders(adminKey),
         }),
         fetch(`${base}/api/admin/finance/reports/donations${q}`, {
-          headers: { 'x-admin-key': adminKey.trim() },
+          headers: financeAdminHeaders(adminKey),
         }),
       ])
       const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])
@@ -736,7 +737,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r1 = await fetch(`${base}/api/admin/finance/overview`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p1 = await readApiJson(r1)
       if (!p1.ok) {
@@ -746,7 +747,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setOverview((p1.payload ?? null) as OverviewPayload | null)
 
       const r2 = await fetch(`${base}/api/admin/finance/bank-accounts`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p2 = await readApiJson(r2)
       if (!p2.ok) {
@@ -771,7 +772,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/reports/pl-summary${getReportQueryString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดสรุป P/L', p.status, p.payload, p.rawText))
@@ -793,7 +794,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/reports/donations${getReportQueryString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดแดชบอร์ดเงินบริจาค', p.status, p.payload, p.rawText))
@@ -817,7 +818,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/reports/trial-balance${getReportQueryString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลด Trial Balance', p.status, p.payload, p.rawText))
@@ -840,13 +841,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const q = getReportQueryString()
       const [plResp, donationsResp, trialResp] = await Promise.all([
         fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
-          headers: { 'x-admin-key': adminKey.trim() },
+          headers: financeAdminHeaders(adminKey),
         }),
         fetch(`${base}/api/admin/finance/reports/donations${q}`, {
-          headers: { 'x-admin-key': adminKey.trim() },
+          headers: financeAdminHeaders(adminKey),
         }),
         fetch(`${base}/api/admin/finance/reports/trial-balance${q}`, {
-          headers: { 'x-admin-key': adminKey.trim() },
+          headers: financeAdminHeaders(adminKey),
         }),
       ])
       const [pl, donations, trial] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp), readApiJson(trialResp)])
@@ -902,7 +903,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       q.set('limit', '50')
       const url = `${base}/api/admin/finance/period-closing${q.toString() ? `?${q.toString()}` : ''}`
       const r = await fetch(url, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดประวัติปิดงวดบัญชี', p.status, p.payload, p.rawText))
@@ -936,7 +937,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/period-closing`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           legal_entity_code: reportEntity,
           period_from: closePeriodFrom,
@@ -965,7 +966,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const safeId = encodeURIComponent(id)
       const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดรายละเอียดงวดบัญชี', p.status, p.payload, p.rawText))
@@ -991,7 +992,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const safeId = encodeURIComponent(id)
       const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/auditor-package.csv`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const blob = await r.blob()
       if (!r.ok) {
@@ -1026,7 +1027,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const safeId = encodeURIComponent(id)
       const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/mark-auditor-sent`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           auditor_sent_by: auditorSentBy.trim() || 'finance-admin',
           auditor_handoff_note: auditorHandoffNote.trim() || null,
@@ -1053,7 +1054,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const safeId = encodeURIComponent(id)
       const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/mark-auditor-completed`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           auditor_completed_by: auditorCompletedBy.trim() || 'finance-admin',
           auditor_completed_note: auditorCompletedNote.trim() || null,
@@ -1080,7 +1081,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const q = new URLSearchParams()
       q.set('legal_entity_code', toolsEntity)
       const r = await fetch(`${base}/api/admin/finance/fiscal-years?${q}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดรอบปีบัญชี', p.status, p.payload, p.rawText))
@@ -1106,7 +1107,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/fiscal-years`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           legal_entity_code: toolsEntity,
           period_from: fiscalPeriodFrom,
@@ -1135,7 +1136,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const safeId = encodeURIComponent(id)
       const r = await fetch(`${base}/api/admin/finance/fiscal-years/${safeId}/close`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           closed_by: fiscalCloseBy.trim() || 'finance-admin',
           close_note: fiscalCloseNote.trim() || null,
@@ -1163,7 +1164,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const q = new URLSearchParams()
       q.set('legal_entity_code', toolsEntity)
       const r = await fetch(`${base}/api/admin/finance/fixed-assets?${q}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดทะเบียนสินทรัพย์', p.status, p.payload, p.rawText))
@@ -1196,7 +1197,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/fixed-assets`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           legal_entity_code: toolsEntity,
           asset_code: faCode.trim(),
@@ -1234,7 +1235,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/fixed-assets/run-depreciation`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           legal_entity_code: toolsEntity,
           month: depMonth.trim(),
@@ -1271,7 +1272,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       q.set('month', taxMonth.trim())
       q.set('legal_entity_code', toolsEntity)
       const r = await fetch(`${base}/api/admin/finance/reports/tax-monthly?${q}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดรายงานภาษีรายเดือน', p.status, p.payload, p.rawText))
@@ -1304,7 +1305,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/tax/calculate`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({ base_amount: baseAmount, vat_rate: vatRate, wht_rate: whtRate }),
       })
       const p = await readApiJson(r)
@@ -1350,7 +1351,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
           journalStatusFilter,
         })}`,
         {
-          headers: { 'x-admin-key': adminKey.trim() },
+          headers: financeAdminHeaders(adminKey),
         },
       )
       const p = await readApiJson(r)
@@ -1375,7 +1376,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const safeId = encodeURIComponent(id.trim())
       const r = await fetch(`${base}/api/admin/finance/journals/${safeId}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดรายละเอียดสมุดรายวัน', p.status, p.payload, p.rawText))
@@ -1410,7 +1411,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/journals`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           legal_entity_code: journalDraftEntity,
           entry_date: journalDraftDate,
@@ -1448,7 +1449,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const safeId = encodeURIComponent(journalActiveId.trim())
       const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/lines`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           account_code: journalLineAccount.trim(),
           debit_amount: Number.isFinite(debit) && debit > 0 ? debit : 0,
@@ -1483,7 +1484,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const safeId = encodeURIComponent(journalActiveId.trim())
       const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/post`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({ posted_by: journalPostBy.trim() || 'finance-admin' }),
       })
       const p = await readApiJson(r)
@@ -1510,7 +1511,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       const safeId = encodeURIComponent(journalActiveId.trim())
       const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/void`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           voided_by: journalVoidBy.trim() || 'finance-admin',
           reason: journalVoidReason.trim(),
@@ -1536,7 +1537,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/reports/income-statement${getReportQueryString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดงบกำไรขาดทุน', p.status, p.payload, p.rawText))
@@ -1568,7 +1569,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
           bsAsOf,
         })}`,
         {
-          headers: { 'x-admin-key': adminKey.trim() },
+          headers: financeAdminHeaders(adminKey),
         },
       )
       const p = await readApiJson(r)
@@ -1611,7 +1612,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
           glAccountCode,
         })}`,
         {
-          headers: { 'x-admin-key': adminKey.trim() },
+          headers: financeAdminHeaders(adminKey),
         },
       )
       const p = await readApiJson(r)
@@ -1638,7 +1639,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}${path}${getReportQueryString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const blob = await r.blob()
       if (!r.ok) {
@@ -1673,7 +1674,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-sessions`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           legal_entity_code: meetingEntity,
           title: meetingTitle.trim(),
@@ -1709,7 +1710,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/sign-attendance`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           attendee_name: attendanceName.trim(),
           attendee_role_code: attendanceRole,
@@ -1738,7 +1739,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/summary`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('สรุปประชุม', p.status, p.payload, p.rawText))
@@ -1758,7 +1759,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดรายงานการประชุม', p.status, p.payload, p.rawText))
@@ -1796,7 +1797,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           minutes_markdown: meetingMinutes.trim(),
           minutes_recorded_by: attendanceName.trim() || 'admin-ui',
@@ -1823,7 +1824,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes.txt`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       if (!r.ok) {
         const p = await readApiJson(r)
@@ -1856,7 +1857,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes/publish`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({ published }),
       })
       const p = await readApiJson(r)
@@ -1883,7 +1884,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       if (agendaStatusFilter !== 'all') qs.set('status', agendaStatusFilter)
       if (meetingId.trim()) qs.set('meeting_session_id', meetingId.trim())
       const r = await fetch(`${base}/api/admin/finance/meeting-agendas?${qs.toString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดวาระประชุม', p.status, p.payload, p.rawText))
@@ -1907,7 +1908,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-agendas`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           scope: meetingEntity,
           title: agendaTitle.trim(),
@@ -1941,7 +1942,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${voteAgendaId.trim()}/votes`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           voter_name: agendaVoterName.trim(),
           voter_role_code: attendanceRole,
@@ -1968,7 +1969,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaId.trim()}/vote-summary`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('สรุปผลโหวตวาระ', p.status, p.payload, p.rawText))
@@ -1989,7 +1990,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaId.trim()}/close`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('ปิดวาระประชุม', p.status, p.payload, p.rawText))
@@ -2029,7 +2030,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaPatchId.trim()}`, {
         method: 'PATCH',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           title: agendaPatchTitle.trim(),
           details: agendaPatchDetails.trim() || null,
@@ -2060,7 +2061,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       if (documentMeetingId.trim()) qs.set('meeting_session_id', documentMeetingId.trim())
       if (documentAgendaId.trim()) qs.set('agenda_id', documentAgendaId.trim())
       const r = await fetch(`${base}/api/admin/finance/meeting-documents?${qs.toString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดเอกสารประชุม', p.status, p.payload, p.rawText))
@@ -2087,7 +2088,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-documents`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           scope: meetingEntity,
           title: documentTitle.trim(),
@@ -2123,7 +2124,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}`, {
         method: 'DELETE',
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('ลบเอกสารประชุม', p.status, p.payload, p.rawText))
@@ -2145,7 +2146,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}/download.txt`, {
-        headers: { 'x-admin-key': adminKey.trim() },
+        headers: financeAdminHeaders(adminKey),
       })
       if (!r.ok) {
         const p = await readApiJson(r)
@@ -2178,7 +2179,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}`, {
         method: 'PATCH',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({ published_to_portal: nextPublished }),
       })
       const p = await readApiJson(r)
@@ -2227,7 +2228,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentPatchId.trim()}`, {
         method: 'PATCH',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           title: documentPatchTitle.trim(),
           document_url: urlT || null,
@@ -2270,7 +2271,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/payment-requests`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           legal_entity_code: paymentEntity,
           purpose: paymentPurpose.trim(),
@@ -2312,7 +2313,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     try {
       const r = await fetch(`${base}/api/admin/finance/payment-requests/${paymentRequestId.trim()}/approve`, {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        headers: financeAdminJsonHeaders(adminKey),
         body: JSON.stringify({
           approver_role_code: approveRoleCode,
           approver_signer_id: approveRoleCode === 'bank_signer_3of5' ? approveSignerId.trim() : undefined,
