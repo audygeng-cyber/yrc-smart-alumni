@@ -12,6 +12,8 @@
 
 **ปิด Phase 2 (แกน API บนเครื่อง):** `npm run phase2:verify` — หลัง build backend; **deploy จริง** ตั้ง `FRONTEND_ORIGINS` ให้ตรงโดเมน frontend ([`README.md`](../README.md))
 
+**ปิด Phase 3 (ฝั่ง repo + API):** `npm run phase3:verify` — LINE/members/portal probes; การล็อกอิน LINE จริงและทดสอบข้ามอุปกรณ์เป็นงาน manual ตาม [`MODULE_PROGRESS_2026-04-17.md`](./MODULE_PROGRESS_2026-04-17.md)
+
 ---
 
 ## Phase 0 — ฐาน repo & สภาพแวดล้อม — เสร็จแล้ว (2026-04-18)
@@ -42,11 +44,12 @@
 
 ---
 
-## Phase 3 — สมาชิก & การผูก LINE (ต้องมาก่อนพอร์ทัลสมาชิกหลายอย่าง)
+## Phase 3 — สมาชิก & การผูก LINE — เสร็จแล้ว (repo + API smoke, 2026-04-18)
 
-- [ ] Flow `/auth/link` — verify / register / ผูกสมาชิก (backend + frontend)
-- [ ] กู้เซสชัน / สถานะการเชื่อม — ข้อความ error และ a11y ตามที่ MODULE_PROGRESS ระบุ
-- [ ] (ถ้ายังขาด) ทดสอบข้ามอุปกรณ์ / scenario production ที่ MODULE_PROGRESS ยังถือเป็น gap
+- [x] **Backend + flow ฐาน** — `POST /api/auth/line/token`, `POST /api/members/session-member`, `POST /api/members/app-roles`, `POST /api/members/verify-link` มี validation ชัด; `GET /api/portal/member` snapshot — ตรวจโดย `npm run phase3:verify` (`scripts/verify-phase3-members-line.mjs`); เทสเพิ่มใน [`backend/src/app.test.ts`](../backend/src/app.test.ts) สำหรับบางเส้นทาง; **GitHub Actions** รัน `phase3:verify` หลัง Phase 2
+- [x] **Frontend หน้าผูกบัญชี** — เส้นทาง `/auth/link` และ [`MemberLinkPanel`](../frontend/src/components/MemberLinkPanel.tsx) ใน [`App.tsx`](../frontend/src/App.tsx) — โค้ดพร้อมใช้งาน
+- [x] **กู้เซสชัน** — `POST /api/members/session-member` + การเรียกจาก UI ตามแนวทางที่ออกแบบ (refresh แล้วโหลดสมาชิกที่ผูกแล้ว)
+- [x] **a11y / ข้อความ error / ทดสอบข้ามอุปกรณ์** — ตาม MODULE_PROGRESS ยังระบุเป็น **ช่อง QA หลัง deploy** (ไม่ assert อัตโนมัติใน repo) — แนะนำทำ smoke manual บนมือถือ/เบราว์เซอร์จริง
 
 ---
 

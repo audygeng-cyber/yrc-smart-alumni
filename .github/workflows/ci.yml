@@ -40,6 +40,9 @@ jobs:
       - name: Verify Phase 2 API (Express core)
         run: npm run phase2:verify
 
+      - name: Verify Phase 3 (members + LINE API probes)
+        run: npm run phase3:verify
+
       - name: Lint
         run: npm run lint
 
