@@ -46,6 +46,7 @@ import {
   setMemberSnapshot,
   SS_OAUTH_STATE,
 } from './lineSession'
+import { syncLineAppUser } from './lib/syncLineAppUser'
 
 const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
 
@@ -105,6 +106,10 @@ export default function App() {
   const [verifiedMember, setVerifiedMember] = useState<Record<string, unknown> | null>(getInitialVerifiedMember)
   const [restoringMemberSession, setRestoringMemberSession] = useState(false)
   const [roleView, setRoleView] = useState<RoleView>('all')
+  const [lineIdentitySyncMessage, setLineIdentitySyncMessage] = useState<{
+    kind: 'ok' | 'err'
+    text: string
+  } | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -209,6 +214,19 @@ export default function App() {
           console.error('LINE token exchange failed', j)
           return
         }
+        const persisted = await syncLineAppUser(apiBase, j.line_uid)
+        setLineIdentitySyncMessage(
+          persisted.ok
+            ? {
+                kind: 'ok',
+                text:
+                  'ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว (ใช้เป็นตัวตนในแอป — ผูกข้อมูลสมาชิกทำที่ขั้นตอนถัดไป)',
+              }
+            : {
+                kind: 'err',
+                text: `บันทึก LINE UID ในระบบไม่สำเร็จ: ${persisted.error} — ตรวจ VITE_API_URL และ CORS`,
+              },
+        )
         setLineSessionFromOAuth(j.line_uid, j.name ?? undefined)
         setLineUid(j.line_uid)
         setLineUidFromOAuth(true)
@@ -247,6 +265,7 @@ export default function App() {
     setLineUid('')
     setLineUidFromOAuth(false)
     setVerifiedMember(null)
+    setLineIdentitySyncMessage(null)
   }
 
   function handleLineUidManualChange(v: string) {
@@ -294,6 +313,8 @@ export default function App() {
           setVerifiedMember(m)
           setMemberSnapshot(m)
         }}
+        lineIdentitySyncMessage={lineIdentitySyncMessage}
+        onDismissLineIdentityMessage={() => setLineIdentitySyncMessage(null)}
       />
     </AppRolesProvider>
   )
@@ -317,6 +338,8 @@ type AppChromeProps = {
   onStartLineLogin: () => void
   onMemberVerified: (m: Record<string, unknown>) => void
   onMemberUpdated: (m: Record<string, unknown>) => void
+  lineIdentitySyncMessage: { kind: 'ok' | 'err'; text: string } | null
+  onDismissLineIdentityMessage: () => void
 }
 
 function AppChrome(props: AppChromeProps) {
@@ -439,6 +462,8 @@ function AppChrome(props: AppChromeProps) {
                 onStartLineLogin={props.onStartLineLogin}
                 lineLoginAvailable={Boolean(props.lineChannelId && props.lineRedirectUri)}
                 onMemberVerified={props.onMemberVerified}
+                lineIdentitySyncMessage={props.lineIdentitySyncMessage}
+                onDismissLineIdentityMessage={props.onDismissLineIdentityMessage}
               />
             }
           />
@@ -559,6 +584,19 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
 function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
   return (
     <div className="space-y-6">
+      <section className="rounded-xl border border-emerald-900/35 bg-emerald-950/20 p-6">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-emerald-200/90">เข้าสู่ระบบด้วย LINE</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          หลังล็อกอิน LINE ระบบจะได้รับ UID จาก LINE (ค่า <code className="text-slate-300">sub</code>) เก็บในเบราว์เซอร์
+          และบันทึกแถวใน <code className="text-slate-300">app_users</code> ผ่าน API — จากนั้นจึงผูกกับทะเบียนสมาชิกได้ที่หน้าผูกบัญชี
+        </p>
+        <Link
+          to="/auth/link"
+          className={`mt-4 inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 ${appFocusRing}`}
+        >
+          ไปล็อกอิน LINE / ผูกบัญชี
+        </Link>
+      </section>
       <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">สถานะระบบ Backend (/health)</h2>
         <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-left text-sm text-emerald-300" role="status" aria-live="polite" aria-atomic="true">
@@ -646,11 +684,35 @@ function LinkPage(props: {
   onClearLineSession: () => void
   onStartLineLogin: () => void
   onMemberVerified: (m: Record<string, unknown>) => void
+  lineIdentitySyncMessage: { kind: 'ok' | 'err'; text: string } | null
+  onDismissLineIdentityMessage: () => void
 }) {
   const hasMember = Boolean(props.verifiedMember && props.lineUid)
   const lineEntry = readLineEntrySource()
   return (
     <>
+      {props.lineIdentitySyncMessage ? (
+        <section
+          className={`mb-4 rounded-xl border p-4 text-sm ${
+            props.lineIdentitySyncMessage.kind === 'ok'
+              ? 'border-emerald-800/60 bg-emerald-950/30 text-emerald-100/95'
+              : 'border-rose-800/60 bg-rose-950/30 text-rose-100/95'
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <p>{props.lineIdentitySyncMessage.text}</p>
+            <button
+              type="button"
+              onClick={() => props.onDismissLineIdentityMessage()}
+              className={`shrink-0 rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800/80 ${appFocusRing}`}
+            >
+              ปิด
+            </button>
+          </div>
+        </section>
+      ) : null}
       <section className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-sm" role="status" aria-live="polite" aria-atomic="true">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

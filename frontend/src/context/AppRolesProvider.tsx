@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { readLineEntrySource } from '../lib/lineEntrySource'
+import { syncLineAppUser } from '../lib/syncLineAppUser'
 import { AppRolesContext, type AppRolesContextValue } from './appRolesContextBase'
 
 type Props = {
@@ -52,25 +52,15 @@ export function AppRolesProvider({
         setRolesFetchFailed(false)
       })
     }
-    const entry_source = readLineEntrySource()
-    fetch(`${apiBase}/api/members/app-roles`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        line_uid: uid,
-        ...(entry_source ? { entry_source } : {}),
-      }),
-    })
-      .then(async (r) => {
-        const j = (await r.json().catch(() => ({}))) as { ok?: boolean; roles?: unknown }
+    syncLineAppUser(apiBase, uid)
+      .then((result) => {
         if (cancelled) return
-        if (!r.ok || j.ok !== true) {
+        if (!result.ok) {
           setRoles([])
           if (enforced) setRolesFetchFailed(true)
           return
         }
-        const raw = j.roles
-        setRoles(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [])
+        setRoles(result.roles)
         if (enforced) setRolesFetchFailed(false)
       })
       .catch(() => {
