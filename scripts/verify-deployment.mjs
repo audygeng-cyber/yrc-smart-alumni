@@ -29,6 +29,41 @@ if (!apiBase?.trim()) {
 
 const base = apiBase.replace(/\/$/, '')
 
+/** รวมสายเหตุ Error.cause (Node fetch / undici มักซ้อนกัน) */
+function errorChain(e) {
+  const parts = []
+  let cur = e
+  for (let d = 0; d < 8 && cur; d++) {
+    if (cur instanceof Error) {
+      parts.push(cur.message)
+      cur = cur.cause
+    } else {
+      parts.push(String(cur))
+      break
+    }
+  }
+  return parts.join(' → ')
+}
+
+/**
+ * fetch พร้อม retry สั้นๆ (เครือข่ายหลุด/ชั่วคราว) และ error ที่บอก URL ชัด
+ */
+async function fetchOk(url, init) {
+  const retries = 3
+  let lastErr
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fetch(url, init)
+    } catch (e) {
+      lastErr = e
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)))
+      }
+    }
+  }
+  throw new Error(`${errorChain(lastErr)} (after ${retries} tries) — URL: ${url}`)
+}
+
 function expectCors(origin, res, label) {
   const allow = res.headers.get('access-control-allow-origin')
   if (!allow) {
@@ -41,7 +76,7 @@ function expectCors(origin, res, label) {
 
 async function main() {
   const healthUrl = `${base}/health`
-  const r1 = await fetch(healthUrl)
+  const r1 = await fetchOk(healthUrl)
   if (!r1.ok) {
     throw new Error(`GET ${healthUrl} → HTTP ${r1.status}`)
   }
@@ -52,7 +87,7 @@ async function main() {
   console.log('OK:', healthUrl, '→', JSON.stringify(j))
 
   const summaryUrl = `${base}/api/admin/members/summary`
-  const rSum = await fetch(summaryUrl)
+  const rSum = await fetchOk(summaryUrl)
   if (rSum.status === 404) {
     throw new Error(
       `GET ${summaryUrl} → 404. Deploy the latest backend so GET /api/admin/members/summary exists.`,
@@ -76,7 +111,7 @@ async function main() {
 
   const origin = frontendOrigin.trim()
 
-  const r2 = await fetch(healthUrl, { headers: { Origin: origin } })
+  const r2 = await fetchOk(healthUrl, { headers: { Origin: origin } })
   expectCors(origin, r2, 'GET /health')
   console.log('OK: CORS for Origin', origin, '→', r2.headers.get('access-control-allow-origin'))
 
@@ -86,7 +121,7 @@ async function main() {
 
   console.log('\n--- Deep checks ---\n')
 
-  const rRoot = await fetch(`${base}/`)
+  const rRoot = await fetchOk(`${base}/`)
   if (!rRoot.ok) {
     throw new Error(`GET ${base}/ → HTTP ${rRoot.status}`)
   }
@@ -97,7 +132,7 @@ async function main() {
   console.log('OK: GET / → API root JSON (paths.health =', rootJson.paths?.health ?? 'n/a', ')')
 
   const csvUrl = `${base}/api/admin/members/import-template.csv`
-  const rCsv = await fetch(csvUrl)
+  const rCsv = await fetchOk(csvUrl)
   if (!rCsv.ok) {
     throw new Error(`GET import-template.csv → HTTP ${rCsv.status}`)
   }
@@ -108,7 +143,7 @@ async function main() {
   console.log('OK: import-template.csv (Thai headers present, length', csvText.length, ')')
 
   const xlsxUrl = `${base}/api/admin/members/import-template.xlsx`
-  const rXlsx = await fetch(xlsxUrl)
+  const rXlsx = await fetchOk(xlsxUrl)
   if (!rXlsx.ok) {
     throw new Error(`GET import-template.xlsx → HTTP ${rXlsx.status}`)
   }
@@ -121,7 +156,7 @@ async function main() {
   console.log('OK: import-template.xlsx (ZIP/xlsx signature, bytes', xlsxBuf.byteLength, ')')
 
   const vapidUrl = `${base}/api/push/vapid-public`
-  const rV = await fetch(vapidUrl)
+  const rV = await fetchOk(vapidUrl)
   const vj = await rV.json().catch(() => null)
   if (rV.ok && vj?.publicKey && typeof vj.publicKey === 'string') {
     console.log('OK: VAPID public key exposed (push opt-in can work)')
@@ -134,7 +169,7 @@ async function main() {
   }
 
   const lineTokenUrl = `${base}/api/auth/line/token`
-  const rLine = await fetch(lineTokenUrl, {
+  const rLine = await fetchOk(lineTokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Origin: origin },
     body: JSON.stringify({}),
@@ -154,7 +189,7 @@ async function main() {
   console.log('OK: LINE token route responds (400 when body empty — expected)')
 
   const preUrl = `${base}/api/members/verify-link`
-  const rOpt = await fetch(preUrl, {
+  const rOpt = await fetchOk(preUrl, {
     method: 'OPTIONS',
     headers: {
       Origin: origin,
@@ -173,7 +208,7 @@ async function main() {
   }
 
   const fe = origin.replace(/\/$/, '')
-  const rHtml = await fetch(fe + '/')
+  const rHtml = await fetchOk(fe + '/')
   if (!rHtml.ok) {
     throw new Error(`GET ${fe}/ → HTTP ${rHtml.status}`)
   }
@@ -189,7 +224,7 @@ async function main() {
     throw new Error('Frontend index: no /assets/*.js script tag (not a Vite production build?)')
   }
   const jsPath = m[1]
-  const rJs = await fetch(fe + jsPath)
+  const rJs = await fetchOk(fe + jsPath)
   if (!rJs.ok) {
     throw new Error(`GET ${jsPath} → HTTP ${rJs.status}`)
   }
@@ -206,6 +241,9 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error('VERIFY FAILED:', e.message)
+  console.error('VERIFY FAILED:', e instanceof Error ? e.message : String(e))
+  if (e instanceof Error && e.stack) {
+    console.error(e.stack.split('\n').slice(0, 5).join('\n'))
+  }
   process.exit(1)
 })
