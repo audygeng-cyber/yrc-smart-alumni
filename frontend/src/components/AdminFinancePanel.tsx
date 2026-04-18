@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { normalizeApiBase } from '../lib/adminApi'
 import { PAGE_SIZE } from '../lib/adminFinanceConstants'
+import { downloadBlobFromAdminGet, fetchFinanceAdminRaw, triggerBrowserFileDownload } from '../lib/adminFinanceDownload'
 import { financeAdminHeaders, financeAdminJsonHeaders } from '../lib/adminFinanceHttp'
 import {
   fetchBalanceSheetReport,
@@ -646,14 +647,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
     const csv = rowsToCsvText(rows)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
+    triggerBrowserFileDownload(blob, filename)
     setMsg(`ดาวน์โหลด ${filename} (มุมมองปัจจุบัน) แล้ว`)
   }
 
@@ -972,24 +966,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg(null)
     try {
       const safeId = encodeURIComponent(id)
-      const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/auditor-package.csv`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const blob = await r.blob()
-      if (!r.ok) {
-        const txt = await blob.text().catch(() => '')
-        setMsg(`ดาวน์โหลดแพ็กผู้ตรวจสอบงวด ${label} ไม่สำเร็จ — HTTP ${r.status}\n${txt}`)
+      const result = await downloadBlobFromAdminGet(
+        base,
+        `/api/admin/finance/period-closing/${safeId}/auditor-package.csv`,
+        adminKey,
+        `period-closing-${id}-auditor-package.csv`,
+      )
+      if (result.ok === false) {
+        setMsg(`ดาวน์โหลดแพ็กผู้ตรวจสอบงวด ${label} ไม่สำเร็จ — HTTP ${result.status}\n${result.errorText}`)
         addActivity('error', `ดาวน์โหลดแพ็กผู้ตรวจสอบงวดไม่สำเร็จ: ${label}`)
         return
       }
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `period-closing-${id}-auditor-package.csv`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
       setMsg(`ดาวน์โหลดแพ็กผู้ตรวจสอบงวด ${label} แล้ว`)
       addActivity('info', `ดาวน์โหลดแพ็กผู้ตรวจสอบงวดสำเร็จ: ${label}`)
     } catch {
@@ -1606,23 +1593,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}${path}${getReportQueryString()}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const blob = await r.blob()
-      if (!r.ok) {
-        const txt = await blob.text().catch(() => '')
-        setMsg(`ดาวน์โหลด ${filename} ไม่สำเร็จ — HTTP ${r.status}\n${txt}`)
+      const result = await downloadBlobFromAdminGet(base, `${path}${getReportQueryString()}`, adminKey, filename)
+      if (result.ok === false) {
+        setMsg(`ดาวน์โหลด ${filename} ไม่สำเร็จ — HTTP ${result.status}\n${result.errorText}`)
         return
       }
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
       setMsg(`ดาวน์โหลด ${filename} แล้ว`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
@@ -1791,22 +1766,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes.txt`, {
-        headers: financeAdminHeaders(adminKey),
-      })
+      const r = await fetchFinanceAdminRaw(
+        base,
+        `/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes.txt`,
+        adminKey,
+      )
       if (!r.ok) {
         const p = await readApiJson(r)
         return setMsg(formatFetchError('ดาวน์โหลดรายงานการประชุม', p.status, p.payload, p.rawText))
       }
       const blob = await r.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `meeting-minutes-${meetingId.trim()}.txt`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      triggerBrowserFileDownload(blob, `meeting-minutes-${meetingId.trim()}.txt`)
       setMsg('ดาวน์โหลดรายงานการประชุมแล้ว')
       addActivity('info', `ดาวน์โหลดรายงานการประชุมสำเร็จ: ${meetingId.trim()}`)
     } catch {
@@ -2113,22 +2083,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}/download.txt`, {
-        headers: financeAdminHeaders(adminKey),
-      })
+      const r = await fetchFinanceAdminRaw(
+        base,
+        `/api/admin/finance/meeting-documents/${documentId.trim()}/download.txt`,
+        adminKey,
+      )
       if (!r.ok) {
         const p = await readApiJson(r)
         return setMsg(formatFetchError('ดาวน์โหลดเอกสารประชุม', p.status, p.payload, p.rawText))
       }
       const blob = await r.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `meeting-document-${documentId.trim()}.txt`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      triggerBrowserFileDownload(blob, `meeting-document-${documentId.trim()}.txt`)
       setMsg('ดาวน์โหลดเอกสารประชุมแล้ว')
       addActivity('info', `ดาวน์โหลดเอกสารประชุมสำเร็จ: ${documentId.trim()}`)
     } catch {
