@@ -49,6 +49,14 @@ You are an expert Senior Full-stack Developer and a Certified Public Accountant 
 2. New screens should default to **บานเย็น (magenta)** as the primary brand accent unless the codebase already defines a token — stay visually aligned with the association identity.
 3. You should not need to repeat basic accounting constraints in every prompt; they are project baseline knowledge.
 
+## 7. Active development workflow (team baseline — recorded 2026-04-18)
+
+- **Hourly website checks during coding:** While doing sustained development, **smoke-test the site on a predictable clock cadence — every hour on the hour** (e.g. 10:00, 11:00, 12:00) using the environment you are validating (local dev, Vercel preview, or production as appropriate). Goal: catch breakage early.
+- **Security against unauthorized edits:** Protect data from people without authority — enforce **admin/president keys**, **RLS** where applicable, **RBAC** and **Maker/Checker** flows already in the codebase; **do not** add shortcuts that skip auth checks on mutating routes or expose service-role capabilities to the browser.
+- **Continue after completion:** When a task or milestone is **done**, proceed to the **next** implementation step in the same session/workstream rather than stopping with unfinished follow-through (unless blocked).
+
+Human-readable checklist: **`docs/OPERATIONAL_RUNBOOK.md`** (section นักพัฒนา).
+
 ### Suggested smoke prompt
 
 After saving this file, try: **"ช่วยออกแบบหน้าจอรับเงินบริจาคและสร้างสมุดรายวันให้หน่อย"** — the answer should respect double-entry, no hard deletes on posted data, and Thai association terminology where relevant.

@@ -18,7 +18,7 @@ description: >-
 
 ## เอกสารปฏิบัติการ (repo root)
 
-- [`docs/OPERATIONAL_RUNBOOK.md`](../../../docs/OPERATIONAL_RUNBOOK.md) — เส้นทางใช้งานหลักต้นจนจบ (checklist ฝั่งทีม/องค์กร)
+- [`docs/OPERATIONAL_RUNBOOK.md`](../../../docs/OPERATIONAL_RUNBOOK.md) — เส้นทางใช้งานหลักต้นจนจบ (checklist ฝั่งทีม/องค์กร) รวม **นักพัฒนา** — ทดสอบบนเว็บทุกชั่วโมงตรงเวลา, ความปลอดภัยการแก้ไขข้อมูล, และทำงานต่อเนื่องหลังจบงานย่อย (สอดคล้อง [`.cursorrules`](../../../.cursorrules) §7)
 - [`docs/MODULE_PROGRESS_2026-04-17.md`](../../../docs/MODULE_PROGRESS_2026-04-17.md) — ความคืบหน้ารายโมดูล (%)
 
 ## รากโปรเจกต์
