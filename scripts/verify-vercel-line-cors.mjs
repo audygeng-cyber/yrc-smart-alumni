@@ -11,12 +11,7 @@
  * คนละอย่างกับ VITE_LINE_REDIRECT_URI ที่มักลงท้ายด้วย /
  */
 
-import { spawn } from 'node:child_process'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const root = join(__dirname, '..')
+import { runVerifyLineConfigProbe } from './lib/verifyLineConfigProbe.mjs'
 
 const apiBase = (process.env.VERIFY_API_BASE || process.argv[2])?.replace(/\/$/, '').trim()
 let feOrigin = (process.env.VERIFY_FRONTEND_ORIGIN || process.argv[3])?.trim()
@@ -101,17 +96,10 @@ async function main() {
   }
   console.log('\n✓ CORS preflight OK สำหรับ Origin:', feOrigin)
 
-  console.log('\n--- LINE: redirect_uri allow-list + channel (verify-line-config) ---')
-  const lineExit = await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [join(root, 'scripts', 'verify-line-config.mjs'), apiBase, feOrigin + '/'], {
-      stdio: 'inherit',
-      cwd: root,
-    })
-    child.on('close', (code) => resolve(code ?? 1))
-    child.on('error', reject)
-  })
+  console.log('\n--- LINE: redirect_uri allow-list + channel (same probe as verify-line-config) ---')
+  const lineExit = await runVerifyLineConfigProbe(apiBase, `${feOrigin}/`)
   if (lineExit !== 0) {
-    console.log('\n✗ verify-line-config ไม่ผ่าน — แก้ LINE_REDIRECT_URIS / LINE_CHANNEL_* บน Cloud Run')
+    console.log('\n✗ LINE probe ไม่ผ่าน — แก้ LINE_REDIRECT_URIS / LINE_CHANNEL_* บน Cloud Run')
     process.exit(lineExit)
   }
 
