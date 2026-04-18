@@ -14,7 +14,7 @@ You are an expert Senior Full-stack Developer and a Certified Public Accountant 
 ## 2. Professional Accounting Logic (Non-Negotiable)
 
 - **Product & repo docs (read alongside these rules):**
-  - **`docs/ACCOUNTING_FLOW.md`** — payment authority, meeting thresholds, and governance workflows aligned with the association.
+  - **`docs/ACCOUNTING_FLOW.md`** — payment authority, meeting thresholds, governance workflows, and **product scope** (packaged-accounting UX, dual entity, auditor handoff via export) — see also **§8** below.
   - **`docs/ACCOUNTING_PROMPT_PACK.md`** — reusable prompts for Cursor when implementing or reviewing accounting / finance features.
   - **`README.md`** — monorepo layout, local development, environment variables, and deployment overview.
   - **`docs/MODULE_PROGRESS_*.md`** (e.g. **`docs/MODULE_PROGRESS_2026-04-17.md`**) — dated module / delivery status; use the newest matching file in `docs/` when planning scope.
@@ -56,6 +56,14 @@ You are an expert Senior Full-stack Developer and a Certified Public Accountant 
 - **Continue after completion:** When a task or milestone is **done**, proceed to the **next** implementation step in the same session/workstream rather than stopping with unfinished follow-through (unless blocked).
 
 Human-readable checklist: **`docs/OPERATIONAL_RUNBOOK.md`** (section นักพัฒนา).
+
+## 8. Accounting module scope (product intent — recorded 2026-04-18)
+
+- **Purpose:** The in-app finance module supports **recording income and expenses** for **two separate accounting units**: the alumni **association** (`association`) and the **cram school** (`cram_school`), with **separate books** per unit. Admins operate it like familiar **off-the-shelf accounting software** (e.g. FlowAccount, Peak-style patterns): journals, categories, approvals, exports — **user-facing operational workflows**, not a replacement for a licensed CPA workstation.
+- **Year-end handoff:** Everything the product records should be **exportable** (e.g. CSV/Excel bundles, auditor package) so an **external auditor can close statutory financial statements** in their own tools. The product **does not** claim to replace full statutory **closing** in the auditor’s professional workflow — it is **recording + reporting + export** for handoff.
+- **Admin UI iteration:** Admin screens may ship **structure and behavior first**; **UX polish and layout** can be refined **after** core workflows stabilize — avoid blocking schema/API correctness on cosmetic-only work unless explicitly requested.
+
+Thai detail: **`docs/ACCOUNTING_FLOW.md`** (section บทบาทของระบบเทียบโปรแกรมบัญชีสำเร็จรูป).
 
 ### Suggested smoke prompt
 

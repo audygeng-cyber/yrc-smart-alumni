@@ -12,6 +12,12 @@ import {
   type ReportFilterEntity,
   type ReportPreset,
 } from '../lib/adminFinanceHelpers'
+import {
+  nextBatchSortState,
+  nextDonorSortState,
+  nextEntitySortState,
+  nextPlSortState,
+} from '../lib/adminFinanceReportSort'
 import { formatFetchError, readApiJson } from '../lib/adminHttp'
 import type {
   ActivityItem,
@@ -486,39 +492,27 @@ export function AdminFinancePanel({ apiBase }: Props) {
   }, [reportKeywordNorm])
 
   function togglePlSort(nextKey: PlSortKey) {
-    if (plSortKey === nextKey) {
-      setPlSortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
-      return
-    }
-    setPlSortKey(nextKey)
-    setPlSortDir(nextKey === 'absNet' || nextKey === 'net' ? 'desc' : 'asc')
+    const next = nextPlSortState(plSortKey, plSortDir, nextKey)
+    setPlSortKey(next.sortKey)
+    setPlSortDir(next.sortDir)
   }
 
   function toggleDonorSort(nextKey: DonorSortKey) {
-    if (donorSortKey === nextKey) {
-      setDonorSortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
-      return
-    }
-    setDonorSortKey(nextKey)
-    setDonorSortDir(nextKey === 'donorLabel' ? 'asc' : 'desc')
+    const next = nextDonorSortState(donorSortKey, donorSortDir, nextKey)
+    setDonorSortKey(next.sortKey)
+    setDonorSortDir(next.sortDir)
   }
 
   function toggleBatchSort(nextKey: BatchSortKey) {
-    if (batchSortKey === nextKey) {
-      setBatchSortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
-      return
-    }
-    setBatchSortKey(nextKey)
-    setBatchSortDir(nextKey === 'batch' ? 'asc' : 'desc')
+    const next = nextBatchSortState(batchSortKey, batchSortDir, nextKey)
+    setBatchSortKey(next.sortKey)
+    setBatchSortDir(next.sortDir)
   }
 
   function toggleEntitySort(nextKey: EntitySortKey) {
-    if (entitySortKey === nextKey) {
-      setEntitySortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
-      return
-    }
-    setEntitySortKey(nextKey)
-    setEntitySortDir(nextKey === 'legalEntityCode' ? 'asc' : 'desc')
+    const next = nextEntitySortState(entitySortKey, entitySortDir, nextKey)
+    setEntitySortKey(next.sortKey)
+    setEntitySortDir(next.sortDir)
   }
 
   function buildReportQueryStringFromValues(entity: ReportFilterEntity, from: string, to: string) {
