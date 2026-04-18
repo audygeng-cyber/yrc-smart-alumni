@@ -37,6 +37,7 @@ You are an expert Senior Full-stack Developer and a Certified Public Accountant 
 - **Secrets:** Never hardcode secrets; use environment variables and existing project conventions (see `.cursor/skills/yrc-smart-alumni/SKILL.md`).
 - **Performance:** Design for **50,000+ members** — pagination, indexed queries, avoid N+1 patterns; prefer explicit limits on list endpoints.
 - **Scope:** Match existing file patterns and types; avoid drive-by refactors unrelated to the task.
+- **Auto-refresh in the web app (SPA):** When the UI **periodically refetches** data (not manual “รีเฟรช” buttons), use **`msUntilNextHour`** from **`frontend/src/lib/wallClockHourly.ts`**: run **once immediately** when the user turns auto-refresh on, then schedule each subsequent fetch at the **next local wall-clock hour** (e.g. 10:00, 11:00). Avoid new **fixed short intervals** (e.g. every 30s) unless the product explicitly requires them.
 
 ## 5. Organizational Context
 

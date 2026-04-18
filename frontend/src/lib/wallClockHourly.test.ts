@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { msUntilNextHour } from './adminFinanceSchedule'
+import { msUntilNextHour } from './wallClockHourly'
 
 describe('msUntilNextHour', () => {
   it('คืนค่าเหลือจนถึงชั่วโมงถัดไป (ตามเวลาเครื่อง)', () => {

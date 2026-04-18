@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY } from '../lib/adminApi'
+import { msUntilNextHour } from '../lib/wallClockHourly'
 import { portalFocusRing } from '../portal/portalLabels'
 const STORAGE_PRESIDENT = 'yrc_president_upload_key'
 const STORAGE_AUTO_REFRESH = 'yrc_member_requests_auto_refresh'
-const STORAGE_AUTO_REFRESH_MS = 'yrc_member_requests_auto_refresh_ms'
 const STORAGE_LAST_PENDING = 'yrc_member_requests_last_pending'
 const STORAGE_LAST_REQUEST_IDS = 'yrc_member_requests_last_ids'
 const STORAGE_VIEW_PRESET = 'yrc_member_requests_view_preset'
@@ -128,7 +128,6 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   const [debugDetails, setDebugDetails] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(false)
-  const [autoRefreshMs, setAutoRefreshMs] = useState(30000)
   const [lastLoadedAt, setLastLoadedAt] = useState<string | null>(null)
   const [pendingIncrease, setPendingIncrease] = useState(0)
   const [newRowIds, setNewRowIds] = useState<string[]>([])
@@ -301,11 +300,6 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       setViewPreset(savedPreset)
     }
 
-    const savedMs = Number(sessionStorage.getItem(STORAGE_AUTO_REFRESH_MS) ?? '30000')
-    if (Number.isFinite(savedMs) && savedMs >= 5000) {
-      setAutoRefreshMs(savedMs)
-    }
-
     const savedActivityAction = sessionStorage.getItem(STORAGE_ACTIVITY_ACTION)
     if (
       savedActivityAction === 'all' ||
@@ -345,10 +339,6 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_AUTO_REFRESH, autoRefresh ? 'true' : 'false')
   }, [autoRefresh])
-
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_AUTO_REFRESH_MS, String(autoRefreshMs))
-  }, [autoRefreshMs])
 
   useEffect(() => {
     sessionStorage.setItem(STORAGE_VIEW_PRESET, viewPreset)
@@ -512,14 +502,27 @@ export function MemberRequestsPanel({ apiBase }: Props) {
   useEffect(() => {
     if (!autoRefresh || !adminKey.trim()) return
 
-    const timer = window.setInterval(() => {
-      void load()
-    }, autoRefreshMs)
+    let cancelled = false
+    let timeoutId: number | undefined
+
+    const scheduleNextHourly = () => {
+      if (cancelled) return
+      const ms = msUntilNextHour()
+      timeoutId = window.setTimeout(() => {
+        if (cancelled) return
+        void load()
+        scheduleNextHourly()
+      }, ms)
+    }
+
+    void load()
+    scheduleNextHourly()
 
     return () => {
-      window.clearInterval(timer)
+      cancelled = true
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
     }
-  }, [adminKey, autoRefresh, autoRefreshMs, load])
+  }, [adminKey, autoRefresh, load])
 
   function headersAdminOnly(): Record<string, string> | null {
     if (!adminKey.trim()) return null
@@ -1025,19 +1028,13 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             className={`mt-1 block w-64 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus-visible:border-violet-600 ${portalFocusRing}`}
           />
         </label>
-        <label className="text-sm text-slate-300">
-          รีเฟรชอัตโนมัติทุก
-          <select
-            value={String(autoRefreshMs)}
-            onChange={(e) => setAutoRefreshMs(Number(e.target.value))}
-            aria-label="เลือกรอบเวลารีเฟรชอัตโนมัติของรายการคำร้อง"
-            className={`mt-1 block rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus-visible:border-violet-600 ${portalFocusRing}`}
-          >
-            <option value="10000">10 วินาที</option>
-            <option value="30000">30 วินาที</option>
-            <option value="60000">60 วินาที</option>
-          </select>
-        </label>
+        <span
+          id="member-requests-auto-refresh-schedule-hint"
+          className="self-center rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-[11px] text-slate-200"
+          title="รีเฟรชตามเวลาเครื่อง — ครั้งแรกทันทีเมื่อเปิด แล้วทุกต้นชั่วโมงถัดไป (เช่น 10:00, 11:00)"
+        >
+          รีเฟรชอัตโนมัติ: ทุกต้นชั่วโมง
+        </span>
         <label className="text-sm text-slate-300">
           เรียงลำดับ
           <select
@@ -1056,6 +1053,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             type="checkbox"
             checked={autoRefresh}
             onChange={(e) => setAutoRefresh(e.target.checked)}
+            aria-describedby="member-requests-auto-refresh-schedule-hint"
             aria-label="เปิดหรือปิดรีเฟรชอัตโนมัติรายการคำร้อง"
             className={portalFocusRing}
           />

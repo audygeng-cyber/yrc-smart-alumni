@@ -1,7 +1,7 @@
 import { useEffect, useRef, useLayoutEffect } from 'react'
 import { AUTO_REFRESH_MAX_FAILURES } from '../../lib/adminFinanceConstants'
 import { financeAdminHeaders } from '../../lib/adminFinanceHttp'
-import { msUntilNextHour } from '../../lib/adminFinanceSchedule'
+import { msUntilNextHour } from '../../lib/wallClockHourly'
 import { formatFetchError, readApiJson } from '../../lib/adminHttp'
 import type {
   ActivityItem,
