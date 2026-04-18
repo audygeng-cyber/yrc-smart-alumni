@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MemberPortal } from '../components/MemberPortal'
 import { portalFocusRing, portalNotFoundScopeLabel } from './portalLabels'
@@ -20,6 +20,7 @@ import {
   type PortalDataState,
   useMemberPortalData,
 } from './dataAdapter'
+import { memberDonationHistoryMock } from './mockData'
 
 export function MemberArea(props: {
   apiBase: string
@@ -321,6 +322,33 @@ function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: Po
   )
 }
 
+type MemberDonationHistoryRow = {
+  id: string
+  amount: number
+  createdAt: string | null
+  /** เวลาโอนที่สมาชิกระบุ (ถ้ามี) — แยกจากเวลาที่ระบบบันทึก */
+  transferAt?: string | null
+  activityId: string | null
+  activityTitle: string | null
+  activityCategory: string | null
+  fundScope: string | null
+  slipFileUrl: string | null
+  note: string | null
+}
+
+function formatThDateTime(iso: string | null | undefined): string {
+  if (iso == null || !String(iso).trim()) return '—'
+  const d = new Date(String(iso))
+  return Number.isFinite(d.getTime()) ? d.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '—'
+}
+
+function fundScopeLabelTh(scope: string | null): string {
+  if (scope === 'yupparaj_school') return 'กองโรงเรียนยุพราช'
+  if (scope === 'association') return 'สมาคม'
+  if (scope === 'cram_school') return 'กวดวิชา'
+  return '—'
+}
+
 function MemberDonationsPage(props: {
   apiBase: string
   lineUid: string
@@ -328,6 +356,7 @@ function MemberDonationsPage(props: {
   portalState: PortalDataState<MemberPortalData>
 }) {
   const { data, loading, source } = props.portalState
+  const portalMockMode = !loading && source === 'mock'
   const [activityId, setActivityId] = useState('')
   const [amount, setAmount] = useState('')
   const [transferAt, setTransferAt] = useState('')
@@ -335,10 +364,67 @@ function MemberDonationsPage(props: {
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formMsg, setFormMsg] = useState<string | null>(null)
+  const [history, setHistory] = useState<MemberDonationHistoryRow[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyErr, setHistoryErr] = useState<string | null>(null)
 
   const donorName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || '—'
   const donorBatch = props.member.batch != null ? String(props.member.batch) : '—'
   const donorBatchName = props.member.batch_name != null ? String(props.member.batch_name) : '—'
+
+  const loadDonationHistory = useCallback(async () => {
+    if (!props.lineUid.trim()) {
+      setHistory([])
+      return
+    }
+    if (!props.portalState.loading && props.portalState.source === 'mock') {
+      setHistory(memberDonationHistoryMock.map((r) => ({ ...r })))
+      setHistoryErr(null)
+      setHistoryLoading(false)
+      return
+    }
+    if (props.portalState.loading) return
+    setHistoryLoading(true)
+    setHistoryErr(null)
+    try {
+      const r = await fetch(`${props.apiBase.replace(/\/$/, '')}/api/members/donations/history`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ line_uid: props.lineUid.trim() }),
+      })
+      const j = (await r.json().catch(() => ({}))) as {
+        error?: string
+        ok?: boolean
+        donations?: MemberDonationHistoryRow[]
+      }
+      if (!r.ok) {
+        setHistoryErr(j.error ?? `ไม่สำเร็จ (HTTP ${r.status})`)
+        setHistory([])
+        return
+      }
+      setHistory(Array.isArray(j.donations) ? j.donations : [])
+    } catch {
+      setHistoryErr('เรียกเซิร์ฟเวอร์ไม่สำเร็จ')
+      setHistory([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [props.apiBase, props.lineUid, props.portalState.loading, props.portalState.source])
+
+  useEffect(() => {
+    if (props.portalState.loading) return
+    if (props.portalState.source === 'mock') {
+      if (!props.lineUid.trim()) {
+        setHistory([])
+        return
+      }
+      setHistory(memberDonationHistoryMock.map((r) => ({ ...r })))
+      setHistoryErr(null)
+      setHistoryLoading(false)
+      return
+    }
+    void loadDonationHistory()
+  }, [loadDonationHistory, props.lineUid, props.portalState.loading, props.portalState.source])
 
   const submitDonation = useCallback(async () => {
     if (!props.lineUid.trim()) {
@@ -380,12 +466,13 @@ function MemberDonationsPage(props: {
       setSlipUrl('')
       setNote('')
       void props.portalState.refetch()
+      void loadDonationHistory()
     } catch {
       setFormMsg('เรียกเซิร์ฟเวอร์ไม่สำเร็จ')
     } finally {
       setSubmitting(false)
     }
-  }, [activityId, amount, note, props.apiBase, props.lineUid, props.portalState, slipUrl, transferAt])
+  }, [activityId, amount, loadDonationHistory, note, props.apiBase, props.lineUid, props.portalState, slipUrl, transferAt])
 
   return (
     <div className="space-y-4">
@@ -506,6 +593,86 @@ function MemberDonationsPage(props: {
               >
                 {submitting ? 'กำลังส่ง…' : 'ยืนยันการบริจาค'}
               </button>
+            </div>
+            <div
+              className="mt-6 rounded-lg border border-slate-800/80 bg-slate-900/20 p-4"
+              aria-busy={historyLoading}
+              aria-label="ประวัติการบริจาคของคุณ"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">ประวัติการบริจาคล่าสุด</p>
+                <button
+                  type="button"
+                  onClick={() => void loadDonationHistory()}
+                  disabled={historyLoading || !props.lineUid.trim()}
+                  className={`rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50 ${portalFocusRing}`}
+                >
+                  {historyLoading ? 'กำลังโหลด…' : 'รีเฟรช'}
+                </button>
+              </div>
+              {portalMockMode ? (
+                <p className="mt-1 text-xs text-slate-500">ตัวอย่าง — พอร์ทัลโหลดจาก snapshot (ไม่มี API)</p>
+              ) : null}
+              {historyErr ? (
+                <p className="mt-2 text-sm text-amber-300" role="status">
+                  {historyErr}
+                </p>
+              ) : history.length === 0 && !historyLoading ? (
+                <p className="mt-2 text-sm text-slate-500">ยังไม่มีรายการบริจาคที่บันทึกผ่านพอร์ทัล</p>
+              ) : null}
+              {history.length > 0 ? (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full min-w-[36rem] border-collapse text-left text-sm text-slate-200">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
+                        <th className="py-2 pr-3 font-medium">บันทึก</th>
+                        <th className="py-2 pr-3 font-medium">โอน</th>
+                        <th className="py-2 pr-3 font-medium">โครงการ</th>
+                        <th className="py-2 pr-3 font-medium">กอง</th>
+                        <th className="py-2 pr-3 text-right font-medium">จำนวน</th>
+                        <th className="py-2 font-medium">หมายเหตุ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.map((h) => {
+                        const title =
+                          h.activityTitle != null && h.activityTitle !== '—'
+                            ? h.activityCategory
+                              ? `${h.activityTitle} (${h.activityCategory})`
+                              : h.activityTitle
+                            : '—'
+                        return (
+                          <tr key={h.id} className="border-b border-slate-800/60">
+                            <td className="py-2 pr-3 align-top text-slate-400">{formatThDateTime(h.createdAt)}</td>
+                            <td className="py-2 pr-3 align-top text-slate-400">{formatThDateTime(h.transferAt)}</td>
+                            <td className="py-2 pr-3 align-top">{title}</td>
+                            <td className="py-2 pr-3 align-top text-slate-400">{fundScopeLabelTh(h.fundScope)}</td>
+                            <td className="py-2 pr-3 align-top text-right tabular-nums">
+                              {Math.round(h.amount).toLocaleString('th-TH')} ฿
+                            </td>
+                            <td className="py-2 align-top text-slate-400">
+                              {h.slipFileUrl ? (
+                                <a
+                                  href={h.slipFileUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-emerald-400 underline hover:text-emerald-300"
+                                >
+                                  สลิป
+                                </a>
+                              ) : null}
+                              {h.note ? (
+                                <span className={h.slipFileUrl ? ' ml-2' : ''}>{h.note}</span>
+                              ) : null}
+                              {!h.slipFileUrl && !h.note ? '—' : null}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2 opacity-90" role="list" aria-label="ภาพรวมเดโม (แคมเปญอื่น)">
               {data.donationCampaigns.map((campaign) => (

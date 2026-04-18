@@ -28,6 +28,13 @@ describe.sequential('createApp', () => {
     expect(res.body.paths?.health).toBe('/health')
   })
 
+  it('POST /api/members/donations/history returns 400 without line_uid', async () => {
+    const app = createApp()
+    const res = await request(app).post('/api/members/donations/history').send({})
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBeDefined()
+  })
+
   it('GET /api/portal/member returns dashboard snapshot', async () => {
     const app = createApp()
     const res = await request(app).get('/api/portal/member')

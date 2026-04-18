@@ -9,6 +9,8 @@ import {
 import { canDepreciateInMonth, isMonthKey, monthEndDate, monthlyDepreciationAmount } from '../util/fixedAsset.js'
 import { calculateThaiTax, isSupportedVatRate, isSupportedWhtRate } from '../util/tax.js'
 import { majorityRequired, quorumRequired } from '../util/meetingRules.js'
+import { rowsToCsv } from '../util/csvRows.js'
+import { withUtf8Bom } from '../util/csvUtf8.js'
 
 export const financeAdminRouter = Router()
 
@@ -65,22 +67,6 @@ async function getMeetingVoteSummary(supabase: SupabaseClient, agendaId: string)
     else if (vote === 'abstain') abstain += 1
   }
   return { approve, reject, abstain, total: approve + reject + abstain }
-}
-
-function csvEscape(value: unknown): string {
-  const s = value == null ? '' : String(value)
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
-}
-
-function rowsToCsv(rows: Record<string, unknown>[]): string {
-  if (!rows.length) return ''
-  const headers = Object.keys(rows[0] ?? {})
-  const lines = [headers.join(',')]
-  for (const row of rows) {
-    lines.push(headers.map((h) => csvEscape(row[h])).join(','))
-  }
-  return `\uFEFF${lines.join('\n')}\n`
 }
 
 function readDateRangeFromQuery(query: Record<string, unknown>) {
@@ -753,7 +739,7 @@ financeAdminRouter.get('/exports/donations.csv', async (req, res) => {
     const csv = rowsToCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', 'attachment; filename="finance-donations.csv"')
-    res.send(csv)
+    res.send(withUtf8Bom(csv))
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
@@ -822,7 +808,7 @@ financeAdminRouter.get('/exports/payment-requests.csv', async (req, res) => {
     const csv = rowsToCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', 'attachment; filename="finance-payment-requests.csv"')
-    res.send(csv)
+    res.send(withUtf8Bom(csv))
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
@@ -902,7 +888,7 @@ financeAdminRouter.get('/exports/meeting-sessions.csv', async (req, res) => {
     const csv = rowsToCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', 'attachment; filename="finance-meeting-sessions.csv"')
-    res.send(csv)
+    res.send(withUtf8Bom(csv))
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
@@ -1923,7 +1909,7 @@ financeAdminRouter.get('/exports/auditor-package.csv', async (req, res) => {
     const csv = rowsToCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', 'attachment; filename="finance-auditor-package.csv"')
-    res.send(csv)
+    res.send(withUtf8Bom(csv))
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
@@ -2752,7 +2738,7 @@ financeAdminRouter.get('/period-closing/:id/auditor-package.csv', async (req, re
     const csv = rowsToCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', `attachment; filename="period-closing-${id}-auditor-package.csv"`)
-    res.send(csv)
+    res.send(withUtf8Bom(csv))
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })

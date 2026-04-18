@@ -328,6 +328,80 @@ function isFundScope(s: string): s is FundScope {
 }
 
 /**
+ * ประวัติการบริจาคของสมาชิก (ผ่านพอร์ทัล)
+ * Body: { line_uid }
+ */
+membersRouter.post('/donations/history', async (req, res) => {
+  try {
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
+    if (!line_uid) {
+      res.status(400).json({ error: 'ต้องระบุ line_uid' })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: member, error: mErr } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
+    if (mErr) {
+      res.status(500).json({ error: 'โหลดข้อมูลสมาชิกไม่สำเร็จ', details: mErr })
+      return
+    }
+    if (!member) {
+      res.status(403).json({ error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้' })
+      return
+    }
+
+    const { data: donRows, error: dErr } = await supabase
+      .from('donations')
+      .select('id, amount, created_at, transfer_at, activity_id, slip_file_url, note, fund_scope')
+      .eq('member_id', member.id)
+      .order('created_at', { ascending: false })
+      .limit(40)
+    if (dErr) {
+      res.status(500).json({ error: 'โหลดประวัติการบริจาคไม่สำเร็จ', details: dErr })
+      return
+    }
+
+    const activityIds = Array.from(
+      new Set((donRows ?? []).map((r) => (r.activity_id == null ? '' : String(r.activity_id))).filter(Boolean)),
+    )
+    const titleById = new Map<string, { title: string; category: string }>()
+    if (activityIds.length > 0) {
+      const { data: acts } = await supabase.from('school_activities').select('id, title, category').in('id', activityIds)
+      for (const a of acts ?? []) {
+        const row = a as { id: string; title?: string | null; category?: string | null }
+        titleById.set(String(row.id), {
+          title: String(row.title ?? '').trim() || '—',
+          category: String(row.category ?? '').trim() || 'ทั่วไป',
+        })
+      }
+    }
+
+    const donations = (donRows ?? []).map((r) => {
+      const aid = r.activity_id == null ? '' : String(r.activity_id)
+      const act = aid ? titleById.get(aid) : undefined
+      const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
+      return {
+        id: String(r.id),
+        amount: Number.isFinite(n) ? n : 0,
+        createdAt: r.created_at ?? null,
+        transferAt: (r as { transfer_at?: string | null }).transfer_at ?? null,
+        activityId: aid || null,
+        activityTitle: act?.title ?? null,
+        activityCategory: act?.category ?? null,
+        fundScope: r.fund_scope != null && String(r.fund_scope).trim() ? String(r.fund_scope) : null,
+        slipFileUrl: r.slip_file_url ?? null,
+        note: r.note ?? null,
+      }
+    })
+
+    res.json({ ok: true, donations })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})
+
+/**
  * บริจาคผ่านพอร์ทัลสมาชิก (กิจกรรมโรงเรียนยุพราช / สมาคม / กวดวิชา — ตาม fund_scope ของกิจกรรม)
  * Body: { line_uid, activity_id, amount, transfer_at?, slip_file_url?, note? }
  * ยอด yupparaj_school ไม่ผูก legal_entity ของสมาคม/กวดวิชา (แยกบัญชีเชิงนโยบาย)
@@ -418,7 +492,7 @@ membersRouter.post('/donations', async (req, res) => {
         donor_batch,
         donor_batch_name,
       })
-      .select('id,amount,activity_id,fund_scope,created_at')
+      .select('id,amount,activity_id,fund_scope,created_at,transfer_at,slip_file_url')
       .single()
 
     if (insErr || !row) {

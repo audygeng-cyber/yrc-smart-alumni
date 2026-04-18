@@ -1,20 +1,9 @@
 import { Router } from 'express'
 import { getServiceSupabase } from '../lib/supabase.js'
+import { rowsToCsv } from '../util/csvRows.js'
+import { withUtf8Bom } from '../util/csvUtf8.js'
 
 export const schoolActivitiesAdminRouter = Router()
-
-function csvEscapeCell(v: string): string {
-  if (/[",\n\r]/.test(v)) return `"${v.replace(/"/g, '""')}"`
-  return v
-}
-
-function rowsToCsv(rows: Record<string, unknown>[]): string {
-  if (rows.length === 0) return ''
-  const keys = Object.keys(rows[0]!)
-  const header = keys.map(csvEscapeCell).join(',')
-  const lines = rows.map((row) => keys.map((k) => csvEscapeCell(String(row[k] ?? ''))).join(','))
-  return [header, ...lines].join('\n')
-}
 
 /** GET /donations/summary — สรุปบริจาคแยกกองโรงเรียนยุพราช (ไม่รวมในรายงาน finance นิติบุคคลสมาคม/กวดวิชา) */
 schoolActivitiesAdminRouter.get('/donations/summary', async (_req, res) => {
@@ -34,7 +23,7 @@ schoolActivitiesAdminRouter.get('/donations/summary', async (_req, res) => {
     const { data: dons, error: dErr } = await supabase
       .from('donations')
       .select(
-        'id,activity_id,amount,created_at,donor_first_name,donor_last_name,donor_batch,donor_batch_name,slip_file_url,note',
+        'id,activity_id,amount,created_at,transfer_at,donor_first_name,donor_last_name,donor_batch,donor_batch_name,slip_file_url,note',
       )
       .eq('fund_scope', 'yupparaj_school')
       .order('created_at', { ascending: false })
@@ -84,6 +73,7 @@ schoolActivitiesAdminRouter.get('/donations/summary', async (_req, res) => {
           activity_id?: string | null
           amount?: unknown
           created_at?: string
+          transfer_at?: string | null
           donor_first_name?: string | null
           donor_last_name?: string | null
           donor_batch?: string | null
@@ -97,6 +87,7 @@ schoolActivitiesAdminRouter.get('/donations/summary', async (_req, res) => {
           activityId: row.activity_id ?? null,
           amount: Number(row.amount ?? 0),
           createdAt: row.created_at ?? null,
+          transferAt: row.transfer_at ?? null,
           donorName: name,
           donorBatch: row.donor_batch ?? null,
           donorBatchName: row.donor_batch_name ?? null,
@@ -118,7 +109,7 @@ schoolActivitiesAdminRouter.get('/donations/yupparaj-export.csv', async (_req, r
     const { data: dons, error } = await supabase
       .from('donations')
       .select(
-        'id,created_at,activity_id,amount,donor_first_name,donor_last_name,donor_batch,donor_batch_name,slip_file_url,note',
+        'id,created_at,transfer_at,activity_id,amount,donor_first_name,donor_last_name,donor_batch,donor_batch_name,slip_file_url,note',
       )
       .eq('fund_scope', 'yupparaj_school')
       .order('created_at', { ascending: false })
@@ -132,6 +123,7 @@ schoolActivitiesAdminRouter.get('/donations/yupparaj-export.csv', async (_req, r
       return {
         donation_id: r.id,
         created_at: r.created_at,
+        transfer_at: r.transfer_at,
         activity_id: r.activity_id,
         amount: r.amount,
         donor_first_name: r.donor_first_name,
@@ -145,7 +137,7 @@ schoolActivitiesAdminRouter.get('/donations/yupparaj-export.csv', async (_req, r
     const csv = rowsToCsv(rows)
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', 'attachment; filename="yupparaj-school-donations.csv"')
-    res.send(csv)
+    res.send(withUtf8Bom(csv))
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
