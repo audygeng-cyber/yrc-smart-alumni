@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   fetchPaymentRequestDetail,
   fetchPaymentRequestsList,
+  patchPaymentRequest,
   postPaymentRequest,
 } from '../../lib/adminFinanceJournalPaymentApi'
 import { postTaxCalculate } from '../../lib/adminFinanceOpsApi'
@@ -27,7 +28,10 @@ type PaymentRequestRow = {
   required_approvals?: number
   required_role_code?: string
   legal_entity_code?: string
+  bank_account_id?: string | null
   kbiz_transfer_ref?: string | null
+  transfer_slip_file_url?: string | null
+  note?: string | null
 }
 
 function formatMoneyTh(n: number): string {
@@ -67,6 +71,39 @@ function purposeCategoryLabel(v: string | undefined | null): string {
   if (!v) return '—'
   const hit = PAYMENT_PURPOSE_OPTIONS.find((o) => o.value === v)
   return hit?.label ?? v
+}
+
+function docNoFromId(id: string): string {
+  return `EXP-${String(id).replace(/-/g, '').slice(0, 10).toUpperCase()}`
+}
+
+function buildKbizNotifyText(p: {
+  docNo: string
+  net: number
+  rule?: string
+  bank: BankAccount | undefined
+  purposeFirstLine: string
+}): string {
+  const signers = (p.bank?.signers ?? []).filter((s) => s.active && s.in_kbiz).map((s) => s.signer_name)
+  const signerLines =
+    signers.length > 0 ? signers.map((n) => `- ${n}`).join('\n') : '(โหลดรายชื่อผู้ลงนามจากแผงการเงิน — โหลดภาพรวม+บัญชีธนาคาร)'
+
+  return [
+    'แจ้งผู้มีอำนาจลงนาม KBiz',
+    '',
+    `เอกสาร: ${p.docNo}`,
+    `รายการ: ${p.purposeFirstLine}`,
+    `ยอดจ่ายสุทธิ: ${formatMoneyTh(p.net)} บาท`,
+    `เส้นทางอนุมัติ: ${ruleShort(p.rule)}`,
+    p.bank
+      ? `บัญชี: ${p.bank.bank_name} ${p.bank.account_name} (${p.bank.account_no_masked})`
+      : 'บัญชี: (ไม่ระบุ — กรณีมติประชุมอาจไม่ผูกบัญชีในกฎเดิม)',
+    '',
+    'รายชื่อผู้ลงนามที่มีสิทธิ์ KBiz (จากระบบ):',
+    signerLines,
+    '',
+    'กรุณาเข้าระบบ KBiz เพื่อดำเนินการโอนเงินตามคำขอที่อนุมัติแล้ว',
+  ].join('\n')
 }
 
 function buildPurposePayload(p: {
@@ -129,7 +166,11 @@ export function FinanceAssociationExpenseHub({
 
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [detailApprovals, setDetailApprovals] = useState<Array<Record<string, unknown>> | null>(null)
+  const [detailPaymentRequest, setDetailPaymentRequest] = useState<PaymentRequestRow | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [editKbizRef, setEditKbizRef] = useState('')
+  const [editSlipUrl, setEditSlipUrl] = useState('')
+  const [editNoteDetail, setEditNoteDetail] = useState('')
 
   const [showForm, setShowForm] = useState(false)
   const [payeeName, setPayeeName] = useState('')
@@ -206,18 +247,119 @@ export function FinanceAssociationExpenseHub({
     if (!adminKey.trim()) return
     setDetailLoading(true)
     setDetailApprovals(null)
+    setDetailPaymentRequest(null)
+    setEditKbizRef('')
+    setEditSlipUrl('')
+    setEditNoteDetail('')
     try {
       const res = await fetchPaymentRequestDetail(apiBase, adminKey, id)
       if (!res.ok) {
         setMsg(formatFetchError('โหลดรายละเอียดคำขอ', res.status, res.payload, res.rawText))
         return
       }
-      const payload = res.payload as { approvals?: Array<Record<string, unknown>> }
+      const payload = res.payload as {
+        approvals?: Array<Record<string, unknown>>
+        paymentRequest?: PaymentRequestRow
+      }
       setDetailApprovals(Array.isArray(payload.approvals) ? payload.approvals : [])
+      const pr = payload.paymentRequest
+      if (pr) {
+        setDetailPaymentRequest(pr)
+        setEditKbizRef(String(pr.kbiz_transfer_ref ?? ''))
+        setEditSlipUrl(String(pr.transfer_slip_file_url ?? ''))
+        setEditNoteDetail(String(pr.note ?? ''))
+      }
     } catch {
       setMsg('โหลดรายละเอียดไม่สำเร็จ')
     } finally {
       setDetailLoading(false)
+    }
+  }
+
+  async function copyKbizNotifyText(row: PaymentRequestRow) {
+    const pr = detailPaymentRequest?.id === row.id ? detailPaymentRequest : null
+    const base = pr ?? row
+    const bankId = base.bank_account_id
+    const bank = bankId ? accounts.find((a) => a.id === bankId) : undefined
+    const text = buildKbizNotifyText({
+      docNo: docNoFromId(row.id),
+      net: netPayableFromRow(base),
+      rule: base.approval_rule,
+      bank,
+      purposeFirstLine: base.purpose.split('\n')[0] ?? base.purpose,
+    })
+    try {
+      await navigator.clipboard.writeText(text)
+      setMsg('คัดลอกข้อความแจ้ง KBiz แล้ว')
+    } catch {
+      setMsg('คัดลอกไม่สำเร็จ — เลือกข้อความด้วยมือ')
+    }
+  }
+
+  async function saveDetailPatch(rowId: string) {
+    if (!adminKey.trim()) return
+    const pr = detailPaymentRequest?.id === rowId ? detailPaymentRequest : null
+    if (!pr) return
+    const body: { kbiz_transfer_ref?: string; transfer_slip_file_url?: string; note?: string } = {}
+    const k0 = String(pr.kbiz_transfer_ref ?? '').trim()
+    const k1 = editKbizRef.trim()
+    if (k1 !== k0) body.kbiz_transfer_ref = k1
+    const s0 = String(pr.transfer_slip_file_url ?? '').trim()
+    const s1 = editSlipUrl.trim()
+    if (s1 !== s0) body.transfer_slip_file_url = s1
+    const n0 = String(pr.note ?? '').trim()
+    const n1 = editNoteDetail.trim()
+    if (n1 !== n0) body.note = n1
+    if (Object.keys(body).length === 0) {
+      setMsg('ไม่มีการเปลี่ยนแปลง')
+      return
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const res = await patchPaymentRequest(apiBase, adminKey, rowId, body)
+      if (!res.ok) {
+        setMsg(formatFetchError('บันทึกคำขอจ่าย', res.status, res.payload, res.rawText))
+        return
+      }
+      const payload = res.payload as { paymentRequest?: PaymentRequestRow }
+      const updated = payload.paymentRequest
+      if (updated) {
+        setDetailPaymentRequest({ ...pr, ...updated })
+        setEditKbizRef(String(updated.kbiz_transfer_ref ?? ''))
+        setEditSlipUrl(String(updated.transfer_slip_file_url ?? ''))
+        setEditNoteDetail(String(updated.note ?? ''))
+        setList((prev) => prev.map((r) => (r.id === rowId ? { ...r, ...updated } : r)))
+      }
+      setMsg('บันทึกแล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function markDetailExecuted(rowId: string) {
+    if (!adminKey.trim()) return
+    setLoading(true)
+    setMsg(null)
+    try {
+      const res = await patchPaymentRequest(apiBase, adminKey, rowId, { mark_executed: true })
+      if (!res.ok) {
+        setMsg(formatFetchError('ทำเครื่องหมายโอนแล้ว', res.status, res.payload, res.rawText))
+        return
+      }
+      const payload = res.payload as { paymentRequest?: PaymentRequestRow }
+      const updated = payload.paymentRequest
+      if (updated) {
+        setDetailPaymentRequest((prev) => (prev?.id === rowId ? { ...prev, ...updated } : prev))
+        setList((prev) => prev.map((r) => (r.id === rowId ? { ...r, ...updated } : r)))
+      }
+      setMsg('บันทึกสถานะโอนแล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -344,7 +486,7 @@ export function FinanceAssociationExpenseHub({
           <li className="rounded-lg border border-slate-700/80 bg-slate-950/50 p-3">
             <p className="text-xs font-semibold text-slate-200">3. แจ้งผู้มีอำนาจ KBiz → โอนเงิน</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-500">
-              หลังอนุมัติครบ ให้แจ้งผู้มีอำนาจลงนามที่ใช้ KBiz เพื่อเข้าระบบธนาคารและโอนเงินต่อไป (ขั้นตอนจริงอยู่นอกแอป — บันทึกเลขอ้างอิงโอนได้ในฟิลด์ kbiz_transfer_ref เมื่อ backend รองรับเต็มรูปแบบ)
+              หลังอนุมัติครบ ให้แจ้งผู้มีอำนาจลงนามที่ใช้ KBiz เพื่อเข้าระบบธนาคารและโอนเงินต่อไป (ขั้นตอนจริงอยู่นอกแอป — บันทึกเลขอ้างอิงโอน/ลิงก์สลิป/หมายเหตุภายใน และทำเครื่องหมาย &quot;โอนแล้ว&quot; ในรายละเอียดรายการ)
             </p>
           </li>
         </ol>
@@ -423,9 +565,16 @@ export function FinanceAssociationExpenseHub({
                 </tr>
               ) : (
                 list.map((row) => {
-                  const docNo = `EXP-${String(row.id).replace(/-/g, '').slice(0, 10).toUpperCase()}`
+                  const docNo = docNoFromId(row.id)
                   const firstLine = row.purpose.split('\n')[0] ?? row.purpose
                   const open = expandedId === row.id
+                  const detailPr = detailPaymentRequest?.id === row.id ? detailPaymentRequest : null
+                  const displayRow = detailPr ?? row
+                  const roleCode = String(displayRow.required_role_code ?? '')
+                  const needAppr = Number(displayRow.required_approvals ?? 0)
+                  const gotAppr = (detailApprovals ?? []).filter(
+                    (a) => String(a.approver_role_code) === roleCode && String(a.decision) === 'approve',
+                  ).length
                   return (
                     <Fragment key={row.id}>
                       <tr className="hover:bg-slate-900/40">
@@ -463,7 +612,13 @@ export function FinanceAssociationExpenseHub({
                             onClick={() => {
                               setExpandedId(open ? null : row.id)
                               if (!open) void loadDetail(row.id)
-                              else setDetailApprovals(null)
+                              else {
+                                setDetailApprovals(null)
+                                setDetailPaymentRequest(null)
+                                setEditKbizRef('')
+                                setEditSlipUrl('')
+                                setEditNoteDetail('')
+                              }
                             }}
                           >
                             {open ? 'ย่อ' : 'รายละเอียด'}
@@ -474,18 +629,96 @@ export function FinanceAssociationExpenseHub({
                         <tr className="bg-slate-950/60">
                           <td colSpan={8} className="px-3 py-3 text-xs text-slate-400">
                             {detailLoading ? (
-                              <p>กำลังโหลดประวัติอนุมัติ…</p>
+                              <p>กำลังโหลดรายละเอียดและประวัติอนุมัติ…</p>
                             ) : (
-                              <div className="space-y-2">
+                              <div className="space-y-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="font-medium text-slate-300">ความคืบหน้าการอนุมัติ</p>
+                                  <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[11px] text-slate-300">
+                                    {needAppr > 0
+                                      ? `อนุมัติแล้ว ${gotAppr} / ต้องการ ${needAppr}`
+                                      : `อนุมัติแล้ว ${gotAppr} (มติประชุม — ไม่กำหนดจำนวนในระบบ)`}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={loading || detailLoading || detailPaymentRequest?.id !== row.id}
+                                    onClick={() => void copyKbizNotifyText(row)}
+                                    className={`rounded-lg border border-emerald-800/80 bg-emerald-950/40 px-3 py-1.5 text-[11px] font-medium text-emerald-200 hover:bg-emerald-900/50 disabled:opacity-50 ${focus}`}
+                                  >
+                                    คัดลอกข้อความแจ้ง KBiz
+                                  </button>
+                                  {displayRow.status === 'approved' ? (
+                                    <button
+                                      type="button"
+                                      disabled={loading}
+                                      onClick={() => void markDetailExecuted(row.id)}
+                                      className={`rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-[11px] font-medium text-slate-100 hover:bg-slate-700 disabled:opacity-50 ${focus}`}
+                                    >
+                                      บันทึกว่าโอนแล้ว (executed)
+                                    </button>
+                                  ) : null}
+                                </div>
                                 <p className="font-medium text-slate-300">รายละเอียดคำขอ</p>
                                 <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded border border-slate-800 bg-slate-950/80 p-2 text-[11px] text-slate-400">
-                                  {row.purpose}
+                                  {displayRow.purpose}
                                 </pre>
-                                <p className="mt-2 font-medium text-slate-300">ประวัติการอนุมัติ</p>
+                                <div className="grid gap-3 rounded-lg border border-slate-800 bg-slate-950/50 p-3 md:grid-cols-2">
+                                  <label className="block text-[11px] text-slate-500">
+                                    เลขอ้างอิงโอน KBiz
+                                    <input
+                                      value={editKbizRef}
+                                      onChange={(e) => setEditKbizRef(e.target.value)}
+                                      disabled={loading || displayRow.status === 'rejected'}
+                                      className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 disabled:opacity-50 ${focus}`}
+                                    />
+                                  </label>
+                                  <label className="block text-[11px] text-slate-500">
+                                    URL สลิป/หลักฐาน (อัปโหลดไฟล์จริงยังไม่มี — วางลิงก์ภายนอกได้)
+                                    <input
+                                      value={editSlipUrl}
+                                      onChange={(e) => setEditSlipUrl(e.target.value)}
+                                      disabled={loading || displayRow.status === 'rejected'}
+                                      className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 disabled:opacity-50 ${focus}`}
+                                    />
+                                  </label>
+                                  <label className="block text-[11px] text-slate-500 md:col-span-2">
+                                    หมายเหตุภายใน (note)
+                                    <textarea
+                                      value={editNoteDetail}
+                                      onChange={(e) => setEditNoteDetail(e.target.value)}
+                                      rows={2}
+                                      disabled={loading || displayRow.status === 'rejected'}
+                                      className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 disabled:opacity-50 ${focus}`}
+                                    />
+                                  </label>
+                                  <div className="md:col-span-2 flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={loading || displayRow.status === 'rejected'}
+                                      onClick={() => void saveDetailPatch(row.id)}
+                                      className={`rounded-lg bg-emerald-800 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 ${focus}`}
+                                    >
+                                      บันทึกฟิลด์ด้านบน
+                                    </button>
+                                    {editSlipUrl.trim().startsWith('http') ? (
+                                      <a
+                                        href={editSlipUrl.trim()}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={`rounded-lg border border-slate-600 px-3 py-1.5 text-[11px] text-slate-200 underline ${focus}`}
+                                      >
+                                        เปิดลิงก์สลิป
+                                      </a>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <p className="mt-1 font-medium text-slate-300">ประวัติการอนุมัติ</p>
                                 {detailApprovals && detailApprovals.length > 0 ? (
                                   <ul className="list-inside list-disc space-y-1 text-[11px]">
-                                    {detailApprovals.map((a) => (
-                                      <li key={String(a.id ?? Math.random())}>
+                                    {detailApprovals.map((a, i) => (
+                                      <li key={String(a.id ?? `idx-${i}`)}>
                                         {String(a.approver_name ?? '')} · {String(a.approver_role_code ?? '')} ·{' '}
                                         {String(a.decision ?? '')}{' '}
                                         {a.decided_at ? `(${new Date(String(a.decided_at)).toLocaleString('th-TH')})` : ''}

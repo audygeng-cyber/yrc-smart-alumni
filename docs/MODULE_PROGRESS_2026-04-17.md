@@ -29,6 +29,7 @@
 - งานบัญชี (`/admin` finance): **99%**
   - จุดแข็ง: reports/exports/payment approvals/meeting sessions พร้อมและข้อความสอดคล้องขึ้น + live region แยกเฉพาะสถานะสำคัญและ semantics ครอบคลุมเพิ่ม รวมถึง empty state ของ activity/report lists, filter/preset/overview มี group-status semantics, สรุปตัวกรองกิจกรรมประกาศผลแบบ live/atomic ชัดขึ้น พร้อมแยกกลุ่มพรีเซ็ต/ระดับตัวกรองให้ screen reader นำทางง่ายขึ้น, ปุ่มตัวกรองกิจกรรมมี aria-pressed, ปุ่มเรียงลำดับรายงานบอกสถานะ active ชัดขึ้น, ตัวแบ่งหน้ารายงานประกาศหน้าปัจจุบันแบบ live/atomic, เครื่องมือคำสั่งลงชื่อ/สรุปประชุมแยกเป็น group semantics ชัดขึ้น, ตัวเลขสรุปเงินบริจาคและเวลารีเฟรชในแถบรีเฟรชใช้ live+locale `th-TH` สม่ำเสมอ และข้อความผลลัพธ์หลักรองรับ alert/atomic ครบขึ้น
   - ค้างหลัก: QA scenario การเงินเชิงธุรกิจจริง (policy edge cases, long-run ops)
+  - อัปเดตล่าสุด (ค่าใช้จ่ายสมาคม): `FinanceAssociationExpenseHub` โหลดรายละเอียดจาก GET `payment-requests/:id`, แก้ไขด้วย PATCH `payment-requests/:id` (kbiz ref / URL สลิป / note / มาร์คโอนแล้ว), คัดลอกข้อความแจ้ง KBiz จากบัญชีที่เลือก · ยังไม่ทำ: อัปโหลดไฟล์สลิปไป storage, แจ้งเตือน LINE
 
 ## งานถัดไป (แนะนำ)
 

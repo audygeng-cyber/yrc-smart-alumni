@@ -513,6 +513,83 @@ financeAdminRouter.get('/payment-requests/:id', async (req, res) => {
   }
 })
 
+financeAdminRouter.patch('/payment-requests/:id', async (req, res) => {
+  try {
+    const id = typeof req.params.id === 'string' ? req.params.id.trim() : ''
+    if (!id) {
+      res.status(400).json({ error: 'ต้องระบุ id' })
+      return
+    }
+
+    const body = req.body as Record<string, unknown>
+    const markExecuted = body.mark_executed === true
+    const hasKbiz = typeof body.kbiz_transfer_ref === 'string'
+    const hasSlip = typeof body.transfer_slip_file_url === 'string'
+    const hasNote = typeof body.note === 'string'
+
+    if (!markExecuted && !hasKbiz && !hasSlip && !hasNote) {
+      res.status(400).json({ error: 'ส่งอย่างน้อยหนึ่งฟิลด์: kbiz_transfer_ref, transfer_slip_file_url, note หรือ mark_executed' })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: row, error: rowErr } = await supabase.from('payment_requests').select('id,status').eq('id', id).maybeSingle()
+
+    if (rowErr) {
+      res.status(500).json({ error: 'โหลดคำขอไม่สำเร็จ', details: rowErr })
+      return
+    }
+    if (!row) {
+      res.status(404).json({ error: 'ไม่พบคำขอจ่าย' })
+      return
+    }
+
+    if (row.status === 'rejected') {
+      res.status(400).json({ error: 'ไม่สามารถแก้ไขคำขอที่ปฏิเสธแล้ว' })
+      return
+    }
+
+    if (markExecuted) {
+      if (row.status !== 'approved') {
+        res.status(400).json({
+          error: 'ทำเครื่องหมายโอนแล้วได้เฉพาะคำขอที่อนุมัติจ่ายแล้ว',
+          status: row.status,
+        })
+        return
+      }
+    }
+
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (hasKbiz) {
+      const v = typeof body.kbiz_transfer_ref === 'string' ? body.kbiz_transfer_ref.trim() : ''
+      patch.kbiz_transfer_ref = v || null
+    }
+    if (hasSlip) {
+      const v = typeof body.transfer_slip_file_url === 'string' ? body.transfer_slip_file_url.trim() : ''
+      patch.transfer_slip_file_url = v || null
+    }
+    if (hasNote) {
+      const v = typeof body.note === 'string' ? body.note.trim() : ''
+      patch.note = v || null
+    }
+    if (markExecuted) {
+      patch.status = 'executed'
+    }
+
+    const { data: updated, error: upErr } = await supabase.from('payment_requests').update(patch).eq('id', id).select('*').single()
+
+    if (upErr || !updated) {
+      res.status(500).json({ error: 'อัปเดตคำขอจ่ายไม่สำเร็จ', details: upErr })
+      return
+    }
+
+    res.json({ ok: true, paymentRequest: updated })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})
+
 financeAdminRouter.get('/overview', async (_req, res) => {
   try {
     const supabase = getServiceSupabase()

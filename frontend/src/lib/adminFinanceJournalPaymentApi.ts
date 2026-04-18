@@ -110,3 +110,18 @@ export async function postPaymentRequestApprove(
   const id = encodeURIComponent(paymentRequestId.trim())
   return financeAdminJson(base, 'POST', `/api/admin/finance/payment-requests/${id}/approve`, adminKey, body)
 }
+
+export async function patchPaymentRequest(
+  base: string,
+  adminKey: string,
+  paymentRequestId: string,
+  body: {
+    kbiz_transfer_ref?: string
+    transfer_slip_file_url?: string
+    note?: string
+    mark_executed?: boolean
+  },
+): Promise<ApiJsonResult> {
+  const id = encodeURIComponent(paymentRequestId.trim())
+  return financeAdminJson(base, 'PATCH', `/api/admin/finance/payment-requests/${id}`, adminKey, body)
+}

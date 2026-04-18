@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   fetchPaymentRequestDetail,
   fetchPaymentRequestsList,
+  patchPaymentRequest,
   postJournalDraft,
   postPaymentRequest,
   postPaymentRequestApprove,
@@ -113,6 +114,34 @@ describe('fetchPaymentRequestDetail', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:4000/api/admin/finance/payment-requests/abc%2Fdef',
       expect.objectContaining({ headers: { 'x-admin-key': 'k' } }),
+    )
+  })
+})
+
+describe('patchPaymentRequest', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('PATCH payment-requests/:id encode id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await patchPaymentRequest('http://localhost:4000', 'k', 'pr/1', {
+      kbiz_transfer_ref: 'KB-99',
+      mark_executed: true,
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:4000/api/admin/finance/payment-requests/pr%2F1',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          kbiz_transfer_ref: 'KB-99',
+          mark_executed: true,
+        }),
+      }),
     )
   })
 })
