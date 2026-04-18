@@ -7,7 +7,7 @@ export type FinanceAdminMeetingPaymentSectionProps = {
   payment: PaymentRequestToolsProps
 }
 
-/** แถวประชุม + คำขอจ่ายเงิน — state อยู่ที่ parent (`AdminFinancePanel`) */
+/** แถวประชุม + คำขอจ่ายเงิน — props มาจาก `useFinanceMeetingColumn` + `useFinancePaymentRequestTools` */
 export function FinanceAdminMeetingPaymentSection({ meeting, payment }: FinanceAdminMeetingPaymentSectionProps) {
   return (
     <FinanceMeetingPaymentRow
