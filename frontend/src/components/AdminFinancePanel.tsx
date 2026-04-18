@@ -22,11 +22,23 @@ import {
   fetchPeriodClosingsList,
 } from '../lib/adminFinanceJournalPeriodApi'
 import {
+  deleteMeetingDocumentAdmin,
   fetchAgendaVoteSummaryAdmin,
   fetchMeetingAgendas,
   fetchMeetingDocumentsList,
   fetchMeetingMinutesAdmin,
   fetchMeetingSessionSummary,
+  patchMeetingAgenda,
+  patchMeetingDocumentFields,
+  patchMeetingDocumentPublish,
+  postMeetingAgendaClose,
+  postMeetingAgendaCreate,
+  postMeetingAgendaVote,
+  postMeetingDocumentCreate,
+  postMeetingSessionCreate,
+  postMeetingSessionMinutesPublish,
+  postMeetingSessionMinutesSave,
+  postMeetingSessionSignAttendance,
 } from '../lib/adminFinanceMeetingApi'
 import {
   financeBalanceSheetQuerySuffix,
@@ -1620,17 +1632,12 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-sessions`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          legal_entity_code: meetingEntity,
-          title: meetingTitle.trim(),
-          expected_participants: expected,
-          created_by: 'admin-ui',
-        }),
+      const p = await postMeetingSessionCreate(base, adminKey, {
+        legal_entity_code: meetingEntity,
+        title: meetingTitle.trim(),
+        expected_participants: expected,
+        created_by: 'admin-ui',
       })
-      const p = await readApiJson(r)
       if (!p.ok) {
         addActivity('error', `สร้างประชุมไม่สำเร็จ: ${meetingTitle.trim()}`)
         return setMsg(formatFetchError('สร้างประชุม', p.status, p.payload, p.rawText))
@@ -1656,16 +1663,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/sign-attendance`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          attendee_name: attendanceName.trim(),
-          attendee_role_code: attendanceRole,
-          line_uid: attendanceLineUid.trim() || undefined,
-        }),
+      const p = await postMeetingSessionSignAttendance(base, adminKey, meetingId.trim(), {
+        attendee_name: attendanceName.trim(),
+        attendee_role_code: attendanceRole,
+        line_uid: attendanceLineUid.trim() || undefined,
       })
-      const p = await readApiJson(r)
       if (!p.ok) {
         addActivity('error', `ลงชื่อเข้าประชุมไม่สำเร็จ: ${attendanceName.trim()}`)
         return setMsg(formatFetchError('ลงชื่อเข้าประชุม', p.status, p.payload, p.rawText))
@@ -1737,16 +1739,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          minutes_markdown: meetingMinutes.trim(),
-          minutes_recorded_by: attendanceName.trim() || 'admin-ui',
-          publish_to_portal: meetingMinutesPublished,
-        }),
+      const p = await postMeetingSessionMinutesSave(base, adminKey, meetingId.trim(), {
+        minutes_markdown: meetingMinutes.trim(),
+        minutes_recorded_by: attendanceName.trim() || 'admin-ui',
+        publish_to_portal: meetingMinutesPublished,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('บันทึกรายงานการประชุม', p.status, p.payload, p.rawText))
       setMsg('บันทึกรายงานการประชุมแล้ว')
       addActivity('info', `บันทึกรายงานการประชุมสำเร็จ: ${meetingId.trim()}`)
@@ -1792,12 +1789,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes/publish`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({ published }),
-      })
-      const p = await readApiJson(r)
+      const p = await postMeetingSessionMinutesPublish(base, adminKey, meetingId.trim(), { published })
       if (!p.ok) return setMsg(formatFetchError('อัปเดตสถานะเผยแพร่รายงานประชุม', p.status, p.payload, p.rawText))
       setMeetingMinutesPublished(published)
       setMsg(published ? 'เผยแพร่รายงานการประชุมแล้ว' : 'ซ่อนรายงานการประชุมจากพอร์ทัลแล้ว')
@@ -1841,18 +1833,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-agendas`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          scope: meetingEntity,
-          title: agendaTitle.trim(),
-          details: agendaDetails.trim() || null,
-          meeting_session_id: meetingId.trim() || null,
-          created_by: 'admin-ui',
-        }),
+      const p = await postMeetingAgendaCreate(base, adminKey, {
+        scope: meetingEntity,
+        title: agendaTitle.trim(),
+        details: agendaDetails.trim() || null,
+        meeting_session_id: meetingId.trim() || null,
+        created_by: 'admin-ui',
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('สร้างวาระประชุม', p.status, p.payload, p.rawText))
       setAgendaTitle('')
       setAgendaDetails('')
@@ -1875,16 +1862,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${voteAgendaId.trim()}/votes`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          voter_name: agendaVoterName.trim(),
-          voter_role_code: attendanceRole,
-          vote: agendaVote,
-        }),
+      const p = await postMeetingAgendaVote(base, adminKey, voteAgendaId.trim(), {
+        voter_name: agendaVoterName.trim(),
+        voter_role_code: attendanceRole,
+        vote: agendaVote,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('ลงมติวาระประชุม', p.status, p.payload, p.rawText))
       setMsg('บันทึกผลโหวตแล้ว')
       addActivity('info', `ลงมติสำเร็จ: ${voteAgendaId.trim()} (${agendaVote})`)
@@ -1920,11 +1902,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaId.trim()}/close`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await postMeetingAgendaClose(base, adminKey, agendaId.trim())
       if (!p.ok) return setMsg(formatFetchError('ปิดวาระประชุม', p.status, p.payload, p.rawText))
       setMsg('ปิดวาระประชุมแล้ว')
       addActivity('info', `ปิดวาระประชุมสำเร็จ: ${agendaId.trim()}`)
@@ -1960,16 +1938,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaPatchId.trim()}`, {
-        method: 'PATCH',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          title: agendaPatchTitle.trim(),
-          details: agendaPatchDetails.trim() || null,
-          status: agendaPatchStatus,
-        }),
+      const p = await patchMeetingAgenda(base, adminKey, agendaPatchId.trim(), {
+        title: agendaPatchTitle.trim(),
+        details: agendaPatchDetails.trim() || null,
+        status: agendaPatchStatus,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('แก้ไขวาระประชุม', p.status, p.payload, p.rawText))
       setMsg('บันทึกการแก้ไขวาระแล้ว')
       addActivity('info', `แก้ไขวาระประชุมสำเร็จ: ${agendaPatchId.trim()}`)
@@ -2016,21 +1989,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-documents`, {
-        method: 'POST',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          scope: meetingEntity,
-          title: documentTitle.trim(),
-          meeting_session_id: documentMeetingId.trim() || null,
-          agenda_id: documentAgendaId.trim() || null,
-          document_url: documentUrl.trim() || null,
-          document_text: documentText.trim() || null,
-          uploaded_by: attendanceName.trim() || 'admin-ui',
-          published_to_portal: false,
-        }),
+      const p = await postMeetingDocumentCreate(base, adminKey, {
+        scope: meetingEntity,
+        title: documentTitle.trim(),
+        meeting_session_id: documentMeetingId.trim() || null,
+        agenda_id: documentAgendaId.trim() || null,
+        document_url: documentUrl.trim() || null,
+        document_text: documentText.trim() || null,
+        uploaded_by: attendanceName.trim() || 'admin-ui',
+        published_to_portal: false,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('เพิ่มเอกสารประชุม', p.status, p.payload, p.rawText))
       setMsg('เพิ่มเอกสารประชุมแล้ว')
       setDocumentTitle('')
@@ -2052,11 +2020,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}`, {
-        method: 'DELETE',
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await deleteMeetingDocumentAdmin(base, adminKey, documentId.trim())
       if (!p.ok) return setMsg(formatFetchError('ลบเอกสารประชุม', p.status, p.payload, p.rawText))
       setMsg('ลบเอกสารประชุมแล้ว')
       addActivity('warn', `ลบเอกสารประชุมสำเร็จ: ${documentId.trim()}`)
@@ -2102,12 +2066,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}`, {
-        method: 'PATCH',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({ published_to_portal: nextPublished }),
+      const p = await patchMeetingDocumentPublish(base, adminKey, documentId.trim(), {
+        published_to_portal: nextPublished,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('อัปเดตสถานะเผยแพร่เอกสารประชุม', p.status, p.payload, p.rawText))
       setMsg(nextPublished ? 'เผยแพร่เอกสารประชุมแล้ว' : 'ซ่อนเอกสารประชุมจากพอร์ทัลแล้ว')
       addActivity('info', `${nextPublished ? 'เผยแพร่' : 'ซ่อน'}เอกสารประชุมสำเร็จ: ${documentId.trim()}`)
@@ -2151,18 +2112,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentPatchId.trim()}`, {
-        method: 'PATCH',
-        headers: financeAdminJsonHeaders(adminKey),
-        body: JSON.stringify({
-          title: documentPatchTitle.trim(),
-          document_url: urlT || null,
-          document_text: textT || null,
-          meeting_session_id: documentPatchMeetingId.trim() || null,
-          agenda_id: documentPatchAgendaId.trim() || null,
-        }),
+      const p = await patchMeetingDocumentFields(base, adminKey, documentPatchId.trim(), {
+        title: documentPatchTitle.trim(),
+        document_url: urlT || null,
+        document_text: textT || null,
+        meeting_session_id: documentPatchMeetingId.trim() || null,
+        agenda_id: documentPatchAgendaId.trim() || null,
       })
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('แก้ไขเอกสารประชุม', p.status, p.payload, p.rawText))
       setMsg('บันทึกการแก้ไขเอกสารแล้ว')
       addActivity('info', `แก้ไขเอกสารประชุมสำเร็จ: ${documentPatchId.trim()}`)
