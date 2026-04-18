@@ -84,6 +84,7 @@ import { FinanceAdminToolbarRegion } from './adminFinance/FinanceAdminToolbarReg
 import { FinanceAutoRefreshBar } from './adminFinance/FinanceAutoRefreshBar'
 import { FinanceAdminMeetingPaymentSection } from './adminFinance/FinanceAdminMeetingPaymentSection'
 import { useFinanceAutoRefresh } from './adminFinance/useFinanceAutoRefresh'
+import { useFinanceActivityLogView } from './adminFinance/useFinanceActivityLogView'
 import { useFinanceMeetingColumn } from './adminFinance/useFinanceMeetingColumn'
 import { useFinancePaymentRequestTools } from './adminFinance/useFinancePaymentRequestTools'
 import { useFinanceReportTables } from './adminFinance/useFinanceReportTables'
@@ -333,6 +334,28 @@ export function AdminFinancePanel({ apiBase }: Props) {
     toggleEntitySort,
   } = useFinanceReportTables(plSummary, donationsReport, trialBalance, reportKeyword)
 
+  const {
+    visibleActivityLog,
+    activitySearchTrimmed,
+    activityCounts,
+    activitySnapshotAt,
+    exportActivityLogCsv,
+    copyActivityFilterSummary,
+    copyVisibleActivityRows,
+    applyIncidentPreset,
+    resetActivityView,
+  } = useFinanceActivityLogView({
+    activityLog,
+    activityFilter,
+    activitySearch,
+    activityLimit,
+    setActivityFilter,
+    setActivitySearch,
+    setActivityLimit,
+    setMsg,
+    addActivity,
+  })
+
   const periodClosingsSentCount = useMemo(
     () => periodClosings.filter((row) => row.auditor_handoff_status === 'sent').length,
     [periodClosings],
@@ -341,33 +364,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
     () => periodClosings.filter((row) => row.auditor_handoff_status === 'completed').length,
     [periodClosings],
   )
-
-  const filteredActivityLog = useMemo(() => {
-    const keyword = activitySearch.trim().toLowerCase()
-    return activityLog.filter((item) => {
-      if (activityFilter !== 'all' && item.level !== activityFilter) return false
-      if (!keyword) return true
-      return `${item.at} ${item.atLabel} ${item.level} ${item.message}`.toLowerCase().includes(keyword)
-    })
-  }, [activityFilter, activityLog, activitySearch])
-  const visibleActivityLog = useMemo(() => {
-    if (activityLimit === 'all') return filteredActivityLog
-    return filteredActivityLog.slice(0, activityLimit)
-  }, [activityLimit, filteredActivityLog])
-  const activitySnapshotAt = useMemo(
-    () => visibleActivityLog[0]?.atLabel ?? '-',
-    [visibleActivityLog],
-  )
-  const activityCounts = useMemo(
-    () => ({
-      all: activityLog.length,
-      info: activityLog.filter((item) => item.level === 'info').length,
-      warn: activityLog.filter((item) => item.level === 'warn').length,
-      error: activityLog.filter((item) => item.level === 'error').length,
-    }),
-    [activityLog],
-  )
-  const activitySearchTrimmed = useMemo(() => activitySearch.trim(), [activitySearch])
 
   function applyPreset(preset: ReportPreset) {
     setReportEntity(preset.legalEntityCode)
@@ -480,88 +476,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     triggerBrowserFileDownload(blob, filename)
     setMsg(`ดาวน์โหลด ${filename} (มุมมองปัจจุบัน) แล้ว`)
-  }
-
-  function exportActivityLogCsv() {
-    if (!visibleActivityLog.length) {
-      setMsg('ยังไม่มีบันทึกกิจกรรมสำหรับส่งออก')
-      return
-    }
-    const rows = visibleActivityLog.map((it) => ({
-      timestamp: it.at,
-      display_time: it.atLabel,
-      level: it.level,
-      message: it.message,
-    }))
-    downloadCurrentViewCsv('finance-activity-log.csv', rows)
-    addActivity(
-      'info',
-      `ส่งออก Activity Log CSV (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
-    )
-  }
-
-  async function copyActivityFilterSummary() {
-    const summary = [
-      'YRC Finance Activity Log View',
-      `filter=${activityFilter}`,
-      `keyword=${activitySearchTrimmed || '-'}`,
-      `visible_count=${visibleActivityLog.length}`,
-      `total_count=${activityLog.length}`,
-      `limit=${activityLimit}`,
-      `copied_at=${new Date().toLocaleString('th-TH')}`,
-    ].join(' | ')
-
-    try {
-      await navigator.clipboard.writeText(summary)
-      setMsg('คัดลอกสรุปตัวกรองกิจกรรมปัจจุบันแล้ว')
-      addActivity(
-        'info',
-        `คัดลอกสรุปตัวกรองกิจกรรม (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
-      )
-    } catch {
-      setMsg(`คัดลอกไม่สำเร็จ\n${summary}`)
-      addActivity('warn', 'คัดลอกสรุปตัวกรองกิจกรรมไม่สำเร็จ')
-    }
-  }
-
-  async function copyVisibleActivityRows() {
-    if (!visibleActivityLog.length) {
-      setMsg('ไม่มีบันทึกกิจกรรมที่แสดงอยู่สำหรับคัดลอก')
-      return
-    }
-
-    const lines = [
-      'YRC Finance Activity Log Rows',
-      `filter=${activityFilter} | keyword=${activitySearchTrimmed || '-'} | visible=${visibleActivityLog.length} | limit=${activityLimit}`,
-      ...visibleActivityLog.map((it) => `[${it.atLabel}] [${it.level}] ${it.message}`),
-    ]
-    const text = lines.join('\n')
-
-    try {
-      await navigator.clipboard.writeText(text)
-      setMsg('คัดลอกแถวกิจกรรมที่แสดงอยู่แล้ว')
-      addActivity(
-        'info',
-        `คัดลอกแถวกิจกรรมที่แสดงอยู่ (${activityFilter}${activitySearchTrimmed ? `, q=${activitySearchTrimmed}` : ''}, limit=${activityLimit})`,
-      )
-    } catch {
-      setMsg(`คัดลอกไม่สำเร็จ\n${text}`)
-      addActivity('warn', 'คัดลอกแถวกิจกรรมที่แสดงอยู่ไม่สำเร็จ')
-    }
-  }
-
-  function applyIncidentPreset(nextFilter: Extract<ActivityFilter, 'warn' | 'error'>) {
-    setActivityFilter(nextFilter)
-    setActivitySearch('')
-    setActivityLimit(10)
-    addActivity('info', `พรีเซ็ตเหตุการณ์: ${nextFilter}`)
-  }
-
-  function resetActivityView() {
-    setActivityFilter('all')
-    setActivitySearch('')
-    setActivityLimit(20)
-    addActivity('info', 'รีเซ็ตมุมมองกิจกรรม')
   }
 
   async function loadOverviewAndAccounts() {
