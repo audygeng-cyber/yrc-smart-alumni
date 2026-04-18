@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { normalizeApiBase } from '../lib/adminApi'
 import { PAGE_SIZE } from '../lib/adminFinanceConstants'
 import {
+  financeBalanceSheetQuerySuffix,
+  financeGlQuerySuffix,
+  financeJournalsQuerySuffix,
+  financeReportQuerySuffix,
+} from '../lib/adminFinanceQueryStrings'
+import {
   buildBuiltinReportPresets,
   formatActivityTimestamp,
   formatDateInputValue,
@@ -291,14 +297,10 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
   }, [allPresets, builtinPresets, selectedPresetId])
 
-  const getReportQueryString = useCallback(() => {
-    const q = new URLSearchParams()
-    if (reportEntity) q.set('legal_entity_code', reportEntity)
-    if (reportFrom.trim()) q.set('from', reportFrom.trim())
-    if (reportTo.trim()) q.set('to', reportTo.trim())
-    const s = q.toString()
-    return s ? `?${s}` : ''
-  }, [reportEntity, reportFrom, reportTo])
+  const getReportQueryString = useCallback(
+    () => financeReportQuerySuffix(reportEntity, reportFrom, reportTo),
+    [reportEntity, reportFrom, reportTo],
+  )
 
   const { toggleAutoRefresh, resumeAutoRefresh } = useFinanceAutoRefresh({
     base,
@@ -515,43 +517,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setEntitySortDir(next.sortDir)
   }
 
-  function buildReportQueryStringFromValues(entity: ReportFilterEntity, from: string, to: string) {
-    const q = new URLSearchParams()
-    if (entity) q.set('legal_entity_code', entity)
-    if (from.trim()) q.set('from', from.trim())
-    if (to.trim()) q.set('to', to.trim())
-    const s = q.toString()
-    return s ? `?${s}` : ''
-  }
-
-  function buildJournalsQueryString() {
-    const q = new URLSearchParams()
-    if (reportEntity) q.set('legal_entity_code', reportEntity)
-    if (reportFrom.trim()) q.set('from', reportFrom.trim())
-    if (reportTo.trim()) q.set('to', reportTo.trim())
-    if (journalStatusFilter) q.set('status', journalStatusFilter)
-    const s = q.toString()
-    return s ? `?${s}` : ''
-  }
-
-  function buildBalanceSheetQueryString() {
-    const q = new URLSearchParams()
-    if (reportEntity) q.set('legal_entity_code', reportEntity)
-    if (bsAsOf.trim()) q.set('as_of', bsAsOf.trim())
-    const s = q.toString()
-    return s ? `?${s}` : ''
-  }
-
-  function buildGlQueryString() {
-    const q = new URLSearchParams()
-    if (reportEntity) q.set('legal_entity_code', reportEntity)
-    if (reportFrom.trim()) q.set('from', reportFrom.trim())
-    if (reportTo.trim()) q.set('to', reportTo.trim())
-    if (glAccountCode.trim()) q.set('account_code', glAccountCode.trim())
-    const s = q.toString()
-    return s ? `?${s}` : ''
-  }
-
   function applyPreset(preset: ReportPreset) {
     setReportEntity(preset.legalEntityCode)
     setReportFrom(preset.from)
@@ -586,7 +551,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const q = buildReportQueryStringFromValues(preset.legalEntityCode, preset.from, preset.to)
+      const q = financeReportQuerySuffix(preset.legalEntityCode, preset.from, preset.to)
       const [plResp, donationsResp] = await Promise.all([
         fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
           headers: { 'x-admin-key': adminKey.trim() },
@@ -1377,9 +1342,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/journals${buildJournalsQueryString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
-      })
+      const r = await fetch(
+        `${base}/api/admin/finance/journals${financeJournalsQuerySuffix({
+          reportEntity,
+          reportFrom,
+          reportTo,
+          journalStatusFilter,
+        })}`,
+        {
+          headers: { 'x-admin-key': adminKey.trim() },
+        },
+      )
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดสมุดรายวัน', p.status, p.payload, p.rawText))
       const payload = p.payload as { journals?: JournalListItem[] }
@@ -1589,9 +1562,15 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/balance-sheet${buildBalanceSheetQueryString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
-      })
+      const r = await fetch(
+        `${base}/api/admin/finance/reports/balance-sheet${financeBalanceSheetQuerySuffix({
+          reportEntity,
+          bsAsOf,
+        })}`,
+        {
+          headers: { 'x-admin-key': adminKey.trim() },
+        },
+      )
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดงบดุล', p.status, p.payload, p.rawText))
       const payload = p.payload as BalanceSheetPayload & { ok?: boolean; filters?: unknown }
@@ -1624,9 +1603,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/general-ledger${buildGlQueryString()}`, {
-        headers: { 'x-admin-key': adminKey.trim() },
-      })
+      const r = await fetch(
+        `${base}/api/admin/finance/reports/general-ledger${financeGlQuerySuffix({
+          reportEntity,
+          reportFrom,
+          reportTo,
+          glAccountCode,
+        })}`,
+        {
+          headers: { 'x-admin-key': adminKey.trim() },
+        },
+      )
       const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดสมุดบัญชีแยกประเภท', p.status, p.payload, p.rawText))
       const payload = p.payload as GeneralLedgerPayload & { ok?: boolean }
