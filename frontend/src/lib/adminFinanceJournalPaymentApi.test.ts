@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { postJournalDraft, postPaymentRequest, postPaymentRequestApprove } from './adminFinanceJournalPaymentApi'
+import {
+  fetchPaymentRequestDetail,
+  fetchPaymentRequestsList,
+  postJournalDraft,
+  postPaymentRequest,
+  postPaymentRequestApprove,
+} from './adminFinanceJournalPaymentApi'
 
 describe('postJournalDraft', () => {
   afterEach(() => {
@@ -66,6 +72,48 @@ describe('postPaymentRequest', () => {
         requested_by: 'admin-ui',
       }),
     })
+  })
+})
+
+describe('fetchPaymentRequestsList', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('GET payment-requests พร้อม query', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, paymentRequests: [] }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await fetchPaymentRequestsList('http://localhost:4000', 'k', {
+      legal_entity_code: 'association',
+      status: 'pending',
+      limit: 50,
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:4000/api/admin/finance/payment-requests?legal_entity_code=association&status=pending&limit=50',
+      expect.objectContaining({ headers: { 'x-admin-key': 'k' } }),
+    )
+  })
+})
+
+describe('fetchPaymentRequestDetail', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('GET payment-requests/:id encode id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await fetchPaymentRequestDetail('http://localhost:4000', 'k', 'abc/def')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:4000/api/admin/finance/payment-requests/abc%2Fdef',
+      expect.objectContaining({ headers: { 'x-admin-key': 'k' } }),
+    )
   })
 })
 

@@ -402,6 +402,117 @@ financeAdminRouter.get('/bank-accounts', async (req, res) => {
   }
 })
 
+financeAdminRouter.get('/payment-requests', async (req, res) => {
+  try {
+    const supabase = getServiceSupabase()
+    const { legalEntityId, error } = await readLegalEntityFilter(supabase, req.query as Record<string, unknown>)
+    if (error) {
+      res.status(400).json({ error })
+      return
+    }
+
+    const statusRaw = typeof req.query.status === 'string' ? req.query.status.trim() : ''
+    const limitRaw = Number(req.query.limit ?? 80)
+    const limit = Number.isFinite(limitRaw) ? Math.min(200, Math.max(1, Math.floor(limitRaw))) : 80
+
+    let q = supabase
+      .from('payment_requests')
+      .select(
+        'id,requested_at,legal_entity_id,bank_account_id,meeting_session_id,journal_entry_id,purpose,purpose_category,amount,currency,vat_rate,wht_rate,vat_amount,wht_amount,taxpayer_id,approval_rule,required_role_code,required_approvals,status,requested_by,kbiz_transfer_ref,transfer_slip_file_url,note',
+      )
+      .order('requested_at', { ascending: false })
+      .limit(limit)
+
+    if (legalEntityId) q = q.eq('legal_entity_id', legalEntityId)
+    if (statusRaw && ['pending', 'approved', 'rejected', 'executed'].includes(statusRaw)) {
+      q = q.eq('status', statusRaw)
+    }
+
+    const { data: rows, error: qErr } = await q
+    if (qErr) {
+      res.status(500).json({ error: 'โหลด payment_requests ไม่สำเร็จ', details: qErr })
+      return
+    }
+
+    const { data: entities } = await supabase.from('legal_entities').select('id,code,name_th')
+    const entityById = new Map<string, { code: string; name_th: string }>()
+    for (const e of entities ?? []) {
+      entityById.set(String(e.id), { code: String(e.code ?? ''), name_th: String(e.name_th ?? '') })
+    }
+
+    const paymentRequests = (rows ?? []).map((r) => {
+      const meta = entityById.get(String(r.legal_entity_id)) ?? { code: '', name_th: '' }
+      return {
+        ...r,
+        legal_entity_code: meta.code,
+        legal_entity_name: meta.name_th,
+      }
+    })
+
+    res.json({ ok: true, paymentRequests })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})
+
+financeAdminRouter.get('/payment-requests/:id', async (req, res) => {
+  try {
+    const id = typeof req.params.id === 'string' ? req.params.id.trim() : ''
+    if (!id) {
+      res.status(400).json({ error: 'ต้องระบุ id' })
+      return
+    }
+    const supabase = getServiceSupabase()
+    const { data: row, error: rowErr } = await supabase
+      .from('payment_requests')
+      .select(
+        'id,requested_at,legal_entity_id,bank_account_id,meeting_session_id,journal_entry_id,purpose,purpose_category,amount,currency,vat_rate,wht_rate,vat_amount,wht_amount,taxpayer_id,approval_rule,required_role_code,required_approvals,status,requested_by,kbiz_transfer_ref,transfer_slip_file_url,note,created_at,updated_at',
+      )
+      .eq('id', id)
+      .maybeSingle()
+
+    if (rowErr) {
+      res.status(500).json({ error: 'โหลดคำขอจ่ายไม่สำเร็จ', details: rowErr })
+      return
+    }
+    if (!row) {
+      res.status(404).json({ error: 'ไม่พบคำขอจ่าย' })
+      return
+    }
+
+    const { data: approvals, error: appErr } = await supabase
+      .from('payment_request_approvals')
+      .select('id,approver_name,approver_role_code,decision,comment,decided_at')
+      .eq('payment_request_id', id)
+      .order('decided_at', { ascending: true })
+
+    if (appErr) {
+      res.status(500).json({ error: 'โหลดประวัติอนุมัติไม่สำเร็จ', details: appErr })
+      return
+    }
+
+    const { data: entRow } = await supabase
+      .from('legal_entities')
+      .select('code,name_th')
+      .eq('id', row.legal_entity_id)
+      .maybeSingle()
+
+    res.json({
+      ok: true,
+      paymentRequest: {
+        ...row,
+        legal_entity_code: entRow?.code ?? null,
+        legal_entity_name: entRow?.name_th ?? null,
+      },
+      approvals: approvals ?? [],
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})
+
 financeAdminRouter.get('/overview', async (_req, res) => {
   try {
     const supabase = getServiceSupabase()
@@ -2923,6 +3034,7 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
       typeof req.body?.journal_entry_id === 'string' && req.body.journal_entry_id.trim()
         ? req.body.journal_entry_id.trim()
         : null
+    const requestNote = normalizeOptionalString(req.body?.note)
 
     if (!legal_entity_code || !purpose || !Number.isFinite(amount) || amount <= 0) {
       res.status(400).json({ error: 'ต้องระบุ legal_entity_code, purpose และ amount > 0' })
@@ -3028,6 +3140,7 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
         wht_amount: taxResult.whtAmount,
         taxpayer_id: taxpayerId,
         requested_by,
+        note: requestNote,
         approval_rule: policy.rule,
         required_approvals: policy.requiredApprovals,
         required_role_code: policy.requiredRoleCode,

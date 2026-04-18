@@ -1,4 +1,4 @@
-import { financeAdminJson } from './adminFinanceJsonFetch'
+import { financeAdminGetJson, financeAdminJson } from './adminFinanceJsonFetch'
 import type { ApiJsonResult } from './adminHttp'
 
 export async function postJournalDraft(
@@ -51,6 +51,28 @@ export async function postJournalVoid(
   return financeAdminJson(base, 'POST', `/api/admin/finance/journals/${safeId}/void`, adminKey, body)
 }
 
+export async function fetchPaymentRequestsList(
+  base: string,
+  adminKey: string,
+  query: { legal_entity_code?: string; status?: string; limit?: number } = {},
+): Promise<ApiJsonResult> {
+  const q = new URLSearchParams()
+  if (query.legal_entity_code) q.set('legal_entity_code', query.legal_entity_code)
+  if (query.status) q.set('status', query.status)
+  if (query.limit != null) q.set('limit', String(query.limit))
+  const suffix = q.toString() ? `?${q}` : ''
+  return financeAdminGetJson(base, `/api/admin/finance/payment-requests${suffix}`, adminKey)
+}
+
+export async function fetchPaymentRequestDetail(
+  base: string,
+  adminKey: string,
+  id: string,
+): Promise<ApiJsonResult> {
+  const safe = encodeURIComponent(id.trim())
+  return financeAdminGetJson(base, `/api/admin/finance/payment-requests/${safe}`, adminKey)
+}
+
 export async function postPaymentRequest(
   base: string,
   adminKey: string,
@@ -67,6 +89,8 @@ export async function postPaymentRequest(
     /** Originating journal entry (same legal entity; not voided) */
     journal_entry_id?: string
     requested_by: string
+    /** โน้ตภายใน (ไม่แสดงในเอกสารถึงคู่ค้า) */
+    note?: string | null
   },
 ): Promise<ApiJsonResult> {
   return financeAdminJson(base, 'POST', '/api/admin/finance/payment-requests', adminKey, body)

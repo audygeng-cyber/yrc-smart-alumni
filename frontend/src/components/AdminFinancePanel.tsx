@@ -83,7 +83,7 @@ import { FinanceAdminPanelHeader } from './adminFinance/FinanceAdminPanelHeader'
 import { FinanceAdminPanelSection } from './adminFinance/FinanceAdminPanelSection'
 import { FinanceAdminToolbarRegion } from './adminFinance/FinanceAdminToolbarRegion'
 import { FinanceAutoRefreshBar } from './adminFinance/FinanceAutoRefreshBar'
-import { FinanceAccountingRoadmapNote } from './adminFinance/FinanceAccountingRoadmapNote'
+import { FinanceAssociationExpenseHub } from './adminFinance/FinanceAssociationExpenseHub'
 import { FinanceAdminKeyField } from './adminFinance/FinanceAdminKeyField'
 import { FinanceAdminMeetingColumn } from './adminFinance/FinanceAdminMeetingColumn'
 import type { FinanceAdminTab } from './adminFinance/FinanceAdminSubNav'
@@ -1324,7 +1324,17 @@ export function AdminFinancePanel({ apiBase }: Props) {
 
       {section === 'accounting' ? (
         <>
-          <FinanceAccountingRoadmapNote />
+          <FinanceAssociationExpenseHub
+            apiBase={base}
+            adminKey={adminKey}
+            loading={loading}
+            setLoading={setLoading}
+            setMsg={setMsg}
+            addActivity={addActivity}
+            entities={overview?.entities ?? []}
+            accounts={accounts}
+            onCreated={() => void loadOverviewAndAccounts()}
+          />
 
       <FinanceAdminToolbarRegion>
         <FinanceQuickActionsBar
