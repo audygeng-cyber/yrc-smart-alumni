@@ -43,6 +43,9 @@ jobs:
       - name: Verify Phase 3 (members + LINE API probes)
         run: npm run phase3:verify
 
+      - name: Verify Phase 4 (member portal API probes)
+        run: npm run phase4:verify
+
       - name: Lint
         run: npm run lint
 

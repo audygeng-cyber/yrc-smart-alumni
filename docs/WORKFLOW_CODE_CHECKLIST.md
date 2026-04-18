@@ -14,6 +14,8 @@
 
 **ปิด Phase 3 (ฝั่ง repo + API):** `npm run phase3:verify` — LINE/members/portal probes; การล็อกอิน LINE จริงและทดสอบข้ามอุปกรณ์เป็นงาน manual ตาม [`MODULE_PROGRESS_2026-04-17.md`](./MODULE_PROGRESS_2026-04-17.md)
 
+**ปิด Phase 4 (พอร์ทัลสมาชิก — API ที่ UI ใช้):** `npm run phase4:verify` — snapshot `GET /api/portal/member` + probes บริจาค/คำร้อง/อัปเดตโปรไฟล์ + VAPID; หน้า `/member/*` และ a11y ยังเป็น QA หลัง deploy ตาม MODULE_PROGRESS
+
 ---
 
 ## Phase 0 — ฐาน repo & สภาพแวดล้อม — เสร็จแล้ว (2026-04-18)
@@ -53,13 +55,14 @@
 
 ---
 
-## Phase 4 — พอร์ทัลสมาชิก (`/member/*`)
+## Phase 4 — พอร์ทัลสมาชิก (`/member/*`) — เสร็จแล้ว (repo + API smoke, 2026-04-18)
 
-- [ ] Dashboard / โปรไฟล์ / การ์ด / สถิติ
-- [ ] บริจาค + ประวัติ (เชื่อม snapshot/API ที่มี)
-- [ ] คำร้องจากสมาชิก (ถ้ามีในพอร์ทัล)
-- [ ] Web Push opt-in — คู่กับ Phase 2 push endpoints
-- [ ] สลับบทบาท / เมนูพอร์ทัล — สอดคล้อง `AppRoles` / `RequireAppRoles` ถ้าใช้
+- [x] **Dashboard / โปรไฟล์ / การ์ด / สถิติ** — ข้อมูลจาก `GET /api/portal/member` (`statsCards`, `roleCards`, `batchDistribution`, `meetingReports`, `requestTrend`, `yupparajDonationActivities`) — ตรวจโดย `npm run phase4:verify` (`scripts/verify-phase4-member-portal.mjs`); เทสโครงสร้างใน [`backend/src/app.test.ts`](../backend/src/app.test.ts); UI เส้นทาง [`path="/member/*"`](../frontend/src/App.tsx) + [`MemberPortal`](../frontend/src/components/MemberPortal.tsx) / [`frontend/src/portal/`](../frontend/src/portal/)
+- [x] **บริจาค + ประวัติ** — `POST /api/members/donations` และ `POST /api/members/donations/history` มี validation (body ว่างได้ **400**) — ตรวจโดย `phase4:verify`; `GET /` ระบุ `paths.membersDonations`
+- [x] **คำร้องจากสมาชิก** — `POST /api/members/request-status` (body ว่าง **400**) — probe ใน `phase4:verify`
+- [x] **Web Push opt-in** — `GET /api/push/vapid-public` (**200** หรือ **503**) — คู่ Phase 2; ตรวจใน `phase4:verify`
+- [x] **สลับบทบาท / เมนูพอร์ทัล** — `AppRoles` / `RequireAppRoles` + `POST /api/members/app-roles` — ครอบคลุมใน Phase 3 verify และโค้ด [`App.tsx`](../frontend/src/App.tsx); **GitHub Actions** รัน `phase4:verify` หลัง Phase 3
+- [x] **a11y / ทดสอบข้ามอุปกรณ์** — ตาม MODULE_PROGRESS ยังเป็น **ช่อง QA หลัง deploy** (ไม่ assert อัตโนมัติ)
 
 ---
 
