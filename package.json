@@ -10,6 +10,7 @@
     "doctor": "node scripts/check-local-ready.mjs",
     "phase0:verify": "npm run build -w backend && node scripts/verify-local-api-health.mjs",
     "phase1:verify": "node scripts/verify-migrations.mjs",
+    "phase2:verify": "npm run build -w backend && node scripts/verify-phase2-api.mjs",
     "bootstrap": "npm run setup:env && npm run doctor",
     "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev -w frontend\" \"npm run dev -w backend\"",
     "build": "npm run build -w frontend && npm run build -w backend",

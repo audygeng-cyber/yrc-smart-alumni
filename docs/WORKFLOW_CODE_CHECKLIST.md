@@ -10,6 +10,8 @@
 
 **ปิด Phase 1 (ฝั่ง repo):** `npm run phase1:verify` — ก่อน deploy ครั้งสำคัญให้รัน migration ตามลำดับบน Supabase **dev/staging ก่อน production** (ดูด้านล่าง)
 
+**ปิด Phase 2 (แกน API บนเครื่อง):** `npm run phase2:verify` — หลัง build backend; **deploy จริง** ตั้ง `FRONTEND_ORIGINS` ให้ตรงโดเมน frontend ([`README.md`](../README.md))
+
 ---
 
 ## Phase 0 — ฐาน repo & สภาพแวดล้อม — เสร็จแล้ว (2026-04-18)
@@ -31,12 +33,12 @@
 
 ---
 
-## Phase 2 — Backend API แกนกลาง (Express)
+## Phase 2 — Backend API แกนกลาง (Express) — เสร็จแล้ว (ฝั่ง repo + smoke, 2026-04-18)
 
-- [ ] CORS / `FRONTEND_ORIGINS` — สอดคล้อง [`README.md`](../README.md) และ deploy จริง
-- [ ] เส้นทางสาธารณะที่จำเป็น: `/health`, เอกสาร service index ใน `backend/src/app.ts` (เมื่อเพิ่ม route)
-- [ ] Admin: `x-admin-key` ครอบคลุมเส้นทางที่เกี่ยวข้อง
-- [ ] Push (ถ้าใช้): `GET /api/push/vapid-public`, `POST /api/push/subscribe` ทำงานคู่กับ frontend
+- [x] **CORS / `FRONTEND_ORIGINS`** — default ใน `backend/src/app.ts` อนุญาต `http://localhost:5173` และ `127.0.0.1:5173`; ตั้งค่า `FRONTEND_ORIGINS` คั่นด้วยจุลภาคบน production — `npm run phase2:verify` ตรวจ preflight/response กับ Origin `localhost:5173`; รายละเอียด deploy ดู [`README.md`](../README.md)
+- [x] **`/health` และ service index `GET /`** — โครงสร้าง JSON ที่ root ระบุ `paths.health`, `paths.push`, `paths.finance` — ตรวจโดย `scripts/verify-phase2-api.mjs`
+- [x] **Admin `x-admin-key`** — middleware `adminAuth` บน `/api/admin/finance`, cram, school-activities, import ฯลฯ — verify เรียก `GET /api/admin/finance/overview` ไม่มีคีย์ได้ **401**; เทสหน่วยใน [`backend/src/app.test.ts`](../backend/src/app.test.ts)
+- [x] **Push** — `GET /api/push/vapid-public` (200 เมื่อตั้ง VAPID หรือ **503** เมื่อยังไม่ตั้ง); `POST /api/push/subscribe` ยืนยันด้วย body ว่างได้ **400** — route ทำงาน; **GitHub Actions** รัน `phase2:verify` หลัง build backend
 
 ---
 
