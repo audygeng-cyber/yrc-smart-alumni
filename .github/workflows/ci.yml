@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify Supabase migrations (Phase 1)
+        run: npm run phase1:verify
+
       - name: Build frontend
         run: npm run build -w frontend
 

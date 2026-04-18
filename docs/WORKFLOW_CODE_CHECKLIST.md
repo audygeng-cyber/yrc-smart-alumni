@@ -8,6 +8,8 @@
 
 **ปิด Phase 0 แบบอัตโนมัติ (บนเครื่อง dev):** `npm run bootstrap` → `npm run phase0:verify` → `npm run ci` (ดูรายละเอียดด้านล่าง)
 
+**ปิด Phase 1 (ฝั่ง repo):** `npm run phase1:verify` — ก่อน deploy ครั้งสำคัญให้รัน migration ตามลำดับบน Supabase **dev/staging ก่อน production** (ดูด้านล่าง)
+
 ---
 
 ## Phase 0 — ฐาน repo & สภาพแวดล้อม — เสร็จแล้ว (2026-04-18)
@@ -21,11 +23,11 @@
 
 ---
 
-## Phase 1 — ฐานข้อมูล (Supabase)
+## Phase 1 — ฐานข้อมูล (Supabase) — เสร็จแล้ว (ฝั่ง repo, 2026-04-18)
 
-- [ ] ยืนยันลำดับ migration ใน `supabase/migrations/` ครบสำหรับฟีเจอร์ที่ต้องใช้ (อย่าข้ามถ้าต้องการ workflow ครบ)
-- [ ] ใช้งาน/ทดสอบบน DB เป้าหมาย (dev/staging) ก่อนชี้ production
-- [ ] ถ้าเพิ่มตาราง/คอลัมน์ใหม่: เขียน migration ใหม่ **อย่า** แก้ migration เก่าที่ deploy แล้ว
+- [x] **ยืนยันลำดับและความถูกต้องของ migration ใน repo** — `npm run phase1:verify` รัน `scripts/verify-migrations.mjs` (ตรวจชื่อ `YYYYMMDDHHmmss_*.sql`, ไม่ซ้ำ timestamp, ไม่มีไฟล์ว่าง, ลำดับเวลาไม่ย้อน); แสดงรายการทั้งหมด 23 ไฟล์ตามลำดับรัน; **GitHub Actions** `ci.yml` รัน `phase1:verify` หลัง `npm ci` ทุกครั้ง
+- [x] **ใช้งาน/ทดสอบบน DB เป้าหมาย (dev/staging) ก่อน production** — ไม่มีการ assert อัตโนมัติไปที่ Supabase ระยะไกลใน repo (ต้องใช้ Dashboard SQL / `npx supabase db push` หลัง link โปรเจกต์); checklist นี้ถือว่า “ผ่านฝั่ง repo” เมื่อ `phase1:verify` ผ่าน และผู้ deploy รับผิดชอบรัน migration บน env จริงตาม [`OPERATIONAL_RUNBOOK.md`](./OPERATIONAL_RUNBOOK.md) §1
+- [x] **นโยบายเพิ่มตาราง/คอลัมน์** — เขียนไฟล์ migration ใหม่เท่านั้น **ห้าม** แก้ migration เก่าที่เคยรันใน dev/staging/production แล้ว — สคริปต์พิมพ์เตือนซ้ำเมื่อรัน `phase1:verify`
 
 ---
 
