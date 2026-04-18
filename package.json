@@ -31,6 +31,7 @@
     "verify:deploy:deep": "node scripts/verify-deployment.mjs --deep",
     "verify:admin": "node scripts/verify-admin.mjs",
     "verify:line": "node scripts/verify-line-config.mjs",
+    "verify:vercel-line-cors": "node scripts/verify-vercel-line-cors.mjs",
     "migrations:list": "node scripts/list-supabase-migrations.mjs",
     "line:show-env": "node scripts/show-cloud-run-line-env.mjs"
   },
