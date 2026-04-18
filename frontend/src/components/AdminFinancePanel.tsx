@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { normalizeApiBase } from '../lib/adminApi'
-import { AUTO_REFRESH_MAX_FAILURES, PAGE_SIZE } from '../lib/adminFinanceConstants'
+import { PAGE_SIZE } from '../lib/adminFinanceConstants'
 import {
   buildBuiltinReportPresets,
   formatActivityTimestamp,
@@ -48,6 +48,7 @@ import { FinanceAdminPanelSection } from './adminFinance/FinanceAdminPanelSectio
 import { FinanceAdminToolbarRegion } from './adminFinance/FinanceAdminToolbarRegion'
 import { FinanceAutoRefreshBar } from './adminFinance/FinanceAutoRefreshBar'
 import { FinanceAdminMeetingPaymentSection } from './adminFinance/FinanceAdminMeetingPaymentSection'
+import { useFinanceAutoRefresh } from './adminFinance/useFinanceAutoRefresh'
 import { useFinancePanelSessionSync } from './adminFinance/useFinancePanelSessionSync'
 import { FinanceOverviewSummary } from './adminFinance/FinanceOverviewSummary'
 import { FinanceQuickActionsBar } from './adminFinance/FinanceQuickActionsBar'
@@ -243,7 +244,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [approveDecision, setApproveDecision] = useState<'approve' | 'reject'>('approve')
   const builtinPresets = useMemo(() => buildBuiltinReportPresets(), [])
   const allPresets = useMemo(() => [...builtinPresets, ...customPresets], [builtinPresets, customPresets])
-  const pauseAlertSentRef = useRef(false)
 
   function addActivity(level: ActivityItem['level'], message: string) {
     const stamp = formatActivityTimestamp(new Date())
@@ -284,6 +284,36 @@ export function AdminFinancePanel({ apiBase }: Props) {
       setSelectedPresetId(builtinPresets[0]?.id ?? '')
     }
   }, [allPresets, builtinPresets, selectedPresetId])
+
+  const getReportQueryString = useCallback(() => {
+    const q = new URLSearchParams()
+    if (reportEntity) q.set('legal_entity_code', reportEntity)
+    if (reportFrom.trim()) q.set('from', reportFrom.trim())
+    if (reportTo.trim()) q.set('to', reportTo.trim())
+    const s = q.toString()
+    return s ? `?${s}` : ''
+  }, [reportEntity, reportFrom, reportTo])
+
+  const { toggleAutoRefresh, resumeAutoRefresh } = useFinanceAutoRefresh({
+    base,
+    adminKey,
+    autoRefreshEnabled,
+    autoRefreshPausedByError,
+    autoRefreshSeconds,
+    alertOnPause,
+    soundOnPause,
+    autoRefreshFailureCount,
+    getReportQueryString,
+    setPlSummary,
+    setDonationsReport,
+    setIsAutoRefreshing,
+    setLastAutoRefreshAt,
+    setLastAutoRefreshError,
+    setAutoRefreshFailureCount,
+    setAutoRefreshPausedByError,
+    setAutoRefreshEnabled,
+    addActivity,
+  })
 
   const filteredAccounts = useMemo(() => {
     const ent = overview?.entities.find((e) => e.code === paymentEntity)
@@ -455,183 +485,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setEntityPage(1)
   }, [reportKeywordNorm])
 
-  useEffect(() => {
-    if (!autoRefreshEnabled) {
-      setIsAutoRefreshing(false)
-      return
-    }
-    if (autoRefreshPausedByError) {
-      setIsAutoRefreshing(false)
-      return
-    }
-    if (!adminKey.trim()) return
-
-    let cancelled = false
-    const run = async () => {
-      setIsAutoRefreshing(true)
-      try {
-        const q = buildReportQueryStringFromValues(reportEntity, reportFrom, reportTo)
-        const [plResp, donationsResp] = await Promise.all([
-          fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
-            headers: { 'x-admin-key': adminKey.trim() },
-          }),
-          fetch(`${base}/api/admin/finance/reports/donations${q}`, {
-            headers: { 'x-admin-key': adminKey.trim() },
-          }),
-        ])
-        const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])
-        if (cancelled) return
-        if (!pl.ok || !donations.ok) {
-          const errors: string[] = []
-          if (!pl.ok) errors.push(formatFetchError('รีเฟรชอัตโนมัติ P/L', pl.status, pl.payload, pl.rawText))
-          if (!donations.ok) {
-            errors.push(
-              formatFetchError(
-                'รีเฟรชอัตโนมัติรายงานเงินบริจาค',
-                donations.status,
-                donations.payload,
-                donations.rawText,
-              ),
-            )
-          }
-          setAutoRefreshFailureCount((prev) => {
-            const next = prev + 1
-            if (next >= AUTO_REFRESH_MAX_FAILURES) {
-              setAutoRefreshPausedByError(true)
-              setLastAutoRefreshError(
-                `${errors.join('\n\n------------------------------\n\n')}\n\nรีเฟรชอัตโนมัติหยุดชั่วคราว (ผิดพลาดต่อเนื่อง ${next} ครั้ง)`,
-              )
-              addActivity('warn', `รีเฟรชอัตโนมัติหยุดชั่วคราว (ผิดพลาดต่อเนื่อง ${next} ครั้ง)`)
-            } else {
-              setLastAutoRefreshError(
-                `${errors.join('\n\n------------------------------\n\n')}\n\nรีเฟรชอัตโนมัติผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
-              )
-              addActivity('warn', `รีเฟรชอัตโนมัติผิดพลาด ${next}/${AUTO_REFRESH_MAX_FAILURES}`)
-            }
-            return next
-          })
-          return
-        }
-        setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
-        setDonationsReport((donations.payload ?? null) as DonationsReportPayload | null)
-        setLastAutoRefreshAt(new Date().toLocaleTimeString('th-TH'))
-        setLastAutoRefreshError(null)
-        setAutoRefreshFailureCount(0)
-        addActivity('info', 'รีเฟรชอัตโนมัติสำเร็จ')
-      } catch {
-        if (!cancelled) {
-          setAutoRefreshFailureCount((prev) => {
-            const next = prev + 1
-            if (next >= AUTO_REFRESH_MAX_FAILURES) {
-              setAutoRefreshPausedByError(true)
-              setLastAutoRefreshError(
-                `รีเฟรชอัตโนมัติเรียก API ไม่สำเร็จ\n\nรีเฟรชอัตโนมัติหยุดชั่วคราว (ผิดพลาดต่อเนื่อง ${next} ครั้ง)`,
-              )
-              addActivity('warn', `รีเฟรชอัตโนมัติหยุดชั่วคราว (เรียก API ล้มเหลว ${next} ครั้ง)`)
-            } else {
-              setLastAutoRefreshError(
-                `รีเฟรชอัตโนมัติเรียก API ไม่สำเร็จ\n\nรีเฟรชอัตโนมัติผิดพลาดต่อเนื่อง ${next}/${AUTO_REFRESH_MAX_FAILURES}`,
-              )
-              addActivity('warn', `รีเฟรชอัตโนมัติเรียก API ไม่สำเร็จ ${next}/${AUTO_REFRESH_MAX_FAILURES}`)
-            }
-            return next
-          })
-        }
-      } finally {
-        if (!cancelled) setIsAutoRefreshing(false)
-      }
-    }
-
-    void run()
-    const timer = window.setInterval(() => {
-      void run()
-    }, autoRefreshSeconds * 1000)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-    }
-  }, [
-    adminKey,
-    autoRefreshEnabled,
-    autoRefreshPausedByError,
-    autoRefreshSeconds,
-    base,
-    reportEntity,
-    reportFrom,
-    reportTo,
-  ])
-
-  useEffect(() => {
-    if (!autoRefreshPausedByError || pauseAlertSentRef.current) return
-
-    if (alertOnPause && typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') {
-        new Notification('YRC Finance Auto Refresh Paused', {
-          body: `รีเฟรชอัตโนมัติหยุดชั่วคราวหลังผิดพลาดต่อเนื่อง ${autoRefreshFailureCount} ครั้ง`,
-        })
-      } else if (Notification.permission === 'default') {
-        Notification.requestPermission().then((permission) => {
-          if (permission === 'granted') {
-            new Notification('YRC Finance Auto Refresh Paused', {
-              body: `รีเฟรชอัตโนมัติหยุดชั่วคราวหลังผิดพลาดต่อเนื่อง ${autoRefreshFailureCount} ครั้ง`,
-            })
-          }
-        })
-      }
-    }
-
-    if (soundOnPause && typeof window !== 'undefined') {
-      const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-      if (Ctx) {
-        const ctx = new Ctx()
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.type = 'sine'
-        osc.frequency.setValueAtTime(880, ctx.currentTime)
-        gain.gain.setValueAtTime(0.001, ctx.currentTime)
-        gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02)
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3)
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.start()
-        osc.stop(ctx.currentTime + 0.3)
-        window.setTimeout(() => {
-          void ctx.close()
-        }, 400)
-      }
-    }
-
-    pauseAlertSentRef.current = true
-  }, [alertOnPause, autoRefreshFailureCount, autoRefreshPausedByError, soundOnPause])
-
-  useEffect(() => {
-    if (!autoRefreshPausedByError) pauseAlertSentRef.current = false
-  }, [autoRefreshPausedByError])
-
-  function toggleAutoRefresh(enabled: boolean) {
-    setAutoRefreshEnabled(enabled)
-    if (!enabled) {
-      setAutoRefreshPausedByError(false)
-      setAutoRefreshFailureCount(0)
-      setLastAutoRefreshError(null)
-      setIsAutoRefreshing(false)
-      addActivity('info', 'ปิดรีเฟรชอัตโนมัติ')
-      return
-    }
-    setAutoRefreshPausedByError(false)
-    setAutoRefreshFailureCount(0)
-    setLastAutoRefreshError(null)
-    addActivity('info', 'เปิดรีเฟรชอัตโนมัติ')
-  }
-
-  function resumeAutoRefresh() {
-    setAutoRefreshPausedByError(false)
-    setAutoRefreshFailureCount(0)
-    setLastAutoRefreshError(null)
-    addActivity('info', 'เริ่มรีเฟรชอัตโนมัติอีกครั้ง')
-  }
-
   function togglePlSort(nextKey: PlSortKey) {
     if (plSortKey === nextKey) {
       setPlSortDir((cur) => (cur === 'asc' ? 'desc' : 'asc'))
@@ -666,10 +519,6 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
     setEntitySortKey(nextKey)
     setEntitySortDir(nextKey === 'legalEntityCode' ? 'asc' : 'desc')
-  }
-
-  function buildReportQueryString() {
-    return buildReportQueryStringFromValues(reportEntity, reportFrom, reportTo)
   }
 
   function buildReportQueryStringFromValues(entity: ReportFilterEntity, from: string, to: string) {
@@ -962,7 +811,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/pl-summary${buildReportQueryString()}`, {
+      const r = await fetch(`${base}/api/admin/finance/reports/pl-summary${getReportQueryString()}`, {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const p = await readApiJson(r)
@@ -984,7 +833,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/donations${buildReportQueryString()}`, {
+      const r = await fetch(`${base}/api/admin/finance/reports/donations${getReportQueryString()}`, {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const p = await readApiJson(r)
@@ -1008,7 +857,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/trial-balance${buildReportQueryString()}`, {
+      const r = await fetch(`${base}/api/admin/finance/reports/trial-balance${getReportQueryString()}`, {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const p = await readApiJson(r)
@@ -1029,7 +878,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const q = buildReportQueryString()
+      const q = getReportQueryString()
       const [plResp, donationsResp, trialResp] = await Promise.all([
         fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
           headers: { 'x-admin-key': adminKey.trim() },
@@ -1719,7 +1568,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}/api/admin/finance/reports/income-statement${buildReportQueryString()}`, {
+      const r = await fetch(`${base}/api/admin/finance/reports/income-statement${getReportQueryString()}`, {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const p = await readApiJson(r)
@@ -1807,7 +1656,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(`${base}${path}${buildReportQueryString()}`, {
+      const r = await fetch(`${base}${path}${getReportQueryString()}`, {
         headers: { 'x-admin-key': adminKey.trim() },
       })
       const blob = await r.blob()
