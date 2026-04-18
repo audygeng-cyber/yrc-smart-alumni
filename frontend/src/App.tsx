@@ -215,18 +215,18 @@ export default function App() {
           return
         }
         const persisted = await syncLineAppUser(apiBase, j.line_uid)
-        setLineIdentitySyncMessage(
-          persisted.ok
-            ? {
-                kind: 'ok',
-                text:
-                  'ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว (ใช้เป็นตัวตนในแอป — ผูกข้อมูลสมาชิกทำที่ขั้นตอนถัดไป)',
-              }
-            : {
-                kind: 'err',
-                text: `บันทึก LINE UID ในระบบไม่สำเร็จ: ${persisted.error} — ตรวจ VITE_API_URL และ CORS`,
-              },
-        )
+        if (persisted.ok === false) {
+          setLineIdentitySyncMessage({
+            kind: 'err',
+            text: `บันทึก LINE UID ในระบบไม่สำเร็จ: ${persisted.error} — ตรวจ VITE_API_URL และ CORS`,
+          })
+        } else {
+          setLineIdentitySyncMessage({
+            kind: 'ok',
+            text:
+              'ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว (ใช้เป็นตัวตนในแอป — ผูกข้อมูลสมาชิกทำที่ขั้นตอนถัดไป)',
+          })
+        }
         setLineSessionFromOAuth(j.line_uid, j.name ?? undefined)
         setLineUid(j.line_uid)
         setLineUidFromOAuth(true)
