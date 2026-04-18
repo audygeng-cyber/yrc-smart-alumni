@@ -63,7 +63,7 @@ export function FinancePeriodClosingPanel({
   setPeriodClosingDetail,
 }: FinancePeriodClosingPanelProps) {
   return (
-    <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="ปิดงวดบัญชีและส่งผู้ตรวจสอบ">
+    <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="ปิดงวดบัญชีและส่งผู้ตรวจสอบ">
       <h3 className="text-sm font-medium text-slate-100">ปิดงวดบัญชีและเตรียมไฟล์ผู้ตรวจสอบ</h3>
       <p className="mt-1 text-[11px] text-slate-400">
         เลือกหน่วยงานและช่วงวันที่เพื่อบันทึกงวดปิดบัญชี จากนั้นส่งออก <code className="text-slate-500">Auditor Package CSV</code> เพื่อส่งผู้ตรวจสอบ

@@ -35,7 +35,7 @@ export function FinancePlReportPanel({
   setPlPage,
 }: FinancePlReportPanelProps) {
   return (
-    <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="รายงานบัญชี P/L">
+    <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="รายงานบัญชี P/L">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="font-medium">บัญชี P/L (ทั้งหมด)</p>
         <button

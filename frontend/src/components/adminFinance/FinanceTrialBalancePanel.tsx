@@ -9,7 +9,7 @@ export type FinanceTrialBalancePanelProps = {
 
 export function FinanceTrialBalancePanel({ trialBalance, onExportViewCsv }: FinanceTrialBalancePanelProps) {
   return (
-    <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="รายงาน Trial Balance">
+    <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="รายงาน Trial Balance">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="font-medium">Trial Balance (งบทดลอง)</p>
         <button

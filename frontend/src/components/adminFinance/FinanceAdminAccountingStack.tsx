@@ -1,3 +1,9 @@
+import {
+  FinanceAdminAccountingFinanceSection,
+  FinanceAdminDonationsSection,
+  FinanceAdminFiscalToolsSection,
+  FinanceAdminReportsOverviewSection,
+} from './FinanceAdminAccountingSubsections'
 import { FinanceDonationsReportGrid, type FinanceDonationsReportGridProps } from './FinanceDonationsReportGrid'
 import { FinanceFiscalToolsPanel, type FinanceFiscalToolsPanelProps } from './FinanceFiscalToolsPanel'
 import { FinanceJournalsGlPanel, type FinanceJournalsGlPanelProps } from './FinanceJournalsGlPanel'
@@ -14,7 +20,7 @@ export type FinanceAdminAccountingStackProps = {
   donations: FinanceDonationsReportGridProps | null
 }
 
-/** บล็อกรายงานบัญชีหลัก — state อยู่ที่ parent (`AdminFinancePanel`) */
+/** บล็อกรายงานบัญชีหลัก — แบ่งเป็นส่วนย่อย: รายงาน/ปิดงวด · บัญชี-การเงิน (สมุดรายรับ+GL/งบ) · ภาษี-ปี · บริจาค — state อยู่ที่ parent (`AdminFinancePanel`) */
 export function FinanceAdminAccountingStack({
   pl,
   periodClosing,
@@ -25,12 +31,25 @@ export function FinanceAdminAccountingStack({
 }: FinanceAdminAccountingStackProps) {
   return (
     <>
-      {pl ? <FinancePlReportPanel {...pl} /> : null}
-      <FinancePeriodClosingPanel {...periodClosing} />
-      {trialBalance ? <FinanceTrialBalancePanel {...trialBalance} /> : null}
-      <FinanceJournalsGlPanel {...journalsGl} />
-      <FinanceFiscalToolsPanel {...fiscal} />
-      {donations ? <FinanceDonationsReportGrid {...donations} /> : null}
+      <FinanceAdminReportsOverviewSection>
+        {pl ? <FinancePlReportPanel {...pl} /> : null}
+        <FinancePeriodClosingPanel {...periodClosing} />
+        {trialBalance ? <FinanceTrialBalancePanel {...trialBalance} /> : null}
+      </FinanceAdminReportsOverviewSection>
+
+      <FinanceAdminAccountingFinanceSection>
+        <FinanceJournalsGlPanel {...journalsGl} />
+      </FinanceAdminAccountingFinanceSection>
+
+      <FinanceAdminFiscalToolsSection>
+        <FinanceFiscalToolsPanel {...fiscal} />
+      </FinanceAdminFiscalToolsSection>
+
+      {donations ? (
+        <FinanceAdminDonationsSection>
+          <FinanceDonationsReportGrid {...donations} />
+        </FinanceAdminDonationsSection>
+      ) : null}
     </>
   )
 }

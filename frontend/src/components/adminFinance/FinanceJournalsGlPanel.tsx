@@ -120,14 +120,16 @@ export function FinanceJournalsGlPanel({
 }: FinanceJournalsGlPanelProps) {
   return (
     <div
-      className="mt-4 rounded-lg border border-indigo-900/50 bg-slate-950/60 p-3 text-xs text-slate-200"
-      aria-label="สมุดรายวันและรายงานบัญชีขั้นสูง"
+      className="rounded-lg border border-indigo-900/50 bg-slate-950/60 p-3 text-xs text-slate-200"
+      aria-label="สมุดรายรับและรายงาน GL · งบกำไร · งบดุล"
     >
-      <h3 className="text-sm font-medium text-indigo-200">สมุดรายวัน (journals) · GL · งบกำไร · งบดุล</h3>
-      <p className="mt-1 text-[11px] text-slate-500">ใช้ตัวกรองวันที่/หน่วยงานด้านบนร่วมกับรายการ journal และ GL</p>
+      <h3 className="text-sm font-medium text-indigo-200">สมุดรายรับ · GL · งบกำไร · งบดุล</h3>
+      <p className="mt-1 text-[11px] text-slate-500">
+        ใช้ตัวกรองวันที่/หน่วยงานด้านบน — คอลัมน์ซ้ายบันทึกผ่านสมุดรายวัน (double-entry) ในชื่อเรียกงาน <span className="text-slate-400">สมุดรายรับ</span>
+      </p>
       <div className="mt-3 grid gap-3 xl:grid-cols-2">
         <div className="rounded border border-slate-800 bg-slate-900/40 p-2">
-          <p className="mb-2 font-medium text-slate-100">สมุดรายวัน</p>
+          <p className="mb-2 font-medium text-slate-100">สมุดรายรับ</p>
           <div className="flex flex-wrap gap-1">
             <select
               value={journalStatusFilter}
@@ -325,7 +327,7 @@ export function FinanceJournalsGlPanel({
                   onClick={onLinkJournalToPaymentRequest}
                   className={`mt-2 rounded bg-emerald-900/80 px-2 py-1 text-[11px] text-emerald-100 disabled:opacity-50 ${portalFocusRing}`}
                 >
-                  ผูกคำขอจ่ายกับสมุดรายวันนี้
+                  ผูกคำขอจ่ายกับเอกสารสมุดนี้
                 </button>
               ) : null}
             </div>

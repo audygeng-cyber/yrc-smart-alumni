@@ -60,7 +60,7 @@ export function FinanceDonationsReportGrid({
   onExportEntityCsv,
 }: FinanceDonationsReportGridProps) {
   return (
-    <div className="mt-4 grid gap-3 md:grid-cols-2" aria-busy={loading}>
+    <div className="grid gap-3 md:grid-cols-2" aria-busy={loading}>
       <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="รายงานผู้บริจาคทั้งหมด">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="font-medium">ผู้บริจาค (ทั้งหมด)</p>

@@ -131,7 +131,7 @@ export function FinanceFiscalToolsPanel({
   taxCalcResult,
 }: FinanceFiscalToolsPanelProps) {
   return (
-    <div className="mt-4 rounded-lg border border-fuchsia-900/40 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="เครื่องมือรอบปีบัญชี สินทรัพย์ถาวร และภาษี">
+    <div className="rounded-lg border border-fuchsia-900/40 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="เครื่องมือรอบปีบัญชี สินทรัพย์ถาวร และภาษี">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium text-fuchsia-200">รอบปีบัญชี · สินทรัพย์ถาวร · ภาษี (เครื่องมือ)</h3>
         <div className="flex flex-wrap items-center gap-2">
