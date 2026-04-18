@@ -125,5 +125,8 @@ console.log(
   '\nขั้นตอนถัดไปที่เร็วที่สุด: npm install → npm run setup:env → แก้ backend/.env → npm run dev\n' +
     'รายการไฟล์ migration: npm run migrations:list — ตรวจก่อน push: npm run ci\n',
 )
+console.log(
+  'ข้อตกลงทีมพัฒนา: ช่วงเขียนโค้ดยาว — สโมกทดสอบบนเว็บทุกชั่วโมงตรงเวลา (เช่น 10:00, 11:00) และไม่เปิด mutation โดยไม่มี auth — ดู docs/OPERATIONAL_RUNBOOK.md (หัวข้อ นักพัฒนา) และ .cursorrules §7\n',
+)
 
 process.exit(0)

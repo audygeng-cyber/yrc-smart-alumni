@@ -32,9 +32,12 @@
 
 ## งานถัดไป (แนะนำ)
 
+*อัปเดต 2026-04-18 — ตัดสินใจจากสถานะ repo ปัจจุบัน*
+
 1. **ปฏิบัติตาม** [`OPERATIONAL_RUNBOOK.md`](./OPERATIONAL_RUNBOOK.md) (เส้นทางองค์กรต้นจนจบ) และปิด checklist ใน [`SMOKE_TEST_EXECUTION_2026-04-17.md`](./SMOKE_TEST_EXECUTION_2026-04-17.md) บนอุปกรณ์จริง
-2. **งานบัญชี/การเงิน:** เก็บ QA เชิงธุรกิจ (policy edge cases, ปิดงวดระยะยาว); ถ้าแก้แผงการเงินบ่อย พิจารณาแยก `AdminFinancePanel` เป็น subcomponents ทีหลัง
-3. รายละเอียดฟีเจอร์ที่ merge แล้ว (ประชุม, minutes, เอกสาร, journals, ฯลฯ) อยู่ใน **Core Work Update** ด้านล่าง
+2. **ทีมพัฒนา:** ข้อตกลงการทำงานขณะเขียนโค้ด (สโมกบนเว็บทุกชั่วโมงตรงเวลา, ความปลอดภัยการแก้ข้อมูล, ทำงานต่อหลังจบงานย่อย) — ดูหัวข้อ **นักพัฒนา** ใน [`OPERATIONAL_RUNBOOK.md`](./OPERATIONAL_RUNBOOK.md) และ [`.cursorrules`](../.cursorrules) §7; `npm run doctor` จะเตือนสั้นๆ ท้ายรายการตรวจเครื่อง
+3. **งานบัญชี/การเงิน:** เก็บ QA เชิงธุรกิจ (policy edge cases, ปิดงวดระยะยาว) — โค้ด UI แผงการเงินแยกเป็น `frontend/src/components/adminFinance/*` แล้ว แต่ **state และ handler หลักยังอยู่ใน** `AdminFinancePanel.tsx`; ถ้าต้องการ maintain ง่ายขึ้น **ทางเลือกถัดไปที่ปลอดภัย** คือแยก custom hook (เช่น `useAdminFinancePanel`) ทีละขั้น พร้อมรัน `npm run ci` บ่อยๆ — **ไม่แนะนำ** ย้ายทั้งก้อนในครั้งเดียวโดยไม่มีช่วงทดสอบ
+4. รายละเอียดฟีเจอร์ที่ merge แล้ว (ประชุม, minutes, เอกสาร, journals, ฯลฯ) อยู่ใน **Core Work Update** ด้านล่าง
 
 ## Core Work Update (เริ่มเฟสงานหลัก)
 
