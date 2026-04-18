@@ -31,7 +31,15 @@ export function useFinancePaymentRequestTools({
   setLoading,
   setMsg,
   addActivity,
-}: Params): { payment: PaymentRequestToolsProps; setPaymentMeetingId: Dispatch<SetStateAction<string>> } {
+}: Params): {
+  payment: PaymentRequestToolsProps
+  setPaymentMeetingId: Dispatch<SetStateAction<string>>
+  prefillPaymentFromJournal: (args: {
+    journalId: string
+    legalEntityCode: 'association' | 'cram_school'
+    purpose: string
+  }) => void
+} {
   const [paymentEntity, setPaymentEntity] = useState<'association' | 'cram_school'>('association')
   const [paymentPurpose, setPaymentPurpose] = useState('')
   const [paymentAmount, setPaymentAmount] = useState('')
@@ -42,6 +50,7 @@ export function useFinancePaymentRequestTools({
   const [paymentVatRate, setPaymentVatRate] = useState('0')
   const [paymentWhtRate, setPaymentWhtRate] = useState('0')
   const [paymentTaxpayerId, setPaymentTaxpayerId] = useState('')
+  const [paymentJournalEntryId, setPaymentJournalEntryId] = useState('')
 
   const [approveSignerId, setApproveSignerId] = useState('')
   const [approveRoleCode, setApproveRoleCode] = useState<'bank_signer_3of5' | 'committee'>('bank_signer_3of5')
@@ -64,6 +73,20 @@ export function useFinancePaymentRequestTools({
     paymentAmountParsed > 0 &&
     paymentAmountParsed <= 20000 &&
     paymentPurposeCategory === 'other'
+
+  const prefillPaymentFromJournal = useCallback(
+    (args: { journalId: string; legalEntityCode: 'association' | 'cram_school'; purpose: string }) => {
+      setPaymentEntity(args.legalEntityCode)
+      setPaymentPurpose(args.purpose)
+      setPaymentJournalEntryId(args.journalId.trim())
+      setPaymentRequestId('')
+    },
+    [],
+  )
+
+  const clearPaymentJournalLink = useCallback(() => {
+    setPaymentJournalEntryId('')
+  }, [])
 
   const createPaymentRequest = useCallback(async () => {
     if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
@@ -93,6 +116,7 @@ export function useFinancePaymentRequestTools({
         taxpayer_id: paymentTaxpayerId.trim() || undefined,
         bank_account_id: amount <= 20000 ? paymentBankAccountId : undefined,
         meeting_session_id: amount > 20000 ? paymentMeetingId.trim() : undefined,
+        journal_entry_id: paymentJournalEntryId.trim() || undefined,
         requested_by: 'admin-ui',
       })
       if (!p.ok) {
@@ -101,6 +125,7 @@ export function useFinancePaymentRequestTools({
       }
       const j = (p.payload ?? {}) as { paymentRequest?: { id?: string } }
       if (j.paymentRequest?.id) setPaymentRequestId(j.paymentRequest.id)
+      setPaymentJournalEntryId('')
       setMsg('สร้างคำขอจ่ายเงินแล้ว')
       addActivity('info', `สร้างคำขอจ่ายเงินสำเร็จ: ${paymentPurpose.trim()} (${formatThNumber(amount)})`)
     } catch {
@@ -122,6 +147,7 @@ export function useFinancePaymentRequestTools({
     paymentTaxpayerId,
     paymentVatRate,
     paymentWhtRate,
+    paymentJournalEntryId,
     setLoading,
     setMsg,
   ])
@@ -205,9 +231,11 @@ export function useFinancePaymentRequestTools({
     setApproveSignerId,
     approveDecision,
     setApproveDecision,
+    paymentJournalEntryId,
+    onClearPaymentJournalLink: clearPaymentJournalLink,
     onCreatePaymentRequest: () => void createPaymentRequest(),
     onApprovePayment: () => void approvePayment(),
   }
 
-  return { payment, setPaymentMeetingId }
+  return { payment, setPaymentMeetingId, prefillPaymentFromJournal }
 }

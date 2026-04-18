@@ -284,7 +284,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     addActivity,
   })
 
-  const { payment, setPaymentMeetingId } = useFinancePaymentRequestTools({
+  const { payment, setPaymentMeetingId, prefillPaymentFromJournal } = useFinancePaymentRequestTools({
     base,
     adminKey,
     accounts,
@@ -294,6 +294,33 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setMsg,
     addActivity,
   })
+
+  function linkPaymentFromActiveJournal() {
+    if (!journalActiveId.trim() || !journalDetail?.journal) {
+      setMsg('โหลดรายละเอียดสมุดรายวันก่อน (เลือกรายการแล้วกดโหลดรายละเอียด)')
+      return
+    }
+    const leId = String(journalDetail.journal.legal_entity_id ?? '')
+    const ent = overview?.entities.find((e) => e.id === leId)
+    if (!ent || (ent.code !== 'association' && ent.code !== 'cram_school')) {
+      setMsg('ไม่พบหน่วยงานของเอกสารสมุดรายวัน — ลองโหลดภาพรวม/บัญชีธนาคารอีกครั้ง')
+      return
+    }
+    if (String(journalDetail.journal.status ?? '') === 'voided') {
+      setMsg('ไม่ผูกคำขอจ่ายกับเอกสารที่ void แล้ว')
+      return
+    }
+    const memo = typeof journalDetail.journal.memo === 'string' ? journalDetail.journal.memo.trim() : ''
+    const ref = typeof journalDetail.journal.reference_no === 'string' ? journalDetail.journal.reference_no.trim() : ''
+    const purpose = memo || ref || `สมุดรายวัน ${journalActiveId.slice(0, 8)}…`
+    prefillPaymentFromJournal({
+      journalId: journalActiveId.trim(),
+      legalEntityCode: ent.code,
+      purpose,
+    })
+    setMsg('ผูกกับสมุดรายวันแล้ว — กรอกจำนวนเงินและเลือกบัญชี/ประชุมตามนโยบาย แล้วสร้างคำขอ')
+    addActivity('info', `เตรียมคำขอจ่ายผูก journal ${journalActiveId.trim()}`)
+  }
 
   const { meeting } = useFinanceMeetingColumn({
     base,
@@ -1469,6 +1496,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
             setJournalVoidBy,
             onVoidJournal: voidJournal,
             journalDetail,
+            onLinkJournalToPaymentRequest: linkPaymentFromActiveJournal,
             onLoadIncomeStatement: loadIncomeStatementReport,
             bsAsOf,
             setBsAsOf,

@@ -53,6 +53,8 @@ export type FinanceJournalsGlPanelProps = {
   setJournalVoidBy: Dispatch<SetStateAction<string>>
   onVoidJournal: () => void
   journalDetail: JournalDetailState
+  /** Prefill payment request tools with this journal (same legal entity; not voided). */
+  onLinkJournalToPaymentRequest?: () => void
   onLoadIncomeStatement: () => void
   bsAsOf: string
   setBsAsOf: Dispatch<SetStateAction<string>>
@@ -104,6 +106,7 @@ export function FinanceJournalsGlPanel({
   setJournalVoidBy,
   onVoidJournal,
   journalDetail,
+  onLinkJournalToPaymentRequest,
   onLoadIncomeStatement,
   bsAsOf,
   setBsAsOf,
@@ -313,6 +316,18 @@ export function FinanceJournalsGlPanel({
                   </li>
                 ))}
               </ul>
+              {onLinkJournalToPaymentRequest &&
+              journalActiveId.trim() &&
+              String(journalDetail.journal.status ?? '') !== 'voided' ? (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={onLinkJournalToPaymentRequest}
+                  className={`mt-2 rounded bg-emerald-900/80 px-2 py-1 text-[11px] text-emerald-100 disabled:opacity-50 ${portalFocusRing}`}
+                >
+                  ผูกคำขอจ่ายกับสมุดรายวันนี้
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

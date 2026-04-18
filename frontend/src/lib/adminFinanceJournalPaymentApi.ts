@@ -64,6 +64,8 @@ export async function postPaymentRequest(
     taxpayer_id?: string
     bank_account_id?: string
     meeting_session_id?: string
+    /** Originating journal entry (same legal entity; not voided) */
+    journal_entry_id?: string
     requested_by: string
   },
 ): Promise<ApiJsonResult> {

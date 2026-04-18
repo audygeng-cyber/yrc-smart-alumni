@@ -764,7 +764,7 @@ financeAdminRouter.get('/exports/payment-requests.csv', async (req, res) => {
     let paymentQ = supabase
       .from('payment_requests')
       .select(
-        'id,requested_at,legal_entity_id,bank_account_id,meeting_session_id,purpose,purpose_category,amount,currency,vat_rate,wht_rate,vat_amount,wht_amount,taxpayer_id,approval_rule,required_role_code,required_approvals,status,requested_by,kbiz_transfer_ref,transfer_slip_file_url,note',
+        'id,requested_at,legal_entity_id,bank_account_id,meeting_session_id,journal_entry_id,purpose,purpose_category,amount,currency,vat_rate,wht_rate,vat_amount,wht_amount,taxpayer_id,approval_rule,required_role_code,required_approvals,status,requested_by,kbiz_transfer_ref,transfer_slip_file_url,note',
       )
       .order('requested_at', { ascending: false })
     if (legalEntityId) paymentQ = paymentQ.eq('legal_entity_id', legalEntityId)
@@ -782,6 +782,7 @@ financeAdminRouter.get('/exports/payment-requests.csv', async (req, res) => {
       legal_entity_code: entityCodeById.get(String(r.legal_entity_id ?? '')) ?? '',
       bank_account_id: r.bank_account_id,
       meeting_session_id: r.meeting_session_id,
+      journal_entry_id: r.journal_entry_id,
       purpose: r.purpose,
       purpose_category: r.purpose_category,
       amount: r.amount,
@@ -2917,6 +2918,10 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
       typeof req.body?.meeting_session_id === 'string' && req.body.meeting_session_id.trim()
         ? req.body.meeting_session_id.trim()
         : null
+    const journal_entry_id =
+      typeof req.body?.journal_entry_id === 'string' && req.body.journal_entry_id.trim()
+        ? req.body.journal_entry_id.trim()
+        : null
 
     if (!legal_entity_code || !purpose || !Number.isFinite(amount) || amount <= 0) {
       res.status(400).json({ error: 'ต้องระบุ legal_entity_code, purpose และ amount > 0' })
@@ -2981,12 +2986,38 @@ financeAdminRouter.post('/payment-requests', async (req, res) => {
       }
     }
 
+    let journalEntryIdResolved: string | null = null
+    if (journal_entry_id) {
+      const { data: jRow, error: jErr } = await supabase
+        .from('journal_entries')
+        .select('id,legal_entity_id,status')
+        .eq('id', journal_entry_id)
+        .maybeSingle()
+      if (jErr || !jRow) {
+        res.status(jErr ? 500 : 400).json({
+          error: jErr ? 'โหลดสมุดรายวันผูกคำขอจ่ายไม่สำเร็จ' : 'ไม่พบสมุดรายวันที่อ้างอิง',
+          details: jErr,
+        })
+        return
+      }
+      if (String(jRow.legal_entity_id) !== String(entity.id)) {
+        res.status(400).json({ error: 'สมุดรายวันต้องอยู่หน่วยงานเดียวกับคำขอจ่าย (legal_entity)' })
+        return
+      }
+      if (String(jRow.status) === 'voided') {
+        res.status(400).json({ error: 'ไม่สามารถผูกคำขอจ่ายกับเอกสารสมุดรายวันที่ void แล้ว' })
+        return
+      }
+      journalEntryIdResolved = String(jRow.id)
+    }
+
     const { data: row, error: insErr } = await supabase
       .from('payment_requests')
       .insert({
         legal_entity_id: entity.id,
         bank_account_id,
         meeting_session_id,
+        journal_entry_id: journalEntryIdResolved,
         purpose,
         purpose_category: purposeCategory,
         amount,

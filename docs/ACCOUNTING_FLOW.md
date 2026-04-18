@@ -60,6 +60,7 @@
     - `requested_by`
     - `bank_account_id` (จำเป็นเมื่อยอด <= 20,000)
     - `meeting_session_id` (จำเป็นเมื่อยอด > 20,000)
+    - `journal_entry_id` (ไม่บังคับ — ผูกกับสมุดรายวันต้นทาง ต้องเป็นหน่วยงานเดียวกัน และเอกสาร journal ต้องไม่ถูก void)
   - กฎบังคับ:
     - ยอด <= 20,000 ต้องเป็น `purpose_category` กลุ่มปกติธุระเท่านั้น (`electricity|water|internet|staff_wage|cleaning|office_supply|hospitality`)
     - ถ้าไม่ส่ง `purpose_category` ระบบจะพยายาม infer จากข้อความ `purpose` และจะ reject หากได้ค่า `other`

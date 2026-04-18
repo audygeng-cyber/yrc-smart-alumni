@@ -34,6 +34,8 @@ export type PaymentRequestToolsProps = {
   setApproveSignerId: Dispatch<SetStateAction<string>>
   approveDecision: 'approve' | 'reject'
   setApproveDecision: Dispatch<SetStateAction<'approve' | 'reject'>>
+  paymentJournalEntryId: string
+  onClearPaymentJournalLink: () => void
   onCreatePaymentRequest: () => void
   onApprovePayment: () => void
 }
@@ -69,6 +71,8 @@ export function PaymentRequestTools({
   setApproveSignerId,
   approveDecision,
   setApproveDecision,
+  paymentJournalEntryId,
+  onClearPaymentJournalLink,
   onCreatePaymentRequest,
   onApprovePayment,
 }: PaymentRequestToolsProps) {
@@ -78,6 +82,20 @@ export function PaymentRequestTools({
       <p className="mt-2 text-xs leading-relaxed text-slate-400">
         บัญชี = ความถูกต้องและหลักฐาน · การอนุมัติ = อำนาจจ่าย — ควรเป็นสายเดียว โดยคำขอจ่ายควรสัมพันธ์กับงานบัญชี ไม่ใช่กรอกแยกสองชุดที่ไม่ผูกกัน
       </p>
+      {paymentJournalEntryId.trim() ? (
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-emerald-300/95" role="status">
+          <span>
+            ผูกกับสมุดรายวัน: <span className="font-mono">{paymentJournalEntryId.trim()}</span>
+          </span>
+          <button
+            type="button"
+            className={`rounded border border-emerald-800/80 px-2 py-0.5 text-[11px] text-emerald-100 ${portalFocusRing}`}
+            onClick={onClearPaymentJournalLink}
+          >
+            ยกเลิกการผูก
+          </button>
+        </p>
+      ) : null}
       <select
         value={paymentEntity}
         onChange={(e) => setPaymentEntity(e.target.value as 'association' | 'cram_school')}
