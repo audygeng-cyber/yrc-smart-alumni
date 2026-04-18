@@ -1,3 +1,9 @@
+/**
+ * Payment request + approval UI state for Admin Finance.
+ * Product direction: accounting layer holds correctness/evidence; approval holds spend authority —
+ * one pipeline, with payment requests originating from (or tied to) accounting work, not a second keyed system.
+ * See docs/ACCOUNTING_FLOW.md (section บัญชีกับการอนุมัติจ่าย).
+ */
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { postPaymentRequest, postPaymentRequestApprove } from '../../lib/adminFinanceJournalPaymentApi'
 import { formatThNumber } from '../../lib/adminFinanceHelpers'
