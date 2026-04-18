@@ -1,3 +1,5 @@
+import { clearLineEntrySource } from './lib/lineEntrySource'
+
 export const SS_LINE_UID = 'yrc_line_uid'
 export const SS_LINE_NAME = 'yrc_line_name'
 export const SS_LINE_FROM_OAUTH = 'yrc_line_uid_from_oauth'
@@ -40,6 +42,7 @@ export function clearLineSession() {
   sessionStorage.removeItem(SS_LINE_NAME)
   sessionStorage.removeItem(SS_LINE_FROM_OAUTH)
   clearMemberSnapshot()
+  clearLineEntrySource()
 }
 
 /** ใส่ UID เองเมื่อ dev — ไม่ถือว่ามาจาก OAuth */

@@ -5,7 +5,7 @@ export function FinanceAdminPanelHeader() {
         แผงผู้ดูแลการเงิน (Admin Finance) — บัญชี/ประชุม/อนุมัติจ่ายเงิน
       </h2>
       <p className="mt-2 text-xs text-slate-500">
-        ใช้คีย์เดียวกับแผงผู้ดูแล (Admin) ด้านบน (อ่านจากเซสชันเดียวกัน)
+        ใช้ Admin key เดียวกับแผงผู้ดูแลอื่น (เก็บในเซสชันเบราว์เซอร์เดียวกัน)
       </p>
     </>
   )

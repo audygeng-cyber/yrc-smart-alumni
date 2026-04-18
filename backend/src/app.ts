@@ -53,8 +53,11 @@ export function createApp(): express.Express {
       paths: {
         health: '/health',
         lineToken: 'POST /api/auth/line/token',
-        membersVerify: 'POST /api/members/verify-link',
+        membersVerify:
+          'POST /api/members/verify-link — ผูก LINE กับสมาชิก + sync app_users (member_id, approved)',
         membersSession: 'POST /api/members/session-member (line_uid — โหลดสมาชิกที่ผูกไว้แล้วสำหรับกู้เซสชัน)',
+        membersAppRoles:
+          'POST /api/members/app-roles (line_uid, entry_source?) — app_users + roles + entry; sync member_id/approved ถ้าผูกสมาชิกแล้วแต่แถวค้าง',
         membersDonations:
           'POST /api/members/donations (line_uid + activity_id + amount — บริจาคกิจกรรม) | POST /api/members/donations/history (line_uid — ประวัติการบริจาค)',
         membersRequestStatus: 'POST /api/members/request-status (line_uid — ดูคำร้องล่าสุดของสมาชิก)',

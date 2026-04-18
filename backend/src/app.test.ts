@@ -35,6 +35,13 @@ describe.sequential('createApp', () => {
     expect(res.body.error).toBeDefined()
   })
 
+  it('POST /api/members/app-roles returns 400 without line_uid', async () => {
+    const app = createApp()
+    const res = await request(app).post('/api/members/app-roles').send({})
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBeDefined()
+  })
+
   it('GET /api/portal/member returns dashboard snapshot', async () => {
     const app = createApp()
     const res = await request(app).get('/api/portal/member')

@@ -4,12 +4,68 @@ import { notifyNewMemberRequest } from '../lib/webPush.js'
 import { parseMemberSelfUpdates } from '../util/memberSelfUpdate.js'
 import { normalizeWhitespace } from '../util/normalize.js'
 
+/** ช่องทางเข้าระบบ (สอดคล้อง frontend `lineEntrySource.ts`) — ใช้ประกอบบันทึก/audit ภายหลัง */
+const APP_ENTRY_SOURCES = new Set(['alumni_url', 'cram_qr', 'cram_alumni_url'])
+
 export const membersRouter = Router()
 
 async function fetchMemberRowById(supabase: ReturnType<typeof getServiceSupabase>, id: string) {
   const { data, error } = await supabase.from('members').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data
+}
+
+/**
+ * A2: หลัง verify-link สำเร็จ — ให้ `app_users` สอดคล้องกับ `members` (member_id + approved)
+ * ครอบคลุมกรณีเคยสร้างแถวจาก POST /app-roles ตอนยังไม่ผูกสมาชิก (pending / member_id null)
+ */
+async function syncAppUserAfterVerifyLink(
+  supabase: ReturnType<typeof getServiceSupabase>,
+  line_uid: string,
+  memberId: string,
+): Promise<{ ok: true } | { ok: false; error: unknown }> {
+  const now = new Date().toISOString()
+  const { data: existing, error: qErr } = await supabase.from('app_users').select('id').eq('line_uid', line_uid).maybeSingle()
+  if (qErr) return { ok: false, error: qErr }
+
+  if (existing?.id) {
+    const { error: upErr } = await supabase
+      .from('app_users')
+      .update({
+        member_id: memberId,
+        approval_status: 'approved',
+        updated_at: now,
+      })
+      .eq('id', existing.id)
+    if (upErr) return { ok: false, error: upErr }
+    return { ok: true }
+  }
+
+  const { error: insErr } = await supabase.from('app_users').insert({
+    line_uid,
+    member_id: memberId,
+    approval_status: 'approved',
+  })
+  if (!insErr) return { ok: true }
+
+  const code = (insErr as { code?: string }).code
+  const msg = String((insErr as { message?: string }).message ?? '')
+  const isDup = code === '23505' || msg.includes('duplicate') || msg.includes('unique')
+  if (!isDup) return { ok: false, error: insErr }
+
+  const again = await supabase.from('app_users').select('id').eq('line_uid', line_uid).maybeSingle()
+  if (again.error || !again.data?.id) return { ok: false, error: again.error ?? insErr }
+
+  const { error: upErr2 } = await supabase
+    .from('app_users')
+    .update({
+      member_id: memberId,
+      approval_status: 'approved',
+      updated_at: now,
+    })
+    .eq('id', again.data.id)
+  if (upErr2) return { ok: false, error: upErr2 }
+  return { ok: true }
 }
 
 membersRouter.get('/', (_req, res) => {
@@ -44,6 +100,178 @@ membersRouter.post('/session-member', async (req, res) => {
 
     const full = await fetchMemberRowById(supabase, row.id as string)
     res.json({ ok: true, memberId: row.id, member: full })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})
+
+/**
+ * บทบาทในแอป (RBAC) จาก `app_users` + `app_user_roles`
+ * ถ้ายังไม่มีแถว `app_users` สำหรับ line_uid จะสร้างแถวใหม่ (member_id จาก members ถ้าผูกแล้ว, approval_status approved ถ้าผูกแล้ว)
+ * ถ้ามีแถวใน `members` ที่ผูก line_uid แล้ว จะเติม role `member` ใน response โดยอัตโนมัติ
+ * Body: { line_uid, entry_source? }
+ */
+membersRouter.post('/app-roles', async (req, res) => {
+  try {
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
+    if (!line_uid) {
+      res.status(400).json({ error: 'ต้องระบุ line_uid' })
+      return
+    }
+
+    const rawEntry = typeof req.body?.entry_source === 'string' ? req.body.entry_source.trim() : ''
+    const entry_source = rawEntry && APP_ENTRY_SOURCES.has(rawEntry) ? rawEntry : null
+
+    const supabase = getServiceSupabase()
+
+    const { data: memberRow, error: mErr } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
+    if (mErr) {
+      res.status(500).json({ error: 'ค้นหาสมาชิกไม่สำเร็จ', details: mErr })
+      return
+    }
+    const hasLinkedMember = Boolean(memberRow?.id)
+
+    const userLookup = await supabase
+      .from('app_users')
+      .select('id, member_id, approval_status, first_entry_source, last_entry_source, last_entry_recorded_at')
+      .eq('line_uid', line_uid)
+      .maybeSingle()
+
+    if (userLookup.error) {
+      res.status(500).json({ error: 'โหลด app_users ไม่สำเร็จ', details: userLookup.error })
+      return
+    }
+
+    let appUser = userLookup.data
+
+    /** A1: สร้างแถว app_users ให้ทุก LINE UID — จึงบันทึก entry / โหลด roles จาก app_user_roles ได้ */
+    if (!appUser) {
+      const ins = {
+        line_uid,
+        member_id: (memberRow?.id as string | undefined) ?? null,
+        approval_status: hasLinkedMember ? ('approved' as const) : ('pending' as const),
+      }
+      const { data: inserted, error: insErr } = await supabase
+        .from('app_users')
+        .insert(ins)
+        .select('id, member_id, approval_status, first_entry_source, last_entry_source, last_entry_recorded_at')
+        .single()
+
+      if (insErr) {
+        const code = (insErr as { code?: string }).code
+        const msg = String((insErr as { message?: string }).message ?? '')
+        const isDup = code === '23505' || msg.includes('duplicate') || msg.includes('unique')
+        if (isDup) {
+          const again = await supabase
+            .from('app_users')
+            .select('id, member_id, approval_status, first_entry_source, last_entry_source, last_entry_recorded_at')
+            .eq('line_uid', line_uid)
+            .maybeSingle()
+          if (again.error || !again.data) {
+            res.status(500).json({ error: 'โหลด app_users หลังสร้างไม่สำเร็จ', details: again.error ?? insErr })
+            return
+          }
+          appUser = again.data
+        } else {
+          res.status(500).json({ error: 'สร้าง app_users ไม่สำเร็จ', details: insErr })
+          return
+        }
+      } else {
+        appUser = inserted
+      }
+    }
+
+    if (!appUser) {
+      res.status(500).json({ error: 'ไม่พบ app_users' })
+      return
+    }
+
+    /** คู่กับ A2: ถ้าผูกสมาชิกแล้วแต่แถวเก่าจากก่อนผูก (pending / member_id null) — sync ให้ตรง */
+    if (hasLinkedMember && memberRow?.id) {
+      const mid = memberRow.id as string
+      const cur = appUser as { member_id?: string | null; approval_status?: string }
+      if (cur.member_id !== mid || cur.approval_status !== 'approved') {
+        const synced = await syncAppUserAfterVerifyLink(supabase, line_uid, mid)
+        if (!synced.ok) {
+          res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: synced.error })
+          return
+        }
+        const { data: refreshed, error: rfErr } = await supabase
+          .from('app_users')
+          .select('id, member_id, approval_status, first_entry_source, last_entry_source, last_entry_recorded_at')
+          .eq('line_uid', line_uid)
+          .maybeSingle()
+        if (rfErr || !refreshed) {
+          res.status(500).json({ error: 'โหลด app_users หลัง sync ไม่สำเร็จ', details: rfErr })
+          return
+        }
+        appUser = refreshed
+      }
+    }
+
+    type AppUserRow = {
+      id: string
+      first_entry_source?: string | null
+      last_entry_source?: string | null
+      last_entry_recorded_at?: string | null
+    }
+    const au = appUser as AppUserRow | null
+    let firstEntryOut: string | null = au?.first_entry_source?.trim() ? String(au.first_entry_source) : null
+    let lastEntryOut: string | null = au?.last_entry_source?.trim() ? String(au.last_entry_source) : null
+    let lastEntryAtOut: string | null =
+      typeof au?.last_entry_recorded_at === 'string' && au.last_entry_recorded_at.trim()
+        ? au.last_entry_recorded_at
+        : null
+
+    if (entry_source && au?.id) {
+      const wasFirstEmpty = !firstEntryOut
+      const recordedAt = new Date().toISOString()
+      const patch: Record<string, unknown> = {
+        last_entry_source: entry_source,
+        last_entry_recorded_at: recordedAt,
+      }
+      if (wasFirstEmpty) {
+        patch.first_entry_source = entry_source
+      }
+      const { error: upErr } = await supabase.from('app_users').update(patch).eq('id', au.id)
+      if (!upErr) {
+        lastEntryOut = entry_source
+        lastEntryAtOut = recordedAt
+        if (wasFirstEmpty) {
+          firstEntryOut = entry_source
+        }
+      }
+    }
+
+    let roles: string[] = []
+    if (appUser?.id) {
+      const { data: roleRows, error: rErr } = await supabase.from('app_user_roles').select('role_code').eq('user_id', appUser.id)
+      if (rErr) {
+        res.status(500).json({ error: 'โหลดบทบาทไม่สำเร็จ', details: rErr })
+        return
+      }
+      roles = (roleRows ?? [])
+        .map((r) => (r as { role_code?: string }).role_code)
+        .filter((x): x is string => typeof x === 'string' && Boolean(x.trim()))
+    }
+
+    if (hasLinkedMember && !roles.includes('member')) {
+      roles = [...roles, 'member']
+    }
+
+    res.json({
+      ok: true,
+      line_uid,
+      app_user_id: appUser?.id ?? null,
+      approval_status: appUser?.approval_status ?? null,
+      has_linked_member: hasLinkedMember,
+      roles,
+      entry_source,
+      first_entry_source: firstEntryOut,
+      last_entry_source: lastEntryOut,
+      last_entry_recorded_at: lastEntryAtOut,
+    })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
@@ -168,6 +396,11 @@ membersRouter.post('/verify-link', async (req, res) => {
     }
 
     if (member.line_uid === line_uid) {
+      const synced = await syncAppUserAfterVerifyLink(supabase, line_uid, member.id as string)
+      if (!synced.ok) {
+        res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: synced.error })
+        return
+      }
       const full = await fetchMemberRowById(supabase, member.id as string)
       res.json({ ok: true, memberId: member.id, alreadyLinked: true, member: full })
       return
@@ -180,6 +413,12 @@ membersRouter.post('/verify-link', async (req, res) => {
 
     if (upErr) {
       res.status(500).json({ error: 'อัปเดตข้อมูลไม่สำเร็จ', details: upErr })
+      return
+    }
+
+    const syncedAfterLink = await syncAppUserAfterVerifyLink(supabase, line_uid, member.id as string)
+    if (!syncedAfterLink.ok) {
+      res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: syncedAfterLink.error })
       return
     }
 
