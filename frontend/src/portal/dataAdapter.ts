@@ -13,6 +13,10 @@ import {
   committeeMeetings,
   committeeMetricCards,
   committeeOpenAgendasMock,
+  committeeMeetingDocumentsMock,
+  committeeMeetingMinutesMock,
+  committeeMeetingOverviewMock,
+  committeeClosedAgendaResultsMock,
   committeeRequestTrend,
   committeeRoleCards,
   memberBatchDistribution,
@@ -26,6 +30,10 @@ import {
   type AcademyClassItem,
   type AcademyCramClassRoster,
   type AcademySchoolCourseItem,
+  type CommitteeMeetingDocumentItem,
+  type CommitteeMeetingMinutesItem,
+  type CommitteeMeetingOverview,
+  type CommitteeClosedAgendaResultItem,
   type DonationCampaign,
   type MeetingItem,
   type MeetingReportItem,
@@ -108,6 +116,14 @@ export type CommitteePortalData = {
   cramSchoolMonthlyPl: CommitteeMonthlyPl | null
   /** คำขอจ่ายที่รออนุมัติ */
   paymentRequestsPending: number
+  /** เอกสารประชุมล่าสุด (meeting_documents) */
+  meetingDocuments: CommitteeMeetingDocumentItem[]
+  /** รายงานการประชุมล่าสุด (meeting_sessions.minutes_*) */
+  recentMinutes: CommitteeMeetingMinutesItem[]
+  /** สรุปสถานะงานประชุม */
+  meetingOverview: CommitteeMeetingOverview
+  /** ผลมติวาระที่ปิดแล้วล่าสุด */
+  closedAgendaResults: CommitteeClosedAgendaResultItem[]
 }
 
 export type AcademyPortalData = {
@@ -165,6 +181,10 @@ const committeePortalMockData: CommitteePortalData = {
   associationMonthlyPl: committeeAssociationPlMock,
   cramSchoolMonthlyPl: committeeCramSchoolPlMock,
   paymentRequestsPending: 3,
+  meetingDocuments: committeeMeetingDocumentsMock,
+  recentMinutes: committeeMeetingMinutesMock,
+  meetingOverview: committeeMeetingOverviewMock,
+  closedAgendaResults: committeeClosedAgendaResultsMock,
 }
 
 const academyPortalMockData: AcademyPortalData = {
@@ -283,6 +303,23 @@ export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePo
 
   const paymentRequestsPending =
     typeof raw.paymentRequestsPending === 'number' ? raw.paymentRequestsPending : fallback.paymentRequestsPending
+  const meetingDocuments = Array.isArray(raw.meetingDocuments)
+    ? (raw.meetingDocuments as CommitteePortalData['meetingDocuments'])
+    : fallback.meetingDocuments
+  const recentMinutes = Array.isArray(raw.recentMinutes)
+    ? (raw.recentMinutes as CommitteePortalData['recentMinutes'])
+    : fallback.recentMinutes
+  const meetingOverview =
+    isRecord(raw.meetingOverview) &&
+    typeof raw.meetingOverview.openAgendaCount === 'number' &&
+    typeof raw.meetingOverview.closedAgendaCount === 'number' &&
+    typeof raw.meetingOverview.publishedDocumentCount === 'number' &&
+    typeof raw.meetingOverview.minutesPublishedCount === 'number'
+      ? (raw.meetingOverview as CommitteePortalData['meetingOverview'])
+      : fallback.meetingOverview
+  const closedAgendaResults = Array.isArray(raw.closedAgendaResults)
+    ? (raw.closedAgendaResults as CommitteePortalData['closedAgendaResults'])
+    : fallback.closedAgendaResults
 
   return {
     metricCards: Array.isArray(raw.metricCards) ? (raw.metricCards as CommitteePortalData['metricCards']) : fallback.metricCards,
@@ -297,6 +334,10 @@ export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePo
     associationMonthlyPl,
     cramSchoolMonthlyPl,
     paymentRequestsPending,
+    meetingDocuments,
+    recentMinutes,
+    meetingOverview,
+    closedAgendaResults,
   }
 }
 

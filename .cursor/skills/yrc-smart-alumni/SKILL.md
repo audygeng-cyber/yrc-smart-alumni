@@ -14,13 +14,20 @@ description: >-
 - **Frontend:** `frontend/` — Vite 7, React, Tailwind (`npm run dev -w frontend`)
 - **Backend:** `backend/` — Express, Supabase service role (`npm run dev -w backend`)
 - **DB:** Supabase PostgreSQL — SQL ใน `supabase/migrations/` (รันตามลำดับใน README)
-- **CI:** ราก repo — `npm ci`, `npm run build`, `npm run lint` (frontend + backend), `npm run test`, Docker image
+- **CI:** ราก repo — `npm ci`, `npm run build`, `npm run lint` (frontend + backend), `npm run test` (backend + frontend Vitest), Docker image
+
+## เอกสารปฏิบัติการ (repo root)
+
+- [`docs/OPERATIONAL_RUNBOOK.md`](../../../docs/OPERATIONAL_RUNBOOK.md) — เส้นทางใช้งานหลักต้นจนจบ (checklist ฝั่งทีม/องค์กร)
+- [`docs/MODULE_PROGRESS_2026-04-17.md`](../../../docs/MODULE_PROGRESS_2026-04-17.md) — ความคืบหน้ารายโมดูล (%)
 
 ## รากโปรเจกต์
 
 ```bash
 npm install
+npm run bootstrap        # แนะนำหลัง clone: setup:env + doctor (ตรวจ env / API)
 npm.cmd run dev          # Windows PowerShell ถ้า npm ถูกบล็อกใช้ npm.cmd
+npm run doctor           # ตรวจว่า backend/.env และ API /health พร้อมหรือยัง
 npm run ci               # ก่อน push
 ```
 

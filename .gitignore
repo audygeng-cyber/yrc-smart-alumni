@@ -42,3 +42,5 @@ _skill-vendor/
 # Supabase local (if used)
 .branches/
 .temp/
+
+.vercel

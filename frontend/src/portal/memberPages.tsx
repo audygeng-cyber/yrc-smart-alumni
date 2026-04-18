@@ -30,6 +30,7 @@ export function MemberArea(props: {
 }) {
   const [roleView, setRoleView] = useState<MemberRoleView>('member')
   const portalData = useMemberPortalData(props.apiBase)
+  const roleViewSummaryId = 'member-role-view-summary'
   const memberNav = [
     { to: '/member/dashboard', label: 'แดชบอร์ด', roles: ['member', 'staff'] as MemberRoleView[] },
     { to: '/member/card', label: 'บัตรสมาชิก', roles: ['member', 'staff'] as MemberRoleView[] },
@@ -40,6 +41,7 @@ export function MemberArea(props: {
     { to: '/member/documents', label: 'ข้อมูลเชิงกำกับดูแล', roles: ['staff'] as MemberRoleView[] },
   ]
   const visibleNavItems = memberNav.filter((item) => item.roles.includes(roleView)).map((item) => ({ to: item.to, label: item.label }))
+  const roleViewLabel = roleView === 'member' ? 'สมาชิกทั่วไป' : 'เจ้าหน้าที่สมาคม'
 
   return (
     <PortalShell
@@ -47,18 +49,23 @@ export function MemberArea(props: {
       subtitle="เมนูสมาชิก · บัตรสมาชิก · ข้อมูลส่วนตัว · สถิติ · การสนับสนุน"
       navItems={visibleNavItems}
     >
-      <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm">
+      <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as MemberRoleView)}
+            aria-label="เลือกมุมมองบทบาทในพอร์ทัลสมาชิก"
+            aria-describedby={roleViewSummaryId}
             className={`rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
           >
             <option value="member">สมาชิกทั่วไป</option>
             <option value="staff">เจ้าหน้าที่สมาคม</option>
           </select>
           <span className="text-xs text-slate-500">จำลองสิทธิ์เมนูภายในพอร์ทัลสมาชิก</span>
+          <span id={roleViewSummaryId} className="text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
+          </span>
           <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
         </div>
       </section>
@@ -99,7 +106,7 @@ export function MemberArea(props: {
 function MemberDashboardSnapshotBar(props: { portalState: PortalDataState<MemberPortalData> }) {
   const { loading, source } = props.portalState
   return (
-    <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm">
+    <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm" aria-busy={loading}>
       <PortalSnapshotStatusRow
         loading={loading}
         source={source}
@@ -107,6 +114,7 @@ function MemberDashboardSnapshotBar(props: { portalState: PortalDataState<Member
         endExtra={
           <Link
             to="/member/statistics"
+            aria-label="ไปหน้า สถิติสมาชิก"
             className={`rounded-lg bg-emerald-900/50 px-2.5 py-1 text-xs font-medium text-emerald-100 hover:bg-emerald-800/60 ${portalFocusRing}`}
           >
             ไปสถิติสมาชิก
@@ -147,18 +155,19 @@ function MemberStaffDocumentsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-label="ลิงก์สำหรับงานเชิงกำกับดูแล">
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ข้อมูลเชิงกำกับดูแล</h3>
         <p className="mt-2 text-sm text-slate-400">
           ศูนย์ลิงก์สำหรับเจ้าหน้าที่สมาคม — รายงานปิดงบ หลักฐานการเงิน และบันทึกร่องรอย (audit trail) อยู่ในขั้นตอนงานการเงิน (workflow)
           ของผู้ดูแล (Admin) และบัญชีแยกประเภท
           ในระบบหลังบ้าน
         </p>
-        <ul className="mt-5 space-y-3">
+        <ul className="mt-5 space-y-3" role="list" aria-label="ลิงก์ทางลัดสำหรับเจ้าหน้าที่สมาคม">
           {links.map((item) => (
-            <li key={item.to}>
+            <li key={item.to} role="listitem">
               <Link
                 to={item.to}
+                aria-label={`ไปหน้า ${item.title}`}
                 className={`block rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-3 transition hover:border-emerald-800/60 hover:bg-slate-900/70 ${portalFocusRing}`}
               >
                 <p className="font-medium text-emerald-200">{item.title}</p>
@@ -218,12 +227,14 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
       <div className="flex flex-wrap justify-center gap-2">
         <Link
           to="/member/profile"
+          aria-label="ไปหน้า ข้อมูลส่วนตัวสมาชิก"
           className={`rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${portalFocusRing}`}
         >
           ข้อมูลส่วนตัว
         </Link>
         <Link
           to="/member/dashboard"
+          aria-label="กลับไปหน้า แดชบอร์ดสมาชิก"
           className={`rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
         >
           แดชบอร์ด
@@ -245,12 +256,12 @@ function MemberProfilePage(props: { member: Record<string, unknown> }) {
   ]
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-label="ข้อมูลส่วนตัวสมาชิกแบบอ่านอย่างเดียว">
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ข้อมูลส่วนตัว</h3>
         <p className="mt-2 text-sm text-slate-400">ข้อมูลจากบัญชีที่ลงทะเบียนแล้ว — แก้ไขผ่านคำร้องอัปเดตข้อมูล</p>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2" role="list" aria-label="รายการข้อมูลส่วนตัวสมาชิก">
           {rows.map((r) => (
-            <div key={r.label} className="rounded border border-slate-800/80 bg-slate-900/30 px-3 py-2">
+            <div key={r.label} className="rounded border border-slate-800/80 bg-slate-900/30 px-3 py-2" role="listitem">
               <dt className="text-xs text-slate-500">{r.label}</dt>
               <dd className="mt-0.5 text-sm text-slate-100">{r.value}</dd>
             </div>
@@ -268,7 +279,7 @@ function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: Po
   const { data, loading, source } = props.portalState
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4" aria-busy={loading}>
         <PortalSectionHeader
           loading={loading}
           source={source}
@@ -283,14 +294,14 @@ function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: Po
         <>
           <MetricCards items={data.statsCards} />
           <MetricCards items={data.roleCards[props.roleView]} />
-          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">คำร้องใหม่ 7 วัน (UTC)</h3>
             <p className="mt-2 text-sm text-slate-400">
               จำนวนคำร้องต่อวันจาก <code className="text-slate-500">member_update_requests</code> — เทียบกับแนวโน้มในพอร์ทัลคณะกรรมการ
             </p>
             <TrendBars items={data.requestTrend} color="cyan" />
           </section>
-          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สัดส่วนสมาชิกตามรุ่น</h3>
             <TrendBars items={data.batchDistribution} color="emerald" />
           </section>
@@ -304,7 +315,7 @@ function MemberDonationsPage(props: { portalState: PortalDataState<MemberPortalD
   const { data, loading, source } = props.portalState
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สนับสนุนกิจกรรมโรงเรียน</h3>
@@ -315,26 +326,24 @@ function MemberDonationsPage(props: { portalState: PortalDataState<MemberPortalD
           <PortalContentLoading />
         ) : (
           <>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="mt-4 grid gap-3 md:grid-cols-2" role="list" aria-label="รายการโครงการรับบริจาค">
               {data.donationCampaigns.map((campaign) => (
-                <DonationCampaignCard
-                  key={campaign.title}
-                  title={campaign.title}
-                  progress={campaign.progress}
-                  target={campaign.target}
-                  raised={campaign.raised}
-                />
+                <div key={campaign.title} role="listitem">
+                  <DonationCampaignCard title={campaign.title} progress={campaign.progress} target={campaign.target} raised={campaign.raised} />
+                </div>
               ))}
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="เครื่องมือสนับสนุนกิจกรรมและประวัติการบริจาค">
               <button
                 type="button"
+                aria-label="เปิดฟอร์มบริจาคและแนบสลิป"
                 className={`rounded bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${portalFocusRing}`}
               >
                 บริจาคและแนบสลิป
               </button>
               <button
                 type="button"
+                aria-label="ดูประวัติการบริจาคของสมาชิก"
                 className={`rounded border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
               >
                 ดูประวัติการบริจาค
@@ -351,7 +360,7 @@ function MemberMeetingsPage(props: { portalState: PortalDataState<MemberPortalDa
   const { data, loading, source } = props.portalState
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สาระประชุมและรายรับรายจ่าย</h3>
@@ -361,7 +370,7 @@ function MemberMeetingsPage(props: { portalState: PortalDataState<MemberPortalDa
         {loading ? (
           <PortalContentLoading />
         ) : (
-          <div className="mt-4 space-y-2 text-sm">
+          <div className="mt-4 space-y-2 text-sm" role="list" aria-label="รายการรายงานประชุมล่าสุด">
             {data.meetingReports.map((meeting) => (
               <MeetingReportRow key={meeting.title} title={meeting.title} date={meeting.date} />
             ))}

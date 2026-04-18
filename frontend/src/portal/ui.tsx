@@ -23,20 +23,24 @@ export function PortalShell(props: {
           <p id={navHeadingId} className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
             เมนูพอร์ทัล
           </p>
-          <nav className="space-y-1.5" aria-labelledby={navHeadingId}>
-            {props.navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `block rounded px-3 py-2 text-sm ${portalFocusRing} ${
-                    isActive ? 'bg-emerald-800 text-white' : 'text-slate-300 hover:bg-slate-800'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+          <nav className="space-y-1.5" aria-labelledby={navHeadingId} aria-label="รายการเมนูในพอร์ทัล">
+            <ul role="list" aria-label="ลิงก์เมนูพอร์ทัลทั้งหมด">
+              {props.navItems.map((item) => (
+                <li key={item.to} role="listitem" className="mt-1.5 first:mt-0">
+                  <NavLink
+                    to={item.to}
+                    aria-label={`ไปหน้า ${item.label}`}
+                    className={({ isActive }) =>
+                      `block rounded px-3 py-2 text-sm ${portalFocusRing} ${
+                        isActive ? 'bg-emerald-800 text-white' : 'text-slate-300 hover:bg-slate-800'
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
           </nav>
         </aside>
         <div className="min-w-0">{props.children}</div>
@@ -47,11 +51,13 @@ export function PortalShell(props: {
 
 export function MetricCards(props: { items: Array<{ label: string; value: string; hint: string }> }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="list" aria-label="การ์ดสรุปตัวชี้วัด">
       {props.items.map((item) => (
-        <div key={item.label} className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+        <div key={item.label} className="rounded-lg border border-slate-800 bg-slate-950/50 p-4" role="listitem">
           <p className="text-xs uppercase tracking-wide text-slate-500">{item.label}</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-100">{item.value}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-100" aria-label={`${item.label} มีค่า ${item.value}`}>
+            {item.value}
+          </p>
           <p className="mt-2 text-xs text-slate-400">{item.hint}</p>
         </div>
       ))}
@@ -83,6 +89,7 @@ export function PortalDataSourceBadge(props: { loading: boolean; source: 'api' |
   const dataLabel = props.loading ? 'กำลังโหลด…' : props.source === 'api' ? 'API' : 'จำลอง'
   return (
     <span
+      role="status"
       aria-live="polite"
       aria-busy={props.loading}
       aria-atomic="true"
@@ -101,7 +108,7 @@ export function PortalSnapshotToolbar(props: {
   onRefresh: () => void | Promise<void>
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="เครื่องมือสแนปช็อตพอร์ทัล">
       <PortalSnapshotRefreshButton loading={props.loading} onRefresh={props.onRefresh} />
       <PortalDataSourceBadge loading={props.loading} source={props.source} />
     </div>
@@ -118,7 +125,7 @@ export function PortalSectionHeader(props: {
 }) {
   const rowClass = props.className ?? 'flex flex-wrap items-start justify-between gap-3'
   return (
-    <div className={rowClass}>
+    <div className={rowClass} aria-busy={props.loading}>
       {props.children}
       <PortalDataSourceBadge loading={props.loading} source={props.source} />
     </div>
@@ -140,7 +147,11 @@ export function PortalSnapshotStatusRow(props: {
     <div className="flex flex-wrap items-center justify-between gap-2">
       {props.children}
       <div className="flex flex-wrap items-center gap-2">
-        {props.loading ? <span className="text-xs text-slate-500">กำลังโหลดสแนปช็อต…</span> : null}
+        {props.loading ? (
+          <span className="text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            กำลังโหลดสแนปช็อต…
+          </span>
+        ) : null}
         {showBadge ? <PortalDataSourceBadge loading={props.loading} source={props.source} /> : null}
         {props.endExtra}
       </div>
@@ -151,7 +162,7 @@ export function PortalSnapshotStatusRow(props: {
 /** ข้อความโหลดเนื้อหาหลักใต้หัว section พอร์ทัล */
 export function PortalContentLoading(props: { className?: string }) {
   return (
-    <p className={props.className ?? 'mt-4 text-sm text-slate-500'} aria-live="polite" role="status">
+    <p className={props.className ?? 'mt-4 text-sm text-slate-500'} aria-live="polite" aria-atomic="true" role="status">
       กำลังโหลด…
     </p>
   )
@@ -163,6 +174,8 @@ export function PortalNotFound(props: { scopeLabel: string }) {
     <section
       className="rounded-lg border border-slate-800 bg-slate-950/50 p-5 text-sm text-slate-400"
       role="status"
+      aria-live="polite"
+      aria-atomic="true"
     >
       ไม่พบหน้าที่ร้องขอภายในพอร์ทัล{props.scopeLabel}
     </section>
@@ -171,7 +184,7 @@ export function PortalNotFound(props: { scopeLabel: string }) {
 
 export function SectionPlaceholder(props: { title: string; description: string }) {
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+    <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-label={props.title}>
       <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">{props.title}</h3>
       <p className="mt-3 text-sm text-slate-400">{props.description}</p>
     </section>
@@ -182,15 +195,22 @@ export function TrendBars(props: { items: Array<{ label: string; value: number }
   const max = Math.max(...props.items.map((item) => item.value), 1)
   const tone =
     props.color === 'violet' ? 'bg-violet-500/80' : props.color === 'cyan' ? 'bg-cyan-500/80' : 'bg-emerald-500/80'
+  const toneLabel = props.color === 'violet' ? 'ม่วง' : props.color === 'cyan' ? 'ฟ้า' : 'เขียว'
   return (
-    <div className="mt-4 space-y-2">
+    <div
+      className="mt-4 space-y-2"
+      role="list"
+      aria-label={`กราฟแท่งแนวโน้มสี${toneLabel}`}
+    >
       {props.items.map((item) => (
-        <div key={item.label} className="grid grid-cols-[64px_1fr_48px] items-center gap-3 text-sm">
+        <div key={item.label} className="grid grid-cols-[64px_1fr_48px] items-center gap-3 text-sm" role="listitem">
           <span className="text-slate-400">{item.label}</span>
-          <div className="h-2 rounded bg-slate-800">
+          <div className="h-2 rounded bg-slate-800" role="presentation" aria-hidden="true">
             <div className={`h-full rounded ${tone}`} style={{ width: `${(item.value / max) * 100}%` }} />
           </div>
-          <span className="text-right text-slate-300">{item.value}</span>
+          <span className="text-right text-slate-300" aria-label={`${item.label} มีค่า ${item.value}`}>
+            {item.value}
+          </span>
         </div>
       ))}
     </div>
@@ -198,23 +218,32 @@ export function TrendBars(props: { items: Array<{ label: string; value: number }
 }
 
 export function DonationCampaignCard(props: { title: string; progress: number; target: string; raised: string }) {
+  const progress = Math.min(100, Math.max(0, Number.isFinite(props.progress) ? props.progress : 0))
   return (
     <div className="rounded border border-slate-800 bg-slate-900/60 p-4">
       <p className="text-sm text-slate-100">{props.title}</p>
       <p className="mt-1 text-xs text-slate-400">
         สะสม {props.raised} / เป้าหมาย {props.target}
       </p>
-      <div className="mt-3 h-2 rounded bg-slate-800">
-        <div className="h-full rounded bg-emerald-500/80" style={{ width: `${Math.min(100, props.progress)}%` }} />
+      <div
+        className="mt-3 h-2 rounded bg-slate-800"
+        role="progressbar"
+        aria-label={`ความคืบหน้าโครงการ ${props.title}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress}
+        aria-valuetext={`${progress}%`}
+      >
+        <div className="h-full rounded bg-emerald-500/80" style={{ width: `${progress}%` }} />
       </div>
-      <p className="mt-2 text-xs text-emerald-200">คืบหน้า {props.progress}%</p>
+      <p className="mt-2 text-xs text-emerald-200">คืบหน้า {progress}%</p>
     </div>
   )
 }
 
 export function MeetingReportRow(props: { title: string; date: string }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2" role="listitem">
       <p className="text-slate-100">{props.title}</p>
       <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-300">{props.date}</span>
     </div>

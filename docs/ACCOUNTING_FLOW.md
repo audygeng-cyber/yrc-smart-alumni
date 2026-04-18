@@ -6,8 +6,12 @@
   - `association` (สมาคมศิษย์เก่า)
   - `cram_school` (โรงเรียนกวดวิชา)
 - กติกาอนุมัติจ่ายเงิน:
-  - ยอด **ไม่เกิน 20,000 บาท**: ผู้ลงนามบัญชีใน KBiz (`bank_signer_3of5`) อนุมัติครบ 3 จาก 5
-  - ยอด **เกิน 20,000 บาท**: `committee` (คณะกรรมการ 35 คน) ใช้มติจากผู้เข้าประชุม โดยต้องมีเสียงเห็นชอบ **มากกว่ากึ่งหนึ่งของผู้เข้าร่วมประชุม**
+  - ยอด **ไม่เกิน 20,000 บาท**: อนุมัติโดยกรรมการ **3 ใน 5** และใช้ได้เฉพาะค่าใช้จ่ายปกติธุระ เช่น ค่าไฟฟ้า ค่าประปา ค่าอินเทอร์เนต ค่าจ้างเจ้าหน้าที่ ค่าแม่บ้านทำความสะอาด ค่าเครื่องใช้ประจำสำนักงาน และค่ารับรอง
+  - ยอด **เกิน 20,000 บาท**: อนุมัติโดยคณะกรรมการ **35 คน**
+- ผู้มีอำนาจสั่งจ่ายเงิน: กรรมการ **3 ใน 5 คน** จากคณะกรรมการ 35 คน
+- ผู้มีอำนาจสั่งจ่ายเงิน 3 ใน 5:
+  - ต้องเป็นผู้มีชื่อหลังสมุดเงินฝากธนาคาร
+  - ต้องเป็นผู้ทำธุรกรรม KBiz
 - บัญชีธนาคารของทั้งสองหน่วยงานรองรับผู้ลงนาม 5 คน ใช้ 3 ใน 5 และรองรับการโอนผ่าน K PLUS Biz (`kbiz_enabled`, `bank_account_signers`)
 - องค์ประชุมทั้งสองหน่วยงานใช้เกณฑ์ **2 ใน 3 ของผู้มีสิทธิ์เข้าร่วมประชุม**
 
@@ -31,10 +35,14 @@
   - body ตัวอย่าง:
     - `legal_entity_code`: `association` หรือ `cram_school`
     - `purpose`
+    - `purpose_category`: `electricity|water|internet|staff_wage|cleaning|office_supply|hospitality|other`
     - `amount`
     - `requested_by`
     - `bank_account_id` (จำเป็นเมื่อยอด <= 20,000)
     - `meeting_session_id` (จำเป็นเมื่อยอด > 20,000)
+  - กฎบังคับ:
+    - ยอด <= 20,000 ต้องเป็น `purpose_category` กลุ่มปกติธุระเท่านั้น (`electricity|water|internet|staff_wage|cleaning|office_supply|hospitality`)
+    - ถ้าไม่ส่ง `purpose_category` ระบบจะพยายาม infer จากข้อความ `purpose` และจะ reject หากได้ค่า `other`
 - `POST /api/admin/finance/payment-requests/:id/approve`
   - บันทึกการอนุมัติ/ปฏิเสธ
   - body ตัวอย่าง:
@@ -48,6 +56,22 @@
   - ลงชื่อเข้าประชุม (รองรับ `line_uid`)
 - `GET /api/admin/finance/meeting-sessions/:id/summary`
   - ดู attendees, quorum required, majority required
+- `GET /api/admin/finance/fiscal-years`
+  - ดูรอบปีบัญชีทั้งหมด (กรอง `legal_entity_code` ได้)
+- `POST /api/admin/finance/fiscal-years`
+  - สร้างรอบปีบัญชีใหม่ (`fiscal_label`, `period_from`, `period_to`)
+- `POST /api/admin/finance/fiscal-years/:id/close`
+  - ปิดรอบปีบัญชี: สร้าง/โพสต์ closing journal อัตโนมัติ และโอนผลต่างเข้ากองทุนสะสม
+- `GET /api/admin/finance/fixed-assets`
+  - ดูทะเบียนสินทรัพย์ถาวร
+- `POST /api/admin/finance/fixed-assets`
+  - เพิ่มสินทรัพย์ถาวร พร้อมผูกบัญชีค่าเสื่อมและค่าเสื่อมสะสม
+- `POST /api/admin/finance/fixed-assets/run-depreciation`
+  - รันบันทึกค่าเสื่อมรายเดือนแบบอัตโนมัติ (Straight-line)
+- `POST /api/admin/finance/tax/calculate`
+  - คำนวณ VAT/WHT ต่อรายการ
+- `GET /api/admin/finance/reports/tax-monthly`
+  - รายงานภาษีรายเดือนจากคำขอจ่ายเงิน
 
 ## หมายเหตุ migration เดิมที่เคยมีข้อมูลบริจาค
 
@@ -77,5 +101,6 @@
    - งบทดลอง
    - งบกำไรขาดทุน
    - งบดุล
+   - รายงานภาษีรายเดือน (VAT/WHT)
    - Cash flow
 4. เชื่อม meeting/vote กับวาระจ่ายเงินจริง (approval gate ก่อน execute)

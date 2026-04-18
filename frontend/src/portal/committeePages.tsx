@@ -26,6 +26,7 @@ function committeeMeetingStatusLabel(s: 'ready' | 'pending_vote' | 'in_review') 
 export function CommitteeArea(props: { apiBase: string }) {
   const [roleView, setRoleView] = useState<CommitteeRoleView>('chair')
   const portalData = useCommitteePortalData(props.apiBase)
+  const roleViewSummaryId = 'committee-role-view-summary'
   const navItems = [
     { to: '/committee/dashboard', label: 'แดชบอร์ด', roles: ['chair', 'member'] as CommitteeRoleView[] },
     { to: '/committee/members', label: 'ทะเบียนสมาชิก', roles: ['chair', 'member'] as CommitteeRoleView[] },
@@ -35,6 +36,7 @@ export function CommitteeArea(props: { apiBase: string }) {
     { to: '/committee/voting', label: 'ลงมติ', roles: ['chair', 'member'] as CommitteeRoleView[] },
   ]
   const visibleNavItems = navItems.filter((item) => item.roles.includes(roleView)).map((item) => ({ to: item.to, label: item.label }))
+  const roleViewLabel = roleView === 'chair' ? 'ประธานคณะกรรมการ' : 'กรรมการ'
 
   return (
     <PortalShell
@@ -42,18 +44,23 @@ export function CommitteeArea(props: { apiBase: string }) {
       subtitle="คณะกรรมการ 35 คน · ทะเบียนสมาชิก · การเงินละเอียด · ประชุม · ลงมติ"
       navItems={visibleNavItems}
     >
-      <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm">
+      <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as CommitteeRoleView)}
+            aria-label="เลือกมุมมองบทบาทในพอร์ทัลคณะกรรมการ"
+            aria-describedby={roleViewSummaryId}
             className={`rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
           >
             <option value="chair">ประธานคณะกรรมการ</option>
             <option value="member">กรรมการ</option>
           </select>
           <span className="text-xs text-slate-500">จำลองสิทธิ์เมนูภายในพอร์ทัลคณะกรรมการ</span>
+          <span id={roleViewSummaryId} className="text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
+          </span>
           <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
         </div>
       </section>
@@ -62,9 +69,9 @@ export function CommitteeArea(props: { apiBase: string }) {
         <Route path="dashboard" element={<CommitteeDashboardPage roleView={roleView} portalState={portalData} />} />
         <Route path="members" element={<CommitteeMembersPage portalState={portalData} />} />
         <Route path="finance" element={<CommitteeFinancePage roleView={roleView} portalState={portalData} />} />
-        <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} />} />
+        <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} apiBase={props.apiBase} />} />
         <Route path="attendance" element={<CommitteeAttendancePage portalState={portalData} />} />
-        <Route path="voting" element={<CommitteeVotingPage portalState={portalData} />} />
+        <Route path="voting" element={<CommitteeVotingPage portalState={portalData} apiBase={props.apiBase} />} />
         <Route path="*" element={<PortalNotFound scopeLabel={portalNotFoundScopeLabel.committee} />} />
       </Routes>
     </PortalShell>
@@ -72,7 +79,7 @@ export function CommitteeArea(props: { apiBase: string }) {
 }
 
 function fmtThbAmount(n: number) {
-  return `฿ ${Math.round(n).toLocaleString('en-US')}`
+  return `฿ ${Math.round(n).toLocaleString('th-TH')}`
 }
 
 function CommitteePlBlock(props: { title: string; entityHint: string; pl: CommitteeMonthlyPl | null }) {
@@ -81,7 +88,9 @@ function CommitteePlBlock(props: { title: string; entityHint: string; pl: Commit
       <p className="text-xs uppercase tracking-wide text-slate-500">{props.entityHint}</p>
       <h4 className="mt-1 text-base font-medium text-slate-100">{props.title}</h4>
       {!props.pl ? (
-        <p className="mt-3 text-sm text-slate-500">ไม่มีข้อมูลสมุดรายวัน (journal) ในช่วงเดือนนี้</p>
+        <p className="mt-3 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          ไม่มีข้อมูลสมุดรายวัน (journal) ในช่วงเดือนนี้
+        </p>
       ) : (
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-4">
@@ -112,7 +121,7 @@ function CommitteeFinancePage(props: {
   if (props.roleView === 'member') {
     return (
       <div className="space-y-4">
-        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
           <PortalSectionHeader loading={loading} source={source}>
             <div>
               <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การเงิน (สรุป)</h3>
@@ -124,14 +133,14 @@ function CommitteeFinancePage(props: {
           {loading ? (
             <PortalContentLoading />
           ) : (
-            <ul className="mt-4 space-y-3 text-sm">
-              <li className="rounded border border-slate-800 px-3 py-2">
+            <ul className="mt-4 space-y-3 text-sm" role="list" aria-label="สรุปกำไรสุทธิแยกตามนิติบุคคล">
+              <li className="rounded border border-slate-800 px-3 py-2" role="listitem">
                 <span className="text-slate-500">นิติบุคคลสมาคม · กำไรสุทธิ</span>
                 <p className="mt-1 font-medium text-slate-100">
                   {data.associationMonthlyPl ? fmtThbAmount(data.associationMonthlyPl.netIncome) : '— ไม่มีข้อมูล —'}
                 </p>
               </li>
-              <li className="rounded border border-slate-800 px-3 py-2">
+              <li className="rounded border border-slate-800 px-3 py-2" role="listitem">
                 <span className="text-slate-500">โรงเรียนกวดวิชา · กำไรสุทธิ</span>
                 <p className="mt-1 font-medium text-slate-100">
                   {data.cramSchoolMonthlyPl ? fmtThbAmount(data.cramSchoolMonthlyPl.netIncome) : '— ไม่มีข้อมูล —'}
@@ -147,7 +156,7 @@ function CommitteeFinancePage(props: {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การเงินละเอียด</h3>
@@ -165,16 +174,22 @@ function CommitteeFinancePage(props: {
               <CommitteePlBlock entityHint="legal_entities.code = association" title="นิติบุคคลสมาคม" pl={data.associationMonthlyPl} />
               <CommitteePlBlock entityHint="legal_entities.code = cram_school" title="โรงเรียนกวดวิชา" pl={data.cramSchoolMonthlyPl} />
             </div>
-            <div className="mt-4 rounded-lg border border-amber-900/40 bg-amber-950/20 px-4 py-3 text-sm">
+            <div
+              className="mt-4 rounded-lg border border-amber-900/40 bg-amber-950/20 px-4 py-3 text-sm"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label="จำนวนคำขอจ่ายเงินที่รอดำเนินการ"
+            >
               <p className="text-amber-100">
-                คำขอจ่ายที่รอดำเนินการ (status = pending):{' '}
-                <span className="font-semibold tabular-nums">{data.paymentRequestsPending}</span> รายการ
+                คำขอจ่ายที่รอดำเนินการ (สถานะ = pending):{' '}
+                <span className="font-semibold tabular-nums">{data.paymentRequestsPending.toLocaleString('th-TH')}</span> รายการ
               </p>
             </div>
           </>
         )}
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/committee/dashboard" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
+        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าแดชบอร์ดคณะกรรมการ">
+          <Link to="/committee/dashboard" aria-label="ไปหน้าแดชบอร์ดคณะกรรมการ" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             แดชบอร์ด
           </Link>
         </div>
@@ -183,13 +198,16 @@ function CommitteeFinancePage(props: {
   )
 }
 
-function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePortalData> }) {
+function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePortalData>; apiBase: string }) {
   const { data, loading, source } = props.portalState
   const meetings = data.meetings
+  const documents = data.meetingDocuments
+  const recentMinutes = data.recentMinutes
+  const closedAgendaResults = data.closedAgendaResults
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">วาระและรอบประชุม</h3>
@@ -201,13 +219,16 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
         {loading ? (
           <PortalContentLoading />
         ) : meetings.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">ยังไม่มีรายการประชุมในสแนปช็อต</p>
+          <p className="mt-4 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+            ยังไม่มีรายการประชุมในสแนปช็อต
+          </p>
         ) : (
-          <ul className="mt-4 space-y-2 text-sm">
+          <ul className="mt-4 space-y-2 text-sm" role="list" aria-label="รายการวาระและรอบประชุมล่าสุด">
             {meetings.map((m, i) => (
               <li
                 key={`${m.topic}-${m.time}-${i}`}
                 className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2.5"
+                role="listitem"
               >
                 <div>
                   <p className="font-medium text-slate-100">{m.topic}</p>
@@ -228,11 +249,127 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
             ))}
           </ul>
         )}
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/committee/dashboard" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
+        <div className="mt-6 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="เอกสารประชุมล่าสุด">
+          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">เอกสารประชุมล่าสุด</h4>
+          {loading ? null : documents.length === 0 ? (
+            <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              ยังไม่มีเอกสารประชุมที่เผยแพร่
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-2 text-xs" role="list" aria-label="รายการเอกสารประชุม">
+              {documents.map((doc) => (
+                <li key={doc.id} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-slate-200">{doc.title}</span>
+                    <span className="text-slate-500">{doc.scope}</span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-600">
+                    อัปเดต {new Date(doc.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-2" role="group" aria-label="คำสั่งเอกสารประชุม">
+                    <a
+                      href={`${props.apiBase}/api/portal/committee/documents/${encodeURIComponent(doc.id)}/download.txt`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+                      aria-label={`ดาวน์โหลดเอกสาร ${doc.title}`}
+                    >
+                      ดาวน์โหลด .txt
+                    </a>
+                    {doc.documentUrl ? (
+                      <a
+                        href={doc.documentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`rounded border border-slate-700 px-2 py-0.5 text-[11px] text-emerald-300 hover:bg-slate-800 ${portalFocusRing}`}
+                        aria-label={`เปิดลิงก์เอกสาร ${doc.title}`}
+                      >
+                        เปิดลิงก์
+                      </a>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="รายงานการประชุมล่าสุด">
+          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายงานการประชุมล่าสุด</h4>
+          {loading ? null : recentMinutes.length === 0 ? (
+            <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              ยังไม่มีรายงานการประชุมที่เผยแพร่
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-2 text-xs" role="list" aria-label="รายการรายงานการประชุมล่าสุด">
+              {recentMinutes.map((m) => (
+                <li key={m.meetingSessionId} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-slate-200">{m.title}</span>
+                    <span className="text-slate-500">
+                      อัปเดต {new Date(m.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <a
+                      href={`${props.apiBase}/api/portal/committee/meetings/${encodeURIComponent(m.meetingSessionId)}/minutes.txt`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+                      aria-label={`ดาวน์โหลดรายงานการประชุม ${m.title}`}
+                    >
+                      ดาวน์โหลด minutes.txt
+                    </a>
+                    <span className="text-[11px] text-slate-600">ผู้บันทึก: {m.recordedBy ?? 'ไม่ระบุ'}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="ผลมติวาระที่ปิดแล้วล่าสุด">
+          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">ผลมติวาระที่ปิดแล้วล่าสุด</h4>
+          {loading ? null : closedAgendaResults.length === 0 ? (
+            <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              ยังไม่มีวาระที่ปิดพร้อมผลมติ
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-2 text-xs" role="list" aria-label="รายการผลมติวาระที่ปิดแล้ว">
+              {closedAgendaResults.map((row) => (
+                <li key={row.id} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-slate-200">{row.title}</span>
+                    <span
+                      className={`rounded px-2 py-0.5 ${
+                        row.approvedByVote ? 'bg-emerald-900/40 text-emerald-200' : 'bg-rose-900/40 text-rose-200'
+                      }`}
+                    >
+                      {row.resultLabel}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {agendaScopeLabel(row.scope)} · ปิดเมื่อ{' '}
+                    {new Date(row.closedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    เห็นชอบ {row.approve.toLocaleString('th-TH')} · ไม่เห็นชอบ {row.reject.toLocaleString('th-TH')} · งดออกเสียง{' '}
+                    {row.abstain.toLocaleString('th-TH')} · รวม {row.totalVotes.toLocaleString('th-TH')} เสียง
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-600">
+                    ผู้เข้าร่วม {row.attendees.toLocaleString('th-TH')} · เสียงขั้นต่ำ {row.majorityRequired.toLocaleString('th-TH')} ·{' '}
+                    {row.quorumRequired > 0
+                      ? `องค์ประชุมขั้นต่ำ ${row.quorumRequired.toLocaleString('th-TH')} (${row.quorumMet ? 'ครบ' : 'ไม่ครบ'})`
+                      : 'ไม่มีเงื่อนไของค์ประชุม'}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าวาระและรอบประชุม">
+          <Link to="/committee/dashboard" aria-label="กลับไปหน้าแดชบอร์ดคณะกรรมการ" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             กลับแดชบอร์ด
           </Link>
-          <Link to="/committee/voting" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
+          <Link to="/committee/voting" aria-label="ไปหน้าลงมติคณะกรรมการ" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
             หน้าลงมติ (ตัวอย่าง)
           </Link>
         </div>
@@ -258,7 +395,7 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
   return (
     <div className="space-y-4">
       <MetricCards items={data.metricCards.slice(0, 2)} />
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ทะเบียนสมาชิก</h3>
@@ -272,7 +409,9 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
         ) : (
           <>
             {data.memberBatchDistribution.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-500">ยังไม่มีข้อมูลรุ่นสำหรับแสดงกราฟ</p>
+              <p className="mt-4 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+                ยังไม่มีข้อมูลรุ่นสำหรับแสดงกราฟ
+              </p>
             ) : (
               <div className="mt-4">
                 <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">สัดส่วนตามรุ่น (สูงสุด 8 รุ่น)</h4>
@@ -285,23 +424,28 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                aria-label="ค้นหารายชื่อสมาชิกตัวอย่าง"
                 placeholder="ชื่อ, รุ่น, สถานะ หรือรหัสสมาชิก…"
-                className="mt-2 w-full max-w-md rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600"
+                className={`mt-2 w-full max-w-md rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 ${portalFocusRing}`}
               />
             </div>
             {data.memberDirectoryPreview.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-500">ยังไม่มีรายชื่อในสแนปช็อต</p>
+              <p className="mt-4 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+                ยังไม่มีรายชื่อในสแนปช็อต
+              </p>
             ) : filtered.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-500">ไม่พบรายการที่ตรงกับคำค้น</p>
+              <p className="mt-4 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+                ไม่พบรายการที่ตรงกับคำค้น
+              </p>
             ) : (
               <div className="mt-4 overflow-x-auto rounded border border-slate-800">
-                <table className="min-w-full text-left text-sm text-slate-300">
+                <table className="min-w-full text-left text-sm text-slate-300" aria-label="ตารางรายชื่อสมาชิกตัวอย่าง">
                   <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
-                      <th className="px-3 py-2">ชื่อ-นามสกุล</th>
-                      <th className="px-3 py-2">รุ่น</th>
-                      <th className="px-3 py-2">สถานะ</th>
-                      <th className="px-3 py-2 font-mono">รหัส</th>
+                      <th scope="col" className="px-3 py-2">ชื่อ-นามสกุล</th>
+                      <th scope="col" className="px-3 py-2">รุ่น</th>
+                      <th scope="col" className="px-3 py-2">สถานะ</th>
+                      <th scope="col" className="px-3 py-2 font-mono">รหัส</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -321,8 +465,8 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
             )}
           </>
         )}
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/committee/dashboard" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
+        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าทะเบียนสมาชิก">
+          <Link to="/committee/dashboard" aria-label="ไปหน้าแดชบอร์ดคณะกรรมการ" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             แดชบอร์ด
           </Link>
         </div>
@@ -338,7 +482,7 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ลงทะเบียนและลงชื่อประชุม</h3>
@@ -352,7 +496,9 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
         {loading ? (
           <PortalContentLoading />
         ) : !session ? (
-          <p className="mt-4 text-sm text-slate-400">ยังไม่มีรอบประชุมในระบบ — เมื่อมีข้อมูลจะแสดง quorum และรายชื่อผู้ลงชื่อที่นี่</p>
+          <p className="mt-4 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+            ยังไม่มีรอบประชุมในระบบ — เมื่อมีข้อมูลจะแสดงองค์ประชุม (quorum) และรายชื่อผู้ลงชื่อที่นี่
+          </p>
         ) : (
           <div className="mt-4 space-y-4">
             <div className="rounded border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm">
@@ -363,12 +509,12 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
                   ? new Date(session.scheduledAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
                   : '—'}
                 {' · '}
-                quorum {session.quorumNumerator}/{session.quorumDenominator} ของผู้เข้าร่วมที่คาด ({session.expectedParticipants}{' '}
+                องค์ประชุม (quorum) {session.quorumNumerator}/{session.quorumDenominator} ของผู้เข้าร่วมที่คาด ({session.expectedParticipants}{' '}
                 คน)
               </p>
               <p className="mt-2 text-slate-200">
-                ลงชื่อแล้ว <span className="font-semibold text-emerald-300">{session.signedCount}</span> /{' '}
-                {session.expectedParticipants}
+                ลงชื่อแล้ว <span className="font-semibold text-emerald-300">{session.signedCount.toLocaleString('th-TH')}</span> /{' '}
+                {session.expectedParticipants.toLocaleString('th-TH')}
                 <span className="ml-2 rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
                   {session.status === 'open' ? 'กำลังเปิดรับ' : 'ปิดรอบ'}
                 </span>
@@ -376,16 +522,18 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
             </div>
 
             {rows.length === 0 ? (
-              <p className="text-sm text-slate-500">ยังไม่มีรายการลงชื่อในรอบนี้</p>
+              <p className="text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+                ยังไม่มีรายการลงชื่อในรอบนี้
+              </p>
             ) : (
               <div className="overflow-x-auto rounded border border-slate-800">
-                <table className="min-w-full text-left text-sm text-slate-300">
+                <table className="min-w-full text-left text-sm text-slate-300" aria-label="ตารางผู้เข้าร่วมที่ลงชื่อประชุม">
                   <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
-                      <th className="px-3 py-2">ชื่อผู้เข้าร่วม</th>
-                      <th className="px-3 py-2">บทบาท</th>
-                      <th className="px-3 py-2">ช่องทาง</th>
-                      <th className="px-3 py-2">เวลาลงชื่อ</th>
+                      <th scope="col" className="px-3 py-2">ชื่อผู้เข้าร่วม</th>
+                      <th scope="col" className="px-3 py-2">บทบาท</th>
+                      <th scope="col" className="px-3 py-2">ช่องทาง</th>
+                      <th scope="col" className="px-3 py-2">เวลาลงชื่อ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -404,11 +552,11 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/committee/voting" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
+        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าลงทะเบียนและลงชื่อประชุม">
+          <Link to="/committee/voting" aria-label="ไปหน้าลงมติคณะกรรมการ" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             ไปหน้าลงมติ
           </Link>
-          <Link to="/committee/meetings" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
+          <Link to="/committee/meetings" aria-label="ไปหน้าวาระและรายงานประชุม" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
             วาระ/รายงานประชุม
           </Link>
         </div>
@@ -417,18 +565,90 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
   )
 }
 
-function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePortalData> }) {
+function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePortalData>; apiBase: string }) {
   const { data, loading, source } = props.portalState
   const agendas = data.openAgendas
+  const [voterName, setVoterName] = useState('')
+  const [voterRoleCode, setVoterRoleCode] = useState<'committee' | 'cram_executive'>('committee')
+  const [voteChoice, setVoteChoice] = useState<'approve' | 'reject' | 'abstain'>('approve')
+  const [submittingAgendaId, setSubmittingAgendaId] = useState<string | null>(null)
+  const [voteMsg, setVoteMsg] = useState<string | null>(null)
+  const [voteSummaryByAgenda, setVoteSummaryByAgenda] = useState<Record<string, { approve: number; reject: number; abstain: number; total: number }>>({})
+
+  async function loadVoteSummary(agendaId: string) {
+    try {
+      const r = await fetch(`${props.apiBase}/api/portal/committee/agendas/${encodeURIComponent(agendaId)}/vote-summary`)
+      const body = (await r.json()) as {
+        summary?: { approve?: number; reject?: number; abstain?: number; total?: number }
+      }
+      if (!r.ok || !body?.summary) return
+      setVoteSummaryByAgenda((prev) => ({
+        ...prev,
+        [agendaId]: {
+          approve: Number(body.summary?.approve ?? 0),
+          reject: Number(body.summary?.reject ?? 0),
+          abstain: Number(body.summary?.abstain ?? 0),
+          total: Number(body.summary?.total ?? 0),
+        },
+      }))
+    } catch {
+      // ignore summary fetch failures in UI
+    }
+  }
+
+  async function submitVote(agendaId: string) {
+    if (!voterName.trim()) {
+      setVoteMsg('กรอกชื่อผู้ลงมติก่อน')
+      return
+    }
+    setSubmittingAgendaId(agendaId)
+    setVoteMsg(null)
+    try {
+      const r = await fetch(`${props.apiBase}/api/portal/committee/agendas/${encodeURIComponent(agendaId)}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voter_name: voterName.trim(),
+          voter_role_code: voterRoleCode,
+          vote: voteChoice,
+        }),
+      })
+      const body = (await r.json()) as {
+        error?: string
+        summary?: { approve?: number; reject?: number; abstain?: number; total?: number }
+      }
+      if (!r.ok) {
+        setVoteMsg(body.error ?? `ลงมติไม่สำเร็จ (HTTP ${r.status})`)
+        return
+      }
+      if (body.summary) {
+        setVoteSummaryByAgenda((prev) => ({
+          ...prev,
+          [agendaId]: {
+            approve: Number(body.summary?.approve ?? 0),
+            reject: Number(body.summary?.reject ?? 0),
+            abstain: Number(body.summary?.abstain ?? 0),
+            total: Number(body.summary?.total ?? 0),
+          },
+        }))
+      }
+      setVoteMsg('บันทึกผลลงมติแล้ว')
+      await props.portalState.refetch()
+    } catch {
+      setVoteMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setSubmittingAgendaId(null)
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การลงมติ</h3>
             <p className="mt-2 text-sm text-slate-400">
-              วาระที่เปิดรับการลงมติ (<code className="text-slate-500">meeting_agendas</code> status = open)
+              วาระที่เปิดรับการลงมติ (<code className="text-slate-500">meeting_agendas</code> สถานะ = open)
             </p>
           </div>
         </PortalSectionHeader>
@@ -436,17 +656,47 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
         {loading ? (
           <PortalContentLoading />
         ) : agendas.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">ไม่มีวาระเปิดลงมติในขณะนี้</p>
+          <p className="mt-4 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+            ไม่มีวาระเปิดลงมติในขณะนี้
+          </p>
         ) : (
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-4 space-y-2" role="list" aria-label="รายการวาระที่เปิดลงมติ">
             {agendas.map((a) => (
               <li
                 key={a.id}
                 className="flex flex-wrap items-start justify-between gap-3 rounded border border-slate-800 px-3 py-2.5 text-sm"
+                role="listitem"
               >
-                <div>
+                <div className="flex-1">
                   <p className="font-medium text-slate-100">{a.title}</p>
                   <p className="mt-0.5 font-mono text-[11px] text-slate-600">{a.id}</p>
+                  <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="คำสั่งลงมติของวาระนี้">
+                    <button
+                      type="button"
+                      onClick={() => void submitVote(a.id)}
+                      disabled={submittingAgendaId === a.id}
+                      aria-label={`ลงมติในวาระ ${a.title}`}
+                      className={`rounded bg-emerald-800 px-2 py-1 text-xs text-white hover:bg-emerald-700 disabled:opacity-60 ${portalFocusRing}`}
+                    >
+                      {submittingAgendaId === a.id ? 'กำลังบันทึก…' : 'ลงมติ'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void loadVoteSummary(a.id)}
+                      disabled={submittingAgendaId === a.id}
+                      aria-label={`โหลดสรุปผลลงมติของวาระ ${a.title}`}
+                      className={`rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+                    >
+                      ดูสรุปโหวต
+                    </button>
+                  </div>
+                  {voteSummaryByAgenda[a.id] ? (
+                    <p className="mt-1 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+                      เห็นชอบ {voteSummaryByAgenda[a.id].approve.toLocaleString('th-TH')} · ไม่เห็นชอบ{' '}
+                      {voteSummaryByAgenda[a.id].reject.toLocaleString('th-TH')} · งดออกเสียง{' '}
+                      {voteSummaryByAgenda[a.id].abstain.toLocaleString('th-TH')}
+                    </p>
+                  ) : null}
                 </div>
                 <span className="shrink-0 rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400">
                   {agendaScopeLabel(a.scope)}
@@ -456,15 +706,52 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
           </ul>
         )}
 
+        <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3">
+          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">ฟอร์มลงมติ</h4>
+          <div className="mt-2 grid gap-2 md:grid-cols-3">
+            <input
+              value={voterName}
+              onChange={(e) => setVoterName(e.target.value)}
+              aria-label="ชื่อผู้ลงมติ"
+              placeholder="ชื่อผู้ลงมติ"
+              className={`rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+            />
+            <select
+              value={voterRoleCode}
+              onChange={(e) => setVoterRoleCode(e.target.value as 'committee' | 'cram_executive')}
+              aria-label="บทบาทผู้ลงมติ"
+              className={`rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+            >
+              <option value="committee">กรรมการ (committee)</option>
+              <option value="cram_executive">ผู้บริหารกวดวิชา (cram_executive)</option>
+            </select>
+            <select
+              value={voteChoice}
+              onChange={(e) => setVoteChoice(e.target.value as 'approve' | 'reject' | 'abstain')}
+              aria-label="ผลการลงมติ"
+              className={`rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+            >
+              <option value="approve">เห็นชอบ</option>
+              <option value="reject">ไม่เห็นชอบ</option>
+              <option value="abstain">งดออกเสียง</option>
+            </select>
+          </div>
+          {voteMsg ? (
+            <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+              {voteMsg}
+            </p>
+          ) : null}
+        </div>
+
         <p className="mt-4 text-xs text-slate-600">
-          การลงคะแนนจริงเชื่อมกับบัญชีผู้ใช้และตาราง <code className="text-slate-500">meeting_votes</code> — หน้านี้แสดงรายการวาระจากสแนปช็อต
+          เมื่อกดปุ่มลงมติ ระบบจะบันทึกลง <code className="text-slate-500">meeting_votes</code> และรีเฟรชรายการวาระอัตโนมัติ
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link to="/committee/attendance" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
+        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าการลงมติ">
+          <Link to="/committee/attendance" aria-label="ไปหน้าลงชื่อและลงทะเบียนประชุม" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
             ดูการลงชื่อประชุม
           </Link>
-          <Link to="/committee/meetings" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
+          <Link to="/committee/meetings" aria-label="ไปหน้าวาระและรายงานประชุม" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
             วาระ/รายงานประชุม
           </Link>
         </div>
@@ -496,59 +783,94 @@ function signedViaLabel(v: string) {
 function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalState: PortalDataState<CommitteePortalData> }) {
   const { data, loading, source } = props.portalState
   const att = data.attendanceSession
-  const openAgendaCount = data.openAgendas.length
+  const latestMinutes = data.recentMinutes[0] ?? null
+  const latestClosedAgenda = data.closedAgendaResults[0] ?? null
+  const openAgendaCount = data.meetingOverview.openAgendaCount
+  const closedAgendaCount = data.meetingOverview.closedAgendaCount
+  const publishedDocumentCount = data.meetingOverview.publishedDocumentCount
+  const minutesPublishedCount = data.meetingOverview.minutesPublishedCount
   const payPending = data.paymentRequestsPending
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4" aria-busy={loading}>
         <PortalSnapshotStatusRow loading={loading} source={source}>
-          <p className="text-xs uppercase tracking-wide text-slate-500">สรุปสแนปช็อตแดชบอร์ด</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            สรุปสแนปช็อตแดชบอร์ด
+          </p>
         </PortalSnapshotStatusRow>
       </section>
       <MetricCards items={data.metricCards} />
       <MetricCards items={data.roleCards[props.roleView]} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">แนวโน้มคำร้อง 7 วัน</h3>
           <p className="mt-2 text-sm text-slate-400">
             จำนวนคำร้องใหม่ต่อวัน (UTC) จาก <code className="text-slate-500">member_update_requests</code> — ใช้ติดตามงานค้าง
           </p>
           <TrendBars items={data.requestTrend} />
         </section>
-        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">งานด่วนวันนี้</h3>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li className="rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-amber-100">
+          <ul className="mt-3 space-y-2 text-sm" role="list" aria-label="รายการงานด่วนวันนี้">
+            <li className="rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-amber-100" role="listitem">
               {att
-                ? `ลงชื่อประชุมล่าสุด ${att.signedCount}/${att.expectedParticipants} · ${att.title}`
-                : 'ยังไม่มีรอบประชุมในสแนปช็อต — ตรวจ quorum เมื่อเปิดรอบ'}
+                ? `ลงชื่อประชุมล่าสุด ${att.signedCount.toLocaleString('th-TH')}/${att.expectedParticipants.toLocaleString('th-TH')} · ${att.title}`
+                : 'ยังไม่มีรอบประชุมในสแนปช็อต — ตรวจองค์ประชุม (quorum) เมื่อเปิดรอบ'}
             </li>
-            <li className="rounded border border-red-900/40 bg-red-950/20 px-3 py-2 text-red-100">
-              วาระเปิดลงมติ {openAgendaCount} รายการ (meeting_agendas open)
+            <li className="rounded border border-red-900/40 bg-red-950/20 px-3 py-2 text-red-100" role="listitem">
+              วาระเปิดลงมติ {openAgendaCount.toLocaleString('th-TH')} รายการ (meeting_agendas ที่สถานะ open)
             </li>
-            <li className="rounded border border-sky-900/40 bg-sky-950/20 px-3 py-2 text-sky-100">
-              คำขอจ่ายรอดำเนินการ {payPending} รายการ (pending)
+            <li className="rounded border border-indigo-900/40 bg-indigo-950/20 px-3 py-2 text-indigo-100" role="listitem">
+              วาระที่ปิดแล้ว {closedAgendaCount.toLocaleString('th-TH')} รายการ · รายงานประชุมเผยแพร่{' '}
+              {minutesPublishedCount.toLocaleString('th-TH')} ฉบับ
             </li>
+            <li className="rounded border border-sky-900/40 bg-sky-950/20 px-3 py-2 text-sky-100" role="listitem">
+              คำขอจ่ายรอดำเนินการ {payPending.toLocaleString('th-TH')} รายการ (สถานะ pending)
+            </li>
+            <li className="rounded border border-emerald-900/40 bg-emerald-950/20 px-3 py-2 text-emerald-100" role="listitem">
+              เอกสารประชุมเผยแพร่ {publishedDocumentCount.toLocaleString('th-TH')} รายการ
+            </li>
+            {latestMinutes ? (
+              <li className="rounded border border-cyan-900/40 bg-cyan-950/20 px-3 py-2 text-cyan-100" role="listitem">
+                รายงานล่าสุด: {latestMinutes.title} ·{' '}
+                {new Date(latestMinutes.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+              </li>
+            ) : null}
+            {latestClosedAgenda ? (
+              <li
+                className={`rounded px-3 py-2 ${
+                  latestClosedAgenda.approvedByVote
+                    ? 'border border-emerald-900/40 bg-emerald-950/20 text-emerald-100'
+                    : 'border border-rose-900/40 bg-rose-950/20 text-rose-100'
+                }`}
+                role="listitem"
+              >
+                มติล่าสุด: {latestClosedAgenda.resultLabel} · {latestClosedAgenda.title} ({latestClosedAgenda.approve.toLocaleString('th-TH')}/
+                {latestClosedAgenda.totalVotes.toLocaleString('th-TH')} เสียง)
+              </li>
+            ) : null}
           </ul>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link to="/committee/voting" className={`rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 ${portalFocusRing}`}>
+          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="ลิงก์งานด่วนสำหรับคณะกรรมการ">
+            <Link to="/committee/voting" aria-label="ไปหน้าลงมติคณะกรรมการทันที" className={`rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 ${portalFocusRing}`}>
               เปิดหน้าลงมติ
             </Link>
-            <Link to="/committee/attendance" className={`rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
+            <Link to="/committee/attendance" aria-label="ไปหน้าเช็กชื่อประชุม" className={`rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
               เช็กชื่อประชุม
             </Link>
           </div>
         </section>
       </div>
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5">
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สถานะประชุมวันนี้</h3>
         {data.meetings.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">ยังไม่มีรายการประชุมในสแนปช็อต</p>
+          <p className="mt-3 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            ยังไม่มีรายการประชุมในสแนปช็อต
+          </p>
         ) : (
-          <div className="mt-3 space-y-2 text-sm">
+          <div className="mt-3 space-y-2 text-sm" role="list" aria-label="สถานะประชุมล่าสุด">
             {data.meetings.map((meeting, mi) => (
-              <div key={`${meeting.topic}-${meeting.time}-${mi}`} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2">
+              <div key={`${meeting.topic}-${meeting.time}-${mi}`} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2" role="listitem">
                 <div>
                   <p className="text-slate-100">{meeting.topic}</p>
                   <p className="text-xs text-slate-400">เริ่ม {meeting.time}</p>

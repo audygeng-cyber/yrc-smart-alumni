@@ -3,12 +3,20 @@ import { Router } from 'express'
 const LINE_TOKEN = 'https://api.line.me/oauth2/v2.1/token'
 const LINE_VERIFY = 'https://api.line.me/oauth2/v2.1/verify'
 
+/** ใน development/test ถ้าไม่ตั้ง env จะใช้ค่านี้ — production (เช่น Docker) ต้องตั้ง LINE_REDIRECT_URIS เอง */
+const DEFAULT_DEV_LINE_REDIRECT_URIS = ['http://localhost:5173/', 'http://127.0.0.1:5173/']
+
 function allowedRedirectUris(): string[] {
   const raw = process.env.LINE_REDIRECT_URIS ?? process.env.LINE_REDIRECT_URI ?? ''
-  return raw
+  const fromEnv = raw
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
+  if (fromEnv.length > 0) return fromEnv
+  if (process.env.NODE_ENV === 'production') {
+    return []
+  }
+  return DEFAULT_DEV_LINE_REDIRECT_URIS
 }
 
 export const lineAuthRouter = Router()

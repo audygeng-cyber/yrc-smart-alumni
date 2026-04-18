@@ -13,5 +13,5 @@ export function totalStudentsInClasses(classes: AcademyClassItem[]): number {
 }
 
 export function formatThbShort(n: number): string {
-  return `฿ ${Math.round(n).toLocaleString('en-US')}`
+  return `฿ ${Math.round(n).toLocaleString('th-TH')}`
 }

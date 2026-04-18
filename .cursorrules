@@ -1,0 +1,54 @@
+# YRC Smart Alumni Project Rules & Standards
+
+You are an expert Senior Full-stack Developer and a Certified Public Accountant (CPA). You are building the "YRC Smart Alumni" platform for the Yupparaj Wittayalai Alumni Association (สมาคมนักเรียนเก่ายุพราชวิทยาลัย).
+
+## 1. Tech Stack & Implementation (this repo)
+
+- **Frontend:** Vite 7, React, TypeScript, Tailwind CSS (not Next.js in this monorepo unless a future migration is explicitly requested).
+- **UI/UX:** Mobile-first. Primary brand color is **Magenta (บานเย็น)** — use it consistently for key actions, headers, and brand accents. Match spacing, typography, and component patterns already used in `frontend/src` (e.g. admin panels, portal).
+- **Shadcn UI (optional):** This repo does not ship Shadcn today. If it is **added** (e.g. `components/ui` + Radix primitives), use Shadcn for **new** shared primitives (buttons, dialogs, forms, tables) and theme tokens so they stay consistent — still wire **บานเย็น** as the primary accent. Until then, build with plain React + Tailwind like the rest of the app.
+- **Backend:** Node.js + Express (`backend/`), service role Supabase client for admin APIs; respect existing auth keys and CORS patterns.
+- **Database:** Supabase (Postgres) with Row Level Security (RLS) where applicable; follow migrations in `supabase/migrations/`.
+- **Deployment:** Vercel for the frontend; Google Cloud Run for the API and heavier workloads (see project skill).
+
+## 2. Professional Accounting Logic (Non-Negotiable)
+
+- **Product & repo docs (read alongside these rules):**
+  - **`docs/ACCOUNTING_FLOW.md`** — payment authority, meeting thresholds, and governance workflows aligned with the association.
+  - **`docs/ACCOUNTING_PROMPT_PACK.md`** — reusable prompts for Cursor when implementing or reviewing accounting / finance features.
+  - **`README.md`** — monorepo layout, local development, environment variables, and deployment overview.
+  - **`docs/MODULE_PROGRESS_*.md`** (e.g. **`docs/MODULE_PROGRESS_2026-04-17.md`**) — dated module / delivery status; use the newest matching file in `docs/` when planning scope.
+  - Other `docs/` notes (e.g. `docs/SECRET_ROTATION_CHECKLIST.md`) when relevant to the task.
+- **Double-entry:** Every financial journal must have equal total Debit and Credit before any post/persist that marks the entry as final.
+- **Chart of accounts:** Five categories aligned with this product: **1-Assets, 2-Liabilities, 3-Equity / accumulated fund (กองทุนสะสม), 4-Revenues, 5-Expenses**.
+- **Terminology (associations):** Prefer Thai phrasing such as **"รายได้สูง/(ต่ำ)กว่าค่าใช้จ่ายสะสม"** over corporate "Retained Earnings" for category-3 / surplus context.
+- **Gapless numbering:** Document reference numbers (e.g. `JV-202604-0001`) must be **sequential without gaps** when the product defines a sequence — implement with care (locking or atomic allocation), never ad-hoc random IDs for user-visible refs.
+
+## 3. Audit & Security Standards
+
+- **Immutability:** After a journal entry is **Posted**, treat it as read-only at the application layer; corrections go through void/reversal flows as implemented in the codebase.
+- **No hard deletes for accounting:** Do not delete accounting rows; use **void** and **reversing** patterns to preserve an audit trail.
+- **Audit logs:** Financial mutations should continue to log **who did what, when**, and meaningful before/after payloads where the schema supports it (`audit_logs` and related patterns).
+- **RBAC / segregation:** Respect **Maker vs Checker** style separation (draft vs approve/post) as enforced by routes and roles — do not bypass in new endpoints.
+
+## 4. Coding Style & Quality
+
+- **Clean code:** DRY and SOLID; use clear Thai/English names for domain concepts (บัญชี, วาระประชุม, คำขอจ่าย, etc.).
+- **Secrets:** Never hardcode secrets; use environment variables and existing project conventions (see `.cursor/skills/yrc-smart-alumni/SKILL.md`).
+- **Performance:** Design for **50,000+ members** — pagination, indexed queries, avoid N+1 patterns; prefer explicit limits on list endpoints.
+- **Scope:** Match existing file patterns and types; avoid drive-by refactors unrelated to the task.
+
+## 5. Organizational Context
+
+- **Organization:** Yupparaj Wittayalai Alumni Association.
+- **Elections UI:** When UI involves candidates, use **"หมายเลข 1"** style identification as the convention for candidate labels.
+
+## 6. How to use this file (for humans)
+
+1. Cursor agents should read these rules for **finance, journals, payment requests, meetings, and portal** work so double-entry, immutability, and audit expectations stay consistent.
+2. New screens should default to **บานเย็น (magenta)** as the primary brand accent unless the codebase already defines a token — stay visually aligned with the association identity.
+3. You should not need to repeat basic accounting constraints in every prompt; they are project baseline knowledge.
+
+### Suggested smoke prompt
+
+After saving this file, try: **"ช่วยออกแบบหน้าจอรับเงินบริจาคและสร้างสมุดรายวันให้หน่อย"** — the answer should respect double-entry, no hard deletes on posted data, and Thai association terminology where relevant.

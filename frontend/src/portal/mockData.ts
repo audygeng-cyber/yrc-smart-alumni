@@ -7,6 +7,43 @@ export type AcademyClassItem = { room: string; students: number; avgScore: numbe
 export type AcademyCramRosterRow = { name: string; avgScore: number | null }
 export type AcademyCramClassRoster = { room: string; roster: AcademyCramRosterRow[] }
 export type AcademySchoolCourseItem = { id: string; title: string; category: string; description: string | null }
+export type CommitteeMeetingDocumentItem = {
+  id: string
+  title: string
+  scope: string
+  meetingSessionId: string | null
+  agendaId: string | null
+  documentUrl: string | null
+  updatedAt: string
+}
+export type CommitteeMeetingMinutesItem = {
+  meetingSessionId: string
+  title: string
+  updatedAt: string
+  recordedBy: string | null
+}
+export type CommitteeMeetingOverview = {
+  openAgendaCount: number
+  closedAgendaCount: number
+  publishedDocumentCount: number
+  minutesPublishedCount: number
+}
+export type CommitteeClosedAgendaResultItem = {
+  id: string
+  title: string
+  scope: string
+  closedAt: string
+  approve: number
+  reject: number
+  abstain: number
+  totalVotes: number
+  attendees: number
+  majorityRequired: number
+  quorumRequired: number
+  quorumMet: boolean
+  approvedByVote: boolean
+  resultLabel: string
+}
 
 export const memberStatsCards: MetricItem[] = [
   { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'ภาพรวมทั้งสมาคมศิษย์เก่า' },
@@ -104,6 +141,62 @@ export const committeeAttendanceRowsMock = [
 export const committeeOpenAgendasMock = [
   { id: 'a0000000-0000-0000-0000-000000000001', title: 'อนุมัติคำขอจ่ายเงินโครงการกีฬา', scope: 'association', status: 'open' },
   { id: 'a0000000-0000-0000-0000-000000000002', title: 'แต่งตั้งคณะทำงานตรวจสอบภายใน', scope: 'association', status: 'open' },
+]
+
+export const committeeMeetingDocumentsMock: CommitteeMeetingDocumentItem[] = [
+  {
+    id: 'd0000000-0000-0000-0000-000000000001',
+    title: 'ระเบียบวาระประชุมประจำเดือน',
+    scope: 'association',
+    meetingSessionId: '00000000-0000-0000-0000-000000000001',
+    agendaId: 'a0000000-0000-0000-0000-000000000001',
+    documentUrl: null,
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'd0000000-0000-0000-0000-000000000002',
+    title: 'เอกสารประกอบงบประมาณโครงการ',
+    scope: 'association',
+    meetingSessionId: '00000000-0000-0000-0000-000000000001',
+    agendaId: null,
+    documentUrl: 'https://example.com/committee-budget-pack',
+    updatedAt: new Date().toISOString(),
+  },
+]
+
+export const committeeMeetingMinutesMock: CommitteeMeetingMinutesItem[] = [
+  {
+    meetingSessionId: '00000000-0000-0000-0000-000000000001',
+    title: 'สรุปรายงานการประชุมคณะกรรมการเดือนล่าสุด',
+    updatedAt: new Date().toISOString(),
+    recordedBy: 'admin-ui',
+  },
+]
+
+export const committeeMeetingOverviewMock: CommitteeMeetingOverview = {
+  openAgendaCount: 2,
+  closedAgendaCount: 5,
+  publishedDocumentCount: 2,
+  minutesPublishedCount: 1,
+}
+
+export const committeeClosedAgendaResultsMock: CommitteeClosedAgendaResultItem[] = [
+  {
+    id: 'a0000000-0000-0000-0000-000000000101',
+    title: 'รับรองรายงานการเงินไตรมาสที่ผ่านมา',
+    scope: 'association',
+    closedAt: new Date().toISOString(),
+    approve: 21,
+    reject: 4,
+    abstain: 2,
+    totalVotes: 27,
+    attendees: 27,
+    majorityRequired: 14,
+    quorumRequired: 0,
+    quorumMet: true,
+    approvedByVote: true,
+    resultLabel: 'ผ่านมติ',
+  },
 ]
 
 export const committeeMemberDirectoryPreviewMock = [

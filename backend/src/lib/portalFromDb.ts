@@ -5,6 +5,7 @@ import {
   memberPortalPayload,
 } from '../data/portalSnapshot.js'
 import { tryAssociationMonthlyPlFromJournal, tryCramSchoolMonthlyPlFromJournal } from './plFromJournal.js'
+import { majorityRequired, quorumRequired } from '../util/meetingRules.js'
 
 /** โครงเดียวกับ snapshot แต่ mutable (ไม่ใช่ readonly จาก `as const`) */
 type MetricCard = { label: string; value: string; hint: string }
@@ -71,6 +72,43 @@ type CommitteePortalMerged = {
   associationMonthlyPl: CommitteeMonthlyPl | null
   cramSchoolMonthlyPl: CommitteeMonthlyPl | null
   paymentRequestsPending: number
+  meetingDocuments: Array<{
+    id: string
+    title: string
+    scope: string
+    meetingSessionId: string | null
+    agendaId: string | null
+    documentUrl: string | null
+    updatedAt: string
+  }>
+  recentMinutes: Array<{
+    meetingSessionId: string
+    title: string
+    updatedAt: string
+    recordedBy: string | null
+  }>
+  meetingOverview: {
+    openAgendaCount: number
+    closedAgendaCount: number
+    publishedDocumentCount: number
+    minutesPublishedCount: number
+  }
+  closedAgendaResults: Array<{
+    id: string
+    title: string
+    scope: string
+    closedAt: string
+    approve: number
+    reject: number
+    abstain: number
+    totalVotes: number
+    attendees: number
+    majorityRequired: number
+    quorumRequired: number
+    quorumMet: boolean
+    approvedByVote: boolean
+    resultLabel: string
+  }>
 }
 
 type AcademyPortalMerged = {
@@ -467,6 +505,162 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
     .eq('status', 'pending')
   if (!ePay && typeof payPending === 'number') {
     base.paymentRequestsPending = payPending
+  }
+
+  const { data: docRows, error: eDocs } = await supabase
+    .from('meeting_documents')
+    .select('id,title,scope,meeting_session_id,agenda_id,document_url,updated_at,created_at')
+    .eq('published_to_portal', true)
+    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(20)
+  if (!eDocs && docRows?.length) {
+    base.meetingDocuments = docRows.map(
+      (d: {
+        id: string
+        title: string
+        scope: string
+        meeting_session_id?: string | null
+        agenda_id?: string | null
+        document_url?: string | null
+        updated_at?: string | null
+        created_at?: string | null
+      }) => ({
+        id: d.id,
+        title: d.title,
+        scope: d.scope,
+        meetingSessionId: d.meeting_session_id ?? null,
+        agendaId: d.agenda_id ?? null,
+        documentUrl: d.document_url ?? null,
+        updatedAt: d.updated_at ?? d.created_at ?? new Date().toISOString(),
+      }),
+    )
+  }
+
+  const { data: minutesRows, error: eMinutes } = await supabase
+    .from('meeting_sessions')
+    .select('id,title,minutes_updated_at,minutes_recorded_by,created_at')
+    .not('minutes_markdown', 'is', null)
+    .eq('minutes_published', true)
+    .order('minutes_updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(10)
+  if (!eMinutes && minutesRows?.length) {
+    base.recentMinutes = minutesRows.map(
+      (m: {
+        id: string
+        title: string
+        minutes_updated_at?: string | null
+        minutes_recorded_by?: string | null
+        created_at?: string | null
+      }) => ({
+        meetingSessionId: m.id,
+        title: m.title,
+        updatedAt: m.minutes_updated_at ?? m.created_at ?? new Date().toISOString(),
+        recordedBy: m.minutes_recorded_by ?? null,
+      }),
+    )
+  }
+
+  const [openAgendaCountRow, closedAgendaCountRow, docCountRow, minutesCountRow] = await Promise.all([
+    supabase.from('meeting_agendas').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+    supabase.from('meeting_agendas').select('*', { count: 'exact', head: true }).eq('status', 'closed'),
+    supabase.from('meeting_documents').select('*', { count: 'exact', head: true }).eq('published_to_portal', true),
+    supabase
+      .from('meeting_sessions')
+      .select('*', { count: 'exact', head: true })
+      .not('minutes_markdown', 'is', null)
+      .eq('minutes_published', true),
+  ])
+  if (!openAgendaCountRow.error) base.meetingOverview.openAgendaCount = openAgendaCountRow.count ?? 0
+  if (!closedAgendaCountRow.error) base.meetingOverview.closedAgendaCount = closedAgendaCountRow.count ?? 0
+  if (!docCountRow.error) base.meetingOverview.publishedDocumentCount = docCountRow.count ?? 0
+  if (!minutesCountRow.error) base.meetingOverview.minutesPublishedCount = minutesCountRow.count ?? 0
+
+  const { data: closedAgendaRows, error: closedAgendaErr } = await supabase
+    .from('meeting_agendas')
+    .select('id,title,scope,meeting_session_id,created_at')
+    .eq('status', 'closed')
+    .order('created_at', { ascending: false })
+    .limit(12)
+  if (!closedAgendaErr && closedAgendaRows?.length) {
+    const agendaIds = closedAgendaRows.map((r: { id: string }) => r.id)
+    const meetingSessionIds = closedAgendaRows
+      .map((r: { meeting_session_id?: string | null }) => r.meeting_session_id ?? null)
+      .filter((v): v is string => Boolean(v))
+    const [voteRowsRes, attendanceRowsRes, sessionRowsRes] = await Promise.all([
+      supabase.from('meeting_votes').select('agenda_id,vote').in('agenda_id', agendaIds),
+      meetingSessionIds.length > 0
+        ? supabase
+            .from('meeting_attendance')
+            .select('meeting_session_id,id')
+            .in('meeting_session_id', meetingSessionIds)
+        : Promise.resolve({ data: [], error: null }),
+      meetingSessionIds.length > 0
+        ? supabase
+            .from('meeting_sessions')
+            .select('id,expected_participants')
+            .in('id', meetingSessionIds)
+        : Promise.resolve({ data: [], error: null }),
+    ])
+    const voteRows = voteRowsRes.error ? [] : voteRowsRes.data ?? []
+    const attendanceRows = attendanceRowsRes.error ? [] : attendanceRowsRes.data ?? []
+    const sessionRows = sessionRowsRes.error ? [] : sessionRowsRes.data ?? []
+    const voteMap = new Map<string, { approve: number; reject: number; abstain: number }>()
+    for (const row of voteRows as Array<{ agenda_id: string; vote: string }>) {
+      const cur = voteMap.get(row.agenda_id) ?? { approve: 0, reject: 0, abstain: 0 }
+      if (row.vote === 'approve') cur.approve += 1
+      else if (row.vote === 'reject') cur.reject += 1
+      else if (row.vote === 'abstain') cur.abstain += 1
+      voteMap.set(row.agenda_id, cur)
+    }
+    const attendanceCountMap = new Map<string, number>()
+    for (const row of attendanceRows as Array<{ meeting_session_id: string }>) {
+      attendanceCountMap.set(row.meeting_session_id, (attendanceCountMap.get(row.meeting_session_id) ?? 0) + 1)
+    }
+    const sessionExpectedMap = new Map<string, number>()
+    for (const row of sessionRows as Array<{ id: string; expected_participants?: number | null }>) {
+      const exp = Number(row.expected_participants ?? 0)
+      if (Number.isFinite(exp) && exp > 0) sessionExpectedMap.set(row.id, exp)
+    }
+    base.closedAgendaResults = closedAgendaRows.map(
+      (row: {
+        id: string
+        title: string
+        scope: string
+        meeting_session_id?: string | null
+        created_at?: string | null
+      }) => {
+        const vote = voteMap.get(row.id) ?? { approve: 0, reject: 0, abstain: 0 }
+        const totalVotes = vote.approve + vote.reject + vote.abstain
+        const meetingSessionId = row.meeting_session_id ?? null
+        const attendees = meetingSessionId ? (attendanceCountMap.get(meetingSessionId) ?? 0) : totalVotes
+        const majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
+        let quorumNeed = 0
+        let quorumMet = true
+        if (meetingSessionId && sessionExpectedMap.has(meetingSessionId)) {
+          quorumNeed = quorumRequired(sessionExpectedMap.get(meetingSessionId)!)
+          quorumMet = attendees >= quorumNeed
+        }
+        const approvedByVote = vote.approve >= majorityNeed && majorityNeed > 0 && quorumMet
+        return {
+          id: row.id,
+          title: row.title,
+          scope: row.scope,
+          closedAt: row.created_at ?? new Date().toISOString(),
+          approve: vote.approve,
+          reject: vote.reject,
+          abstain: vote.abstain,
+          totalVotes,
+          attendees,
+          majorityRequired: majorityNeed,
+          quorumRequired: quorumNeed,
+          quorumMet,
+          approvedByVote,
+          resultLabel: approvedByVote ? 'ผ่านมติ' : 'ไม่ผ่านมติ',
+        }
+      },
+    )
   }
 
   const reqTrend = await tryMemberUpdateRequestsTrendLast7Days(supabase)

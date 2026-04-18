@@ -2,11 +2,22 @@
 
 Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 
+## ใช้งานบนเครื่องให้เร็วที่สุด
+
+1. `npm install`
+2. `npm run setup:env` — สร้าง `backend/.env` / `frontend/.env` จากตัวอย่าง (ถ้ายังไม่มี)
+3. แก้ `backend/.env` ใส่ `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_UPLOAD_KEY` — **ขั้นต่ำสำหรับฟีเจอร์ที่ใช้ DB/Admin จริง** (ยังไม่ใส่ก็เปิดเว็บได้; พอร์ทัลบางเส้นทางใช้ข้อมูลตัวอย่างในโค้ด)
+4. `npm run dev` — เปิด http://localhost:5173 และ API http://localhost:4000/health  
+5. `npm run doctor` — ตรวจสั้นๆ ว่า env / API พร้อมหรือไม่ (หลังตั้งค่าแล้วรันอีกครั้งได้)
+
+คำสั่งเดียวหลัง clone: `npm run bootstrap` (= `setup:env` + `doctor`)
+
 - **ความปลอดภัย / git-secret:** ดู [`SECURITY.md`](SECURITY.md)
 - **Cursor Agent (บริบทโปรเจกต์):** [`.cursor/skills/yrc-smart-alumni/SKILL.md`](.cursor/skills/yrc-smart-alumni/SKILL.md) — skill ชุมชนจาก [skills.sh](https://skills.sh/) vendor ไว้ใน `.cursor/skills/` (ดู [`.cursor/skills/VENDORED_SKILLS.md`](.cursor/skills/VENDORED_SKILLS.md)); อัปเดตด้วย `powershell -File scripts/sync-cursor-community-skills.ps1`
 - **มาตรฐานคำศัพท์/การเข้าถึง + handoff ล่าสุด:** [`docs/UI_TH_TERMINOLOGY_CHECKLIST.md`](docs/UI_TH_TERMINOLOGY_CHECKLIST.md), [`docs/LOCALIZATION_A11Y_HANDOFF.md`](docs/LOCALIZATION_A11Y_HANDOFF.md)
 - **บันทึกผลหลังปล่อยล่าสุด:** [`docs/POST_MERGE_VERIFICATION_2026-04-17.md`](docs/POST_MERGE_VERIFICATION_2026-04-17.md), [`docs/SMOKE_TEST_EXECUTION_2026-04-17.md`](docs/SMOKE_TEST_EXECUTION_2026-04-17.md)
 - **สถานะความคืบหน้ารายโมดูล:** [`docs/MODULE_PROGRESS_2026-04-17.md`](docs/MODULE_PROGRESS_2026-04-17.md)
+- **Runbook การใช้งานหลัก (ต้นจนจบ):** [`docs/OPERATIONAL_RUNBOOK.md`](docs/OPERATIONAL_RUNBOOK.md)
 - **เช็กลิสต์หมุนคีย์ลับ (incident response):** [`docs/SECRET_ROTATION_CHECKLIST.md`](docs/SECRET_ROTATION_CHECKLIST.md)
 - **แม่แบบบันทึกผลการหมุนคีย์:** [`docs/SECRET_ROTATION_LOG_TEMPLATE.md`](docs/SECRET_ROTATION_LOG_TEMPLATE.md)
 - **บันทึก incident ล่าสุด (เติมระหว่างหมุนคีย์):** [`docs/SECRET_ROTATION_LOG_2026-04-17.md`](docs/SECRET_ROTATION_LOG_2026-04-17.md)
@@ -18,12 +29,15 @@ Monorepo: **React (Vite) + Express + Supabase (PostgreSQL)**.
 
 ## ตั้งค่า
 
-1. ใน Supabase: SQL Editor หรือ CLI **รัน migration ตามลำดับ** (อย่าข้ามข้อใดข้อหนึ่งถ้าต้องการฟีเจอร์ครบ):
+1. จากโฟลเดอร์รากรัน `npm install` ให้ครบ workspaces
+2. สร้างไฟล์ env ครั้งแรก: `npm run setup:env` (สร้าง `backend/.env` และ `frontend/.env` จาก `.env.example` เฉพาะเมื่อยังไม่มีไฟล์) หรือคัดลอกด้วยมือตามขั้นตอนด้านล่าง
+3. ใน Supabase: SQL Editor หรือ CLI **รัน migration ตามลำดับ** (อย่าข้ามข้อใดข้อหนึ่งถ้าต้องการฟีเจอร์ครบ):
    - `supabase/migrations/20260415120000_initial_members.sql` — ตารางสมาชิกและคำร้อง
    - `supabase/migrations/20260415140000_push_subscriptions.sql` — ตาราง Web Push (จำเป็นถ้าใช้แจ้งเตือนในบราว์เซอร์)
-2. คัดลอก `backend/.env.example` เป็น `backend/.env` แล้วใส่ `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_UPLOAD_KEY` (และค่าอื่นตามส่วน LINE / VAPID ด้านล่างถ้าใช้)
-3. คัดลอก `frontend/.env.example` เป็น `frontend/.env` (ค่าเริ่มต้น `VITE_API_URL=http://localhost:4000`)
-4. จากโฟลเดอร์รากรัน `npm install` ให้ครบ workspaces ก่อน `npm run dev`
+4. แก้ `backend/.env` ใส่ `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_UPLOAD_KEY` (และค่าอื่นตามส่วน LINE / VAPID ด้านล่างถ้าใช้) — **จำเป็นสำหรับ API ที่อ่าน/เขียนฐานข้อมูลจริง**  
+   ถ้ายังไม่ตั้ง Supabase: `GET /api/portal/member`, `/committee`, `/academy` ยังตอบได้จากข้อมูลตัวอย่างในโค้ด; ส่วนอื่นที่เรียก DB จะ error จนกว่าจะใส่คีย์
+5. ตรวจ `frontend/.env` (ค่าเริ่มต้น `VITE_API_URL=http://localhost:4000` — ถ้าไม่มีไฟล์ โค้ด frontend ยัง default ชี้ `http://localhost:4000` ได้)
+6. รัน `npm run dev`
 
 ## รันพัฒนา
 
@@ -42,7 +56,7 @@ npm run dev
 
 ถ้าตั้ง **repository secrets** ชื่อ `VERIFY_API_BASE` (URL API Cloud Run) และ `VERIFY_FRONTEND_ORIGIN` (origin เว็บ Vercel) job **smoke-production** จะเรียก `scripts/verify-deployment.mjs` ตรวจ `/health` และ CORS — ถ้ายังไม่ตั้ง secrets ขั้นตอนนี้จะ **ข้ามแบบสำเร็จ** (ไม่ทำให้ CI ล้ม; GitHub ไม่อนุญาตใช้ `secrets` ใน `if:` ระดับ job)
 
-บนเครื่องตรวจก่อน push ได้ด้วย `npm run ci` (build + lint + **ทดสอบ backend** หลัง `npm install`; ไม่รวม `docker build`) — หรือ `npm run test` เฉพาะเทส API — ถ้าติดตั้ง Docker แล้ว ใช้ `npm run ci:full` ให้ใกล้เคียง job บน GitHub (รวม `docker build`)  
+บนเครื่องตรวจก่อน push ได้ด้วย `npm run ci` (build + lint + **ทดสอบ backend + frontend** หลัง `npm install`; ไม่รวม `docker build`) — หรือ `npm run test` สำหรับเทสทั้งสอง workspace — ถ้าติดตั้ง Docker แล้ว ใช้ `npm run ci:full` ให้ใกล้เคียง job บน GitHub (รวม `docker build`)  
 
 ดูหน้า workflow หลัง push: รัน `npm run gh:actions` แล้วเปิด URL ที่พิมพ์ออกมา (หรือไปที่ repo → แท็บ **Actions**)
 

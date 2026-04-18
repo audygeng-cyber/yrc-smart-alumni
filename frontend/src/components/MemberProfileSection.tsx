@@ -15,6 +15,7 @@ export function MemberProfileSection({ apiBase, lineUid, member, onMemberUpdated
   const [selfEdit, setSelfEdit] = useState<Record<string, string>>(() => fillFromMember(member))
   const [msg, setMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const isErrorMsg = msg !== null && (msg.includes('HTTP') || msg.includes('ไม่สำเร็จ'))
 
   useEffect(() => {
     setSelfEdit(fillFromMember(member))
@@ -54,7 +55,7 @@ export function MemberProfileSection({ apiBase, lineUid, member, onMemberUpdated
   }
 
   return (
-    <div>
+    <div aria-busy={loading}>
       <p className="text-xs text-slate-500">
         รุ่น · ชื่อ · นามสกุล แก้ได้เฉพาะผ่านผู้ดูแล — ช่องด้านล่างสำหรับข้อมูลอื่นตามหัวตารางนำเข้า
       </p>
@@ -65,6 +66,7 @@ export function MemberProfileSection({ apiBase, lineUid, member, onMemberUpdated
             <input
               value={selfEdit[h] ?? ''}
               onChange={(e) => setSelfEdit((prev) => ({ ...prev, [h]: e.target.value }))}
+              aria-label={`กรอกข้อมูล ${h}`}
               className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-emerald-700 ${portalFocusRing}`}
             />
           </label>
@@ -74,11 +76,26 @@ export function MemberProfileSection({ apiBase, lineUid, member, onMemberUpdated
         type="button"
         disabled={loading || !lineUid.trim()}
         onClick={submitSelfUpdate}
+        aria-label="บันทึกข้อมูลสมาชิกที่แก้ไข"
         className={`mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
       >
         บันทึกข้อมูล
       </button>
-      {msg && <p className="mt-3 text-sm text-emerald-300/90">{msg}</p>}
+      {loading ? (
+        <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          กำลังบันทึกข้อมูลสมาชิก...
+        </p>
+      ) : null}
+      {msg ? (
+        <p
+          className={`mt-3 text-sm ${isErrorMsg ? 'text-rose-300/90' : 'text-emerald-300/90'}`}
+          role={isErrorMsg ? 'alert' : 'status'}
+          aria-live={isErrorMsg ? undefined : 'polite'}
+          aria-atomic="true"
+        >
+          {msg}
+        </p>
+      ) : null}
     </div>
   )
 }

@@ -125,6 +125,86 @@ export const committeePortalPayload = {
   cramSchoolMonthlyPl: null as null | { revenue: number; expense: number; netIncome: number },
   /** คำขอจ่าย status=pending */
   paymentRequestsPending: 0,
+  /** เอกสารประชุมล่าสุด (meeting_documents) */
+  meetingDocuments: [
+    {
+      id: 'd0000000-0000-0000-0000-000000000001',
+      title: 'ระเบียบวาระประชุมประจำเดือน',
+      scope: 'association',
+      meetingSessionId: '00000000-0000-0000-0000-000000000001',
+      agendaId: 'a0000000-0000-0000-0000-000000000001',
+      documentUrl: null,
+      updatedAt: new Date().toISOString(),
+    },
+  ] as Array<{
+    id: string
+    title: string
+    scope: string
+    meetingSessionId: string | null
+    agendaId: string | null
+    documentUrl: string | null
+    updatedAt: string
+  }>,
+  /** รายงานการประชุมล่าสุด */
+  recentMinutes: [
+    {
+      meetingSessionId: '00000000-0000-0000-0000-000000000001',
+      title: 'สรุปรายงานการประชุมคณะกรรมการเดือนล่าสุด',
+      updatedAt: new Date().toISOString(),
+      recordedBy: 'admin-ui',
+    },
+  ] as Array<{
+    meetingSessionId: string
+    title: string
+    updatedAt: string
+    recordedBy: string | null
+  }>,
+  /** สรุปภาพรวมงานประชุม */
+  meetingOverview: {
+    openAgendaCount: 1,
+    closedAgendaCount: 4,
+    publishedDocumentCount: 1,
+    minutesPublishedCount: 1,
+  } as {
+    openAgendaCount: number
+    closedAgendaCount: number
+    publishedDocumentCount: number
+    minutesPublishedCount: number
+  },
+  /** ผลมติหลังปิดวาระล่าสุด */
+  closedAgendaResults: [
+    {
+      id: 'a0000000-0000-0000-0000-000000000101',
+      title: 'รับรองรายงานการเงินไตรมาสที่ผ่านมา',
+      scope: 'association',
+      closedAt: new Date().toISOString(),
+      approve: 21,
+      reject: 4,
+      abstain: 2,
+      totalVotes: 27,
+      attendees: 27,
+      majorityRequired: 14,
+      quorumRequired: 0,
+      quorumMet: true,
+      approvedByVote: true,
+      resultLabel: 'ผ่านมติ',
+    },
+  ] as Array<{
+    id: string
+    title: string
+    scope: string
+    closedAt: string
+    approve: number
+    reject: number
+    abstain: number
+    totalVotes: number
+    attendees: number
+    majorityRequired: number
+    quorumRequired: number
+    quorumMet: boolean
+    approvedByVote: boolean
+    resultLabel: string
+  }>,
 } as const
 
 export const academyPortalPayload = {

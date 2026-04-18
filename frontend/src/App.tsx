@@ -1,9 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { AdminCramPanel } from './components/AdminCramPanel'
-import { AdminImportPanel } from './components/AdminImportPanel'
-import { AdminFinancePanel } from './components/AdminFinancePanel'
-import { AdminSchoolActivitiesPanel } from './components/AdminSchoolActivitiesPanel'
+const AdminImportPanel = lazy(async () => {
+  const m = await import('./components/AdminImportPanel')
+  return { default: m.AdminImportPanel }
+})
+const AdminFinancePanel = lazy(async () => {
+  const m = await import('./components/AdminFinancePanel')
+  return { default: m.AdminFinancePanel }
+})
+const AdminCramPanel = lazy(async () => {
+  const m = await import('./components/AdminCramPanel')
+  return { default: m.AdminCramPanel }
+})
+const AdminSchoolActivitiesPanel = lazy(async () => {
+  const m = await import('./components/AdminSchoolActivitiesPanel')
+  return { default: m.AdminSchoolActivitiesPanel }
+})
 import { MemberLinkPanel } from './components/MemberLinkPanel'
 import { MemberRequestsPanel } from './components/MemberRequestsPanel'
 import { PushOptIn } from './components/PushOptIn'
@@ -199,6 +211,16 @@ export default function App() {
   const showMemberNav = roleView === 'all' || roleView === 'member'
   const showCommitteeNav = roleView === 'all' || roleView === 'committee'
   const showAcademyNav = roleView === 'all' || roleView === 'academy'
+  const roleViewSummaryId = 'app-role-view-summary'
+  const roleViewLabel =
+    roleView === 'all'
+      ? 'ทุกพอร์ทัล'
+      : roleView === 'member'
+        ? 'เฉพาะสมาชิก'
+        : roleView === 'committee'
+          ? 'เฉพาะคณะกรรมการ'
+          : 'เฉพาะโรงเรียนกวดวิชา'
+  const visiblePortalCount = Number(showMemberNav) + Number(showCommitteeNav) + Number(showAcademyNav)
 
   return (
     <div className="relative min-h-screen bg-slate-950 text-slate-100">
@@ -216,6 +238,8 @@ export default function App() {
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as RoleView)}
+            aria-label="เลือกมุมมองบทบาทของพอร์ทัล"
+            aria-describedby={roleViewSummaryId}
             className={`rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${appFocusRing}`}
           >
             <option value="all">ทุกพอร์ทัล</option>
@@ -224,6 +248,9 @@ export default function App() {
             <option value="academy">เฉพาะโรงเรียนกวดวิชา (Academy)</option>
           </select>
           <span className="text-xs text-slate-500">จำลองการมองเห็นเมนูตามสิทธิ์</span>
+          <span id={roleViewSummaryId} className="text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            มุมมองปัจจุบัน: {roleViewLabel} · พอร์ทัลที่แสดง {visiblePortalCount.toLocaleString('th-TH')} หมวด
+          </span>
         </div>
         <nav className="mt-4 flex flex-wrap gap-2" aria-label="เมนูหลัก">
           <NavPill to="/" label="หน้าหลัก" active={location.pathname === '/'} />
@@ -291,12 +318,24 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <>
-                <AdminImportPanel apiBase={apiBase} />
-                <AdminFinancePanel apiBase={apiBase} />
-                <AdminCramPanel apiBase={apiBase} />
-                <AdminSchoolActivitiesPanel apiBase={apiBase} />
-              </>
+              <Suspense
+                fallback={
+                  <div
+                    className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 text-center text-sm text-slate-400"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    กำลังโหลดแผงผู้ดูแล…
+                  </div>
+                }
+              >
+                <>
+                  <AdminImportPanel apiBase={apiBase} />
+                  <AdminFinancePanel apiBase={apiBase} />
+                  <AdminCramPanel apiBase={apiBase} />
+                  <AdminSchoolActivitiesPanel apiBase={apiBase} />
+                </>
+              </Suspense>
             }
           />
           <Route path="*" element={<NotFound />} />
@@ -310,6 +349,8 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
   return (
     <Link
       to={to}
+      aria-label={`ไปหน้า ${label}`}
+      aria-current={active ? 'page' : undefined}
       className={`rounded-lg px-3 py-1.5 text-sm font-medium ${appFocusRing} ${
         active ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
       }`}
@@ -324,7 +365,9 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
     <div className="space-y-6">
       <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">สถานะระบบ Backend (/health)</h2>
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-left text-sm text-emerald-300">{health}</pre>
+        <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-left text-sm text-emerald-300" role="status" aria-live="polite" aria-atomic="true">
+          {health}
+        </pre>
         <p className="mt-4 text-sm text-slate-500">
           ตั้งค่า <code className="text-slate-300">VITE_API_URL</code> ใน <code className="text-slate-300">frontend/.env</code>{' '}
           และค่า LINE ใน <code className="text-slate-300">VITE_LINE_*</code> / backend <code className="text-slate-300">LINE_*</code>
@@ -334,32 +377,44 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
       <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ทางลัดพอร์ทัล (โหมดพัฒนา)</h2>
         <p className="mt-2 text-sm text-slate-500">เปิดสแนปช็อตแดชบอร์ดตามบทบาท — ใช้เมนูด้านบนหรือลิงก์ด้านล่าง</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link
-            to="/member/dashboard"
-            className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
-          >
-            สมาชิก
-          </Link>
-          <Link
-            to="/committee/dashboard"
-            className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
-          >
-            คณะกรรมการ
-          </Link>
-          <Link
-            to="/academy/dashboard"
-            className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
-          >
-            พอร์ทัลโรงเรียนกวดวิชา (Academy)
-          </Link>
-          <Link
-            to="/auth/link"
-            className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
-          >
-            ผูกบัญชี
-          </Link>
-        </div>
+        <ul className="mt-4 flex flex-wrap gap-2" role="list" aria-label="ทางลัดพอร์ทัลในโหมดพัฒนา">
+          <li role="listitem">
+            <Link
+              to="/member/dashboard"
+              aria-label="เปิดพอร์ทัลสมาชิก"
+              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+            >
+              สมาชิก
+            </Link>
+          </li>
+          <li role="listitem">
+            <Link
+              to="/committee/dashboard"
+              aria-label="เปิดพอร์ทัลคณะกรรมการ"
+              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+            >
+              คณะกรรมการ
+            </Link>
+          </li>
+          <li role="listitem">
+            <Link
+              to="/academy/dashboard"
+              aria-label="เปิดพอร์ทัลโรงเรียนกวดวิชา"
+              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+            >
+              พอร์ทัลโรงเรียนกวดวิชา (Academy)
+            </Link>
+          </li>
+          <li role="listitem">
+            <Link
+              to="/auth/link"
+              aria-label="ไปหน้าผูกบัญชีสมาชิก"
+              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+            >
+              ผูกบัญชี
+            </Link>
+          </li>
+        </ul>
       </section>
     </div>
   )
@@ -381,7 +436,7 @@ function LinkPage(props: {
   const hasMember = Boolean(props.verifiedMember && props.lineUid)
   return (
     <>
-      <section className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-sm">
+      <section className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-sm" role="status" aria-live="polite" aria-atomic="true">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">สถานะการเชื่อมสมาชิก</p>
@@ -401,6 +456,7 @@ function LinkPage(props: {
           {hasMember ? (
             <Link
               to="/member/dashboard"
+              aria-label="ไปยังหน้าแดชบอร์ดสมาชิก"
               className={`rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${appFocusRing}`}
             >
               ไปหน้าสมาชิก
@@ -409,7 +465,7 @@ function LinkPage(props: {
         </div>
       </section>
       {props.restoringMemberSession ? (
-        <section className="mb-4 rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-4 text-sm text-emerald-100/90">
+        <section className="mb-4 rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-4 text-sm text-emerald-100/90" role="status" aria-live="polite" aria-atomic="true" aria-busy="true">
           กำลังกู้เซสชันสมาชิกจาก LINE UID...
         </section>
       ) : null}
@@ -433,6 +489,7 @@ function MissingMemberSession() {
       <p>ยังไม่มีข้อมูลสมาชิกในวาระนี้ — ไปที่หน้า &quot;ผูกบัญชี&quot; แล้วกด &quot;ตรวจสอบและผูก&quot; เมื่อพบในทะเบียน</p>
       <Link
         to="/auth/link"
+        aria-label="ไปหน้าผูกบัญชีเพื่อผูกสมาชิก"
         className={`mt-4 inline-flex rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${appFocusRing}`}
       >
         ไปหน้าผูกบัญชี
@@ -448,6 +505,7 @@ function NotFound() {
       <p className="mt-3 text-sm text-slate-400">ไม่พบหน้านี้</p>
       <Link
         to="/"
+        aria-label="กลับไปหน้าหลักของระบบ"
         className={`mt-4 inline-flex rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 ${appFocusRing}`}
       >
         กลับหน้าหลัก

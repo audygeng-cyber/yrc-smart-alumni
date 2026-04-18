@@ -1,225 +1,67 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY, normalizeApiBase } from '../lib/adminApi'
-import { portalFocusRing } from '../portal/portalLabels'
-const PAGE_SIZE = 20
-const REPORT_PRESETS_KEY = 'yrc_finance_report_presets_v1'
-const ACTIVITY_LOG_KEY = 'yrc_finance_activity_log_v1'
-const AUTO_REFRESH_SETTINGS_KEY = 'yrc_finance_auto_refresh_settings_v1'
-const ACTIVITY_FILTER_KEY = 'yrc_finance_activity_filter_v1'
-const ACTIVITY_SEARCH_KEY = 'yrc_finance_activity_search_v1'
-const ACTIVITY_LIMIT_KEY = 'yrc_finance_activity_limit_v1'
-const AUTO_REFRESH_MAX_FAILURES = 3
-
-type Props = { apiBase: string }
-
-type BankSigner = {
-  id: string
-  signer_name: string
-  kbiz_name: string
-  in_kbiz: boolean
-  active: boolean
-}
-
-type BankAccount = {
-  id: string
-  legal_entity_id: string
-  bank_name: string
-  account_name: string
-  account_no_masked: string
-  signer_pool_size: number
-  required_signers: number
-  kbiz_enabled: boolean
-  signers: BankSigner[]
-}
-
-type PendingPayment = {
-  id: string
-  legal_entity_id: string
-  amount: number
-  status: string
-}
-
-type OverviewPayload = {
-  entities: { id: string; code: string; name_th: string }[]
-  pendingPayments: PendingPayment[]
-  donationByBatch: Record<string, number>
-  donationByEntity: Record<string, number>
-}
-
-type PlSummaryPayload = {
-  totals: { revenue: number; expense: number; netIncome: number }
-  accountSummaries: {
-    accountCode: string
-    accountName: string
-    accountType: string
-    debit: number
-    credit: number
-    net: number
-  }[]
-}
-
-type DonationsReportPayload = {
-  totals: { donations: number; totalAmount: number }
-  byBatch: { batch: string; totalAmount: number }[]
-  byEntity: { legalEntityCode: string; totalAmount: number }[]
-  byDonor: { donorLabel: string; totalAmount: number; count: number }[]
-}
-
-type ReportFilterEntity = '' | 'association' | 'cram_school'
-type SortDirection = 'asc' | 'desc'
-type PlSortKey = 'absNet' | 'accountCode' | 'accountName' | 'accountType' | 'net'
-type DonorSortKey = 'donorLabel' | 'count' | 'totalAmount'
-type BatchSortKey = 'batch' | 'totalAmount'
-type EntitySortKey = 'legalEntityCode' | 'totalAmount'
-type ReportPreset = {
-  id: string
-  name: string
-  legalEntityCode: ReportFilterEntity
-  from: string
-  to: string
-  keyword: string
-}
-type ActivityItem = {
-  id: string
-  at: string
-  atLabel: string
-  level: 'info' | 'warn' | 'error'
-  message: string
-}
-type ActivityFilter = 'all' | 'info' | 'warn' | 'error'
-type ActivityLimit = 10 | 20 | 'all'
-type AutoRefreshSettings = {
-  enabled: boolean
-  seconds: 30 | 60
-  alertOnPause: boolean
-  soundOnPause: boolean
-}
-const ACTIVITY_SHORTCUTS = [
-  { label: 'รีเฟรชอัตโนมัติ', keyword: 'Auto refresh' },
-  { label: 'พรีเซ็ต', keyword: 'preset' },
-  { label: 'รายงาน', keyword: 'โหลดรายงาน' },
-  { label: 'ส่งออก', keyword: 'Export' },
-  { label: 'ประชุม', keyword: 'ประชุม' },
-  { label: 'การจ่ายเงิน', keyword: 'คำขอจ่ายเงิน' },
-] as const
-
-async function readApiJson(r: Response): Promise<{
-  status: number
-  ok: boolean
-  payload: unknown
-  rawText: string
-}> {
-  const rawText = await r.text()
-  let payload: unknown = null
-  const trimmed = rawText.trim()
-  if (trimmed) {
-    try {
-      payload = JSON.parse(trimmed) as unknown
-    } catch {
-      payload = null
-    }
-  }
-  return { status: r.status, ok: r.ok, payload, rawText }
-}
-
-function formatFetchError(label: string, status: number, payload: unknown, rawText: string): string {
-  const jsonPart =
-    payload !== null && payload !== undefined ? JSON.stringify(payload, null, 2) : '(ไม่ใช่ JSON หรือ body ว่าง)'
-  return `${label} ไม่สำเร็จ — HTTP ${status}\n${jsonPart}\n\nดิบจากเซิร์ฟเวอร์:\n${rawText || '(ไม่มี body)'}`
-}
-
-function paginateRows<T>(rows: T[], page: number, pageSize: number) {
-  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
-  const activePage = Math.min(safePage, totalPages)
-  const start = (activePage - 1) * pageSize
-  return {
-    pageRows: rows.slice(start, start + pageSize),
-    page: activePage,
-    totalPages,
-  }
-}
-
-function csvEscapeCell(value: unknown): string {
-  const s = value == null ? '' : String(value)
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
-}
-
-function rowsToCsvText(rows: Record<string, unknown>[]): string {
-  if (!rows.length) return ''
-  const headers = Object.keys(rows[0] ?? {})
-  const lines = [headers.join(',')]
-  for (const row of rows) {
-    lines.push(headers.map((h) => csvEscapeCell(row[h])).join(','))
-  }
-  return `\uFEFF${lines.join('\n')}\n`
-}
-
-function formatDateInputValue(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-function formatActivityTimestamp(d: Date): { at: string; atLabel: string } {
-  return {
-    at: d.toISOString(),
-    atLabel: d.toLocaleString(),
-  }
-}
-
-function activityLevelLabel(level: ActivityFilter): string {
-  switch (level) {
-    case 'all':
-      return 'ทั้งหมด'
-    case 'info':
-      return 'ข้อมูล'
-    case 'warn':
-      return 'คำเตือน'
-    case 'error':
-      return 'ข้อผิดพลาด'
-    default:
-      return level
-  }
-}
-
-function buildBuiltinReportPresets(): ReportPreset[] {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const today = formatDateInputValue(now)
-  const monthStart = formatDateInputValue(new Date(year, month, 1))
-  const yearStart = formatDateInputValue(new Date(year, 0, 1))
-  return [
-    {
-      id: 'builtin:association_month',
-      name: 'สมาคม เดือนนี้',
-      legalEntityCode: 'association',
-      from: monthStart,
-      to: today,
-      keyword: '',
-    },
-    {
-      id: 'builtin:cram_month',
-      name: 'กวดวิชา เดือนนี้',
-      legalEntityCode: 'cram_school',
-      from: monthStart,
-      to: today,
-      keyword: '',
-    },
-    {
-      id: 'builtin:all_year',
-      name: 'ทั้งหมด ปีนี้',
-      legalEntityCode: '',
-      from: yearStart,
-      to: today,
-      keyword: '',
-    },
-  ]
-}
-
+import {
+  ACTIVITY_FILTER_KEY,
+  ACTIVITY_LIMIT_KEY,
+  ACTIVITY_LOG_KEY,
+  ACTIVITY_SEARCH_KEY,
+  AUTO_REFRESH_MAX_FAILURES,
+  AUTO_REFRESH_SETTINGS_KEY,
+  PAGE_SIZE,
+  REPORT_PRESETS_KEY,
+} from '../lib/adminFinanceConstants'
+import {
+  buildBuiltinReportPresets,
+  formatActivityTimestamp,
+  formatDateInputValue,
+  formatThNumber,
+  paginateRows,
+  rowsToCsvText,
+  type ActivityFilter,
+  type ReportFilterEntity,
+  type ReportPreset,
+} from '../lib/adminFinanceHelpers'
+import { formatFetchError, readApiJson } from '../lib/adminHttp'
+import type {
+  ActivityItem,
+  ActivityLimit,
+  AutoRefreshSettings,
+  BalanceSheetPayload,
+  BankAccount,
+  BatchSortKey,
+  DonationsReportPayload,
+  DonorSortKey,
+  EntitySortKey,
+  FinancePeriodClosingDetail,
+  FinancePeriodClosingItem,
+  FiscalYearRow,
+  FixedAssetRow,
+  GeneralLedgerPayload,
+  IncomeStatementPayload,
+  JournalListItem,
+  MeetingAgendaItem,
+  MeetingDocumentItem,
+  OverviewPayload,
+  PlSortKey,
+  PlSummaryPayload,
+  Props,
+  SortDirection,
+  TaxMonthlyRow,
+  TrialBalancePayload,
+} from '../lib/adminFinanceTypes'
+import { FinanceActivityLogPanel } from './adminFinance/FinanceActivityLogPanel'
+import { FinanceAdminAccountingRegion } from './adminFinance/FinanceAdminAccountingRegion'
+import { FinanceAdminAccountingStack } from './adminFinance/FinanceAdminAccountingStack'
+import { FinanceAdminFeedbackFooter } from './adminFinance/FinanceAdminFeedbackFooter'
+import { FinanceAdminPanelHeader } from './adminFinance/FinanceAdminPanelHeader'
+import { FinanceAdminPanelSection } from './adminFinance/FinanceAdminPanelSection'
+import { FinanceAdminToolbarRegion } from './adminFinance/FinanceAdminToolbarRegion'
+import { FinanceAutoRefreshBar } from './adminFinance/FinanceAutoRefreshBar'
+import { FinanceAdminMeetingPaymentSection } from './adminFinance/FinanceAdminMeetingPaymentSection'
+import { FinanceOverviewSummary } from './adminFinance/FinanceOverviewSummary'
+import { FinanceQuickActionsBar } from './adminFinance/FinanceQuickActionsBar'
+import { FinanceReportFilters } from './adminFinance/FinanceReportFilters'
+import { FinanceReportPresets } from './adminFinance/FinanceReportPresets'
 export function AdminFinancePanel({ apiBase }: Props) {
   const base = normalizeApiBase(apiBase)
   const [adminKey, setAdminKey] = useState('')
@@ -229,10 +71,25 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [plSummary, setPlSummary] = useState<PlSummaryPayload | null>(null)
   const [donationsReport, setDonationsReport] = useState<DonationsReportPayload | null>(null)
+  const [trialBalance, setTrialBalance] = useState<TrialBalancePayload | null>(null)
+  const [periodClosings, setPeriodClosings] = useState<FinancePeriodClosingItem[]>([])
+  const [periodClosingDetail, setPeriodClosingDetail] = useState<FinancePeriodClosingDetail | null>(null)
   const [reportEntity, setReportEntity] = useState<ReportFilterEntity>('')
   const [reportFrom, setReportFrom] = useState('')
   const [reportTo, setReportTo] = useState('')
   const [reportKeyword, setReportKeyword] = useState('')
+  const [closePeriodFrom, setClosePeriodFrom] = useState(() => {
+    const now = new Date()
+    return formatDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1))
+  })
+  const [closePeriodTo, setClosePeriodTo] = useState(() => formatDateInputValue(new Date()))
+  const [closeBy, setCloseBy] = useState('finance-admin')
+  const [closeNote, setCloseNote] = useState('')
+  const [auditorSentBy, setAuditorSentBy] = useState('finance-admin')
+  const [auditorHandoffNote, setAuditorHandoffNote] = useState('')
+  const [auditorCompletedBy, setAuditorCompletedBy] = useState('finance-admin')
+  const [auditorCompletedNote, setAuditorCompletedNote] = useState('')
+  const [periodHandoffFilter, setPeriodHandoffFilter] = useState<'all' | 'pending' | 'sent' | 'completed'>('all')
   const [customPresets, setCustomPresets] = useState<ReportPreset[]>([])
   const [selectedPresetId, setSelectedPresetId] = useState('builtin:association_month')
   const [presetName, setPresetName] = useState('')
@@ -257,6 +114,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all')
   const [activitySearch, setActivitySearch] = useState('')
   const [activityLimit, setActivityLimit] = useState<ActivityLimit>(20)
+  const isErrorMsg = msg !== null && (msg.includes('ไม่สำเร็จ') || msg.includes('HTTP'))
   const [plPage, setPlPage] = useState(1)
   const [donorPage, setDonorPage] = useState(1)
   const [batchPage, setBatchPage] = useState(1)
@@ -270,6 +128,33 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [attendanceName, setAttendanceName] = useState('')
   const [attendanceRole, setAttendanceRole] = useState<'committee' | 'cram_executive'>('committee')
   const [attendanceLineUid, setAttendanceLineUid] = useState('')
+  const [meetingMinutes, setMeetingMinutes] = useState('')
+  const [meetingMinutesMeta, setMeetingMinutesMeta] = useState('')
+  const [meetingMinutesPublished, setMeetingMinutesPublished] = useState(false)
+  const [agendaTitle, setAgendaTitle] = useState('')
+  const [agendaDetails, setAgendaDetails] = useState('')
+  const [agendas, setAgendas] = useState<MeetingAgendaItem[]>([])
+  const [agendaStatusFilter, setAgendaStatusFilter] = useState<'all' | 'open' | 'closed'>('open')
+  const [voteAgendaId, setVoteAgendaId] = useState('')
+  const [agendaVoterName, setAgendaVoterName] = useState('')
+  const [agendaVote, setAgendaVote] = useState<'approve' | 'reject' | 'abstain'>('approve')
+  const [agendaVoteSummary, setAgendaVoteSummary] = useState('')
+  const [agendaPatchId, setAgendaPatchId] = useState('')
+  const [agendaPatchTitle, setAgendaPatchTitle] = useState('')
+  const [agendaPatchDetails, setAgendaPatchDetails] = useState('')
+  const [agendaPatchStatus, setAgendaPatchStatus] = useState<'open' | 'closed'>('open')
+  const [documents, setDocuments] = useState<MeetingDocumentItem[]>([])
+  const [documentTitle, setDocumentTitle] = useState('')
+  const [documentUrl, setDocumentUrl] = useState('')
+  const [documentText, setDocumentText] = useState('')
+  const [documentAgendaId, setDocumentAgendaId] = useState('')
+  const [documentMeetingId, setDocumentMeetingId] = useState('')
+  const [documentPatchId, setDocumentPatchId] = useState('')
+  const [documentPatchTitle, setDocumentPatchTitle] = useState('')
+  const [documentPatchUrl, setDocumentPatchUrl] = useState('')
+  const [documentPatchText, setDocumentPatchText] = useState('')
+  const [documentPatchMeetingId, setDocumentPatchMeetingId] = useState('')
+  const [documentPatchAgendaId, setDocumentPatchAgendaId] = useState('')
 
   const [paymentEntity, setPaymentEntity] = useState<'association' | 'cram_school'>('association')
   const [paymentPurpose, setPaymentPurpose] = useState('')
@@ -277,6 +162,90 @@ export function AdminFinancePanel({ apiBase }: Props) {
   const [paymentBankAccountId, setPaymentBankAccountId] = useState('')
   const [paymentMeetingId, setPaymentMeetingId] = useState('')
   const [paymentRequestId, setPaymentRequestId] = useState('')
+  const [paymentPurposeCategory, setPaymentPurposeCategory] = useState<string>('other')
+  const [paymentVatRate, setPaymentVatRate] = useState('0')
+  const [paymentWhtRate, setPaymentWhtRate] = useState('0')
+  const [paymentTaxpayerId, setPaymentTaxpayerId] = useState('')
+
+  const [toolsEntity, setToolsEntity] = useState<'association' | 'cram_school'>('association')
+  const [fiscalYears, setFiscalYears] = useState<FiscalYearRow[]>([])
+  const [fiscalPeriodFrom, setFiscalPeriodFrom] = useState(() => {
+    const y = new Date().getFullYear()
+    return `${y}-01-01`
+  })
+  const [fiscalPeriodTo, setFiscalPeriodTo] = useState(() => {
+    const y = new Date().getFullYear()
+    return `${y}-12-31`
+  })
+  const [fiscalLabel, setFiscalLabel] = useState('')
+  const [fiscalCloseSurplusCode, setFiscalCloseSurplusCode] = useState('3110')
+  const [fiscalCloseBy, setFiscalCloseBy] = useState('finance-admin')
+  const [fiscalCloseNote, setFiscalCloseNote] = useState('')
+
+  const [fixedAssets, setFixedAssets] = useState<FixedAssetRow[]>([])
+  const [faCode, setFaCode] = useState('')
+  const [faName, setFaName] = useState('')
+  const [faPurchaseDate, setFaPurchaseDate] = useState(() => formatDateInputValue(new Date()))
+  const [faCost, setFaCost] = useState('')
+  const [faResidual, setFaResidual] = useState('0')
+  const [faLifeMonths, setFaLifeMonths] = useState('60')
+  const [faDepAccCode, setFaDepAccCode] = useState('')
+  const [faAccumAccCode, setFaAccumAccCode] = useState('')
+  const [faNote, setFaNote] = useState('')
+  const [faCreatedBy, setFaCreatedBy] = useState('finance-admin')
+  const [depMonth, setDepMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const [taxMonth, setTaxMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+  const [taxMonthly, setTaxMonthly] = useState<{
+    totals: { base_amount: number; vat_amount: number; wht_amount: number }
+    rows: TaxMonthlyRow[]
+  } | null>(null)
+  const [taxCalcBase, setTaxCalcBase] = useState('')
+  const [taxCalcVat, setTaxCalcVat] = useState('0.07')
+  const [taxCalcWht, setTaxCalcWht] = useState('0')
+  const [taxCalcResult, setTaxCalcResult] = useState<{
+    baseAmount: number
+    vatRate: number
+    whtRate: number
+    vatAmount: number
+    whtAmount: number
+    grossAmount: number
+    netPayable: number
+  } | null>(null)
+
+  const [journalList, setJournalList] = useState<JournalListItem[]>([])
+  const [journalStatusFilter, setJournalStatusFilter] = useState<'' | 'draft' | 'posted' | 'voided'>('')
+  const [journalDetail, setJournalDetail] = useState<{
+    journal: Record<string, unknown>
+    lines: Array<Record<string, unknown> & { account_code?: string; account_name?: string }>
+    totals: { debit: number; credit: number; isBalanced: boolean }
+  } | null>(null)
+  const [journalDraftEntity, setJournalDraftEntity] = useState<'association' | 'cram_school'>('association')
+  const [journalDraftDate, setJournalDraftDate] = useState(() => formatDateInputValue(new Date()))
+  const [journalDraftRef, setJournalDraftRef] = useState('')
+  const [journalDraftMemo, setJournalDraftMemo] = useState('')
+  const [journalDraftBy, setJournalDraftBy] = useState('finance-admin')
+  const [journalLineAccount, setJournalLineAccount] = useState('')
+  const [journalLineDebit, setJournalLineDebit] = useState('')
+  const [journalLineCredit, setJournalLineCredit] = useState('')
+  const [journalLineDesc, setJournalLineDesc] = useState('')
+  const [journalLineBy, setJournalLineBy] = useState('finance-admin')
+  const [journalPostBy, setJournalPostBy] = useState('finance-admin')
+  const [journalVoidBy, setJournalVoidBy] = useState('finance-admin')
+  const [journalVoidReason, setJournalVoidReason] = useState('')
+  const [journalActiveId, setJournalActiveId] = useState('')
+
+  const [incomeStatement, setIncomeStatement] = useState<IncomeStatementPayload | null>(null)
+  const [balanceSheet, setBalanceSheet] = useState<BalanceSheetPayload | null>(null)
+  const [generalLedger, setGeneralLedger] = useState<GeneralLedgerPayload | null>(null)
+  const [glAccountCode, setGlAccountCode] = useState('')
+  const [bsAsOf, setBsAsOf] = useState(() => formatDateInputValue(new Date()))
 
   const [approveSignerId, setApproveSignerId] = useState('')
   const [approveRoleCode, setApproveRoleCode] = useState<'bank_signer_3of5' | 'committee'>('bank_signer_3of5')
@@ -412,6 +381,14 @@ export function AdminFinancePanel({ apiBase }: Props) {
     if (!ent) return accounts
     return accounts.filter((a) => a.legal_entity_id === ent.id)
   }, [accounts, overview?.entities, paymentEntity])
+  const periodClosingsSentCount = useMemo(
+    () => periodClosings.filter((row) => row.auditor_handoff_status === 'sent').length,
+    [periodClosings],
+  )
+  const periodClosingsCompletedCount = useMemo(
+    () => periodClosings.filter((row) => row.auditor_handoff_status === 'completed').length,
+    [periodClosings],
+  )
 
   const selectedAccount = useMemo(
     () => accounts.find((a) => a.id === paymentBankAccountId) ?? null,
@@ -547,6 +524,21 @@ export function AdminFinancePanel({ apiBase }: Props) {
     [entityRows],
   )
 
+  const trialBalanceExportRows = useMemo(
+    () =>
+      (trialBalance?.rows ?? []).map((row) => ({
+        legal_entity_code: row.legalEntityCode,
+        legal_entity_name: row.legalEntityName,
+        account_code: row.accountCode,
+        account_name: row.accountName,
+        account_type: row.accountType,
+        debit: row.debit,
+        credit: row.credit,
+        net: row.net,
+      })),
+    [trialBalance?.rows],
+  )
+
   useEffect(() => {
     setPlPage(1)
     setDonorPage(1)
@@ -613,7 +605,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
         }
         setPlSummary((pl.payload ?? null) as PlSummaryPayload | null)
         setDonationsReport((donations.payload ?? null) as DonationsReportPayload | null)
-        setLastAutoRefreshAt(new Date().toLocaleTimeString())
+        setLastAutoRefreshAt(new Date().toLocaleTimeString('th-TH'))
         setLastAutoRefreshError(null)
         setAutoRefreshFailureCount(0)
         addActivity('info', 'รีเฟรชอัตโนมัติสำเร็จ')
@@ -780,30 +772,32 @@ export function AdminFinancePanel({ apiBase }: Props) {
     return s ? `?${s}` : ''
   }
 
-  function renderPager(page: number, totalPages: number, onPage: (next: number) => void) {
-    return (
-      <div className="mt-2 flex items-center justify-end gap-2 text-[11px] text-slate-400">
-        <button
-          type="button"
-          disabled={page <= 1}
-          onClick={() => onPage(Math.max(1, page - 1))}
-          className={`rounded bg-slate-800 px-2 py-1 text-slate-200 disabled:opacity-40 ${portalFocusRing}`}
-        >
-          ก่อนหน้า
-        </button>
-        <span>
-          หน้า {page}/{totalPages}
-        </span>
-        <button
-          type="button"
-          disabled={page >= totalPages}
-          onClick={() => onPage(Math.min(totalPages, page + 1))}
-          className={`rounded bg-slate-800 px-2 py-1 text-slate-200 disabled:opacity-40 ${portalFocusRing}`}
-        >
-          ถัดไป
-        </button>
-      </div>
-    )
+  function buildJournalsQueryString() {
+    const q = new URLSearchParams()
+    if (reportEntity) q.set('legal_entity_code', reportEntity)
+    if (reportFrom.trim()) q.set('from', reportFrom.trim())
+    if (reportTo.trim()) q.set('to', reportTo.trim())
+    if (journalStatusFilter) q.set('status', journalStatusFilter)
+    const s = q.toString()
+    return s ? `?${s}` : ''
+  }
+
+  function buildBalanceSheetQueryString() {
+    const q = new URLSearchParams()
+    if (reportEntity) q.set('legal_entity_code', reportEntity)
+    if (bsAsOf.trim()) q.set('as_of', bsAsOf.trim())
+    const s = q.toString()
+    return s ? `?${s}` : ''
+  }
+
+  function buildGlQueryString() {
+    const q = new URLSearchParams()
+    if (reportEntity) q.set('legal_entity_code', reportEntity)
+    if (reportFrom.trim()) q.set('from', reportFrom.trim())
+    if (reportTo.trim()) q.set('to', reportTo.trim())
+    if (glAccountCode.trim()) q.set('account_code', glAccountCode.trim())
+    const s = q.toString()
+    return s ? `?${s}` : ''
   }
 
   function applyPreset(preset: ReportPreset) {
@@ -960,7 +954,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
       `visible_count=${visibleActivityLog.length}`,
       `total_count=${activityLog.length}`,
       `limit=${activityLimit}`,
-      `copied_at=${new Date().toLocaleString()}`,
+      `copied_at=${new Date().toLocaleString('th-TH')}`,
     ].join(' | ')
 
     try {
@@ -1100,21 +1094,45 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
   }
 
+  async function loadTrialBalanceReport() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/reports/trial-balance${buildReportQueryString()}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลด Trial Balance', p.status, p.payload, p.rawText))
+      setTrialBalance((p.payload ?? null) as TrialBalancePayload | null)
+      setMsg('โหลด Trial Balance แล้ว')
+      addActivity('info', 'โหลดรายงาน Trial Balance สำเร็จ')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดรายงาน Trial Balance ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function loadAllReports() {
     if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
     setLoading(true)
     setMsg(null)
     try {
       const q = buildReportQueryString()
-      const [plResp, donationsResp] = await Promise.all([
+      const [plResp, donationsResp, trialResp] = await Promise.all([
         fetch(`${base}/api/admin/finance/reports/pl-summary${q}`, {
           headers: { 'x-admin-key': adminKey.trim() },
         }),
         fetch(`${base}/api/admin/finance/reports/donations${q}`, {
           headers: { 'x-admin-key': adminKey.trim() },
         }),
+        fetch(`${base}/api/admin/finance/reports/trial-balance${q}`, {
+          headers: { 'x-admin-key': adminKey.trim() },
+        }),
       ])
-      const [pl, donations] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp)])
+      const [pl, donations, trial] = await Promise.all([readApiJson(plResp), readApiJson(donationsResp), readApiJson(trialResp)])
 
       const errors: string[] = []
       if (pl.ok) {
@@ -1134,6 +1152,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
           formatFetchError('โหลดแดชบอร์ดเงินบริจาค', donations.status, donations.payload, donations.rawText),
         )
       }
+      if (trial.ok) {
+        setTrialBalance((trial.payload ?? null) as TrialBalancePayload | null)
+      } else {
+        errors.push(formatFetchError('โหลด Trial Balance', trial.status, trial.payload, trial.rawText))
+      }
 
       if (errors.length > 0) {
         setMsg(errors.join('\n\n------------------------------\n\n'))
@@ -1141,11 +1164,730 @@ export function AdminFinancePanel({ apiBase }: Props) {
         return
       }
 
-      setMsg('โหลดรายงานทั้งหมดแล้ว (P/L + Donations)')
+      setMsg('โหลดรายงานทั้งหมดแล้ว (P/L + Donations + Trial Balance)')
       addActivity('info', 'โหลดรายงานทั้งหมดสำเร็จ')
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
       addActivity('error', 'โหลดรายงานทั้งหมดไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadPeriodClosings() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const q = new URLSearchParams()
+      if (reportEntity) q.set('legal_entity_code', reportEntity)
+      if (periodHandoffFilter !== 'all') q.set('auditor_handoff_status', periodHandoffFilter)
+      q.set('limit', '50')
+      const url = `${base}/api/admin/finance/period-closing${q.toString() ? `?${q.toString()}` : ''}`
+      const r = await fetch(url, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดประวัติปิดงวดบัญชี', p.status, p.payload, p.rawText))
+      const payload = (p.payload ?? {}) as { rows?: FinancePeriodClosingItem[] }
+      const rows = Array.isArray(payload.rows) ? payload.rows : []
+      setPeriodClosings(rows)
+      setPeriodClosingDetail((prev) =>
+        prev && rows.some((row) => row.id === prev.periodClosing.id) ? prev : null,
+      )
+      setMsg('โหลดประวัติปิดงวดบัญชีแล้ว')
+      addActivity(
+        'info',
+        `โหลดประวัติปิดงวดบัญชีสำเร็จ${periodHandoffFilter === 'all' ? '' : ` (สถานะ ${periodHandoffFilter})`}`,
+      )
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดประวัติปิดงวดบัญชีไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function closeAccountingPeriod() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!reportEntity) return setMsg('เลือกหน่วยงานก่อนปิดงวดบัญชี')
+    if (!closePeriodFrom || !closePeriodTo || closePeriodFrom > closePeriodTo) {
+      return setMsg('ระบุช่วงงวดบัญชีให้ถูกต้อง')
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/period-closing`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          legal_entity_code: reportEntity,
+          period_from: closePeriodFrom,
+          period_to: closePeriodTo,
+          closed_by: closeBy.trim() || 'finance-admin',
+          note: closeNote.trim() || null,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('ปิดงวดบัญชี', p.status, p.payload, p.rawText))
+      setMsg('ปิดงวดบัญชีสำเร็จ และบันทึกสำหรับผู้ตรวจสอบแล้ว')
+      addActivity('info', `ปิดงวดบัญชีสำเร็จ: ${reportEntity} ${closePeriodFrom} ถึง ${closePeriodTo}`)
+      await Promise.all([loadPeriodClosings(), loadTrialBalanceReport()])
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ปิดงวดบัญชีไม่สำเร็จ: ${reportEntity} ${closePeriodFrom} ถึง ${closePeriodTo}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadPeriodClosingDetail(id: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(id)
+      const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดรายละเอียดงวดบัญชี', p.status, p.payload, p.rawText))
+      const payload = (p.payload ?? null) as FinancePeriodClosingDetail | null
+      setPeriodClosingDetail(payload)
+      const periodLabel = payload
+        ? `${payload.periodClosing.period_from} ถึง ${payload.periodClosing.period_to}`
+        : id
+      setMsg(`โหลดรายละเอียดงวด ${periodLabel} แล้ว`)
+      addActivity('info', `โหลดรายละเอียดงวดบัญชีสำเร็จ: ${periodLabel}`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `โหลดรายละเอียดงวดบัญชีไม่สำเร็จ: ${id}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function downloadPeriodClosingAuditorPackage(id: string, label: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(id)
+      const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/auditor-package.csv`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const blob = await r.blob()
+      if (!r.ok) {
+        const txt = await blob.text().catch(() => '')
+        setMsg(`ดาวน์โหลดแพ็กผู้ตรวจสอบงวด ${label} ไม่สำเร็จ — HTTP ${r.status}\n${txt}`)
+        addActivity('error', `ดาวน์โหลดแพ็กผู้ตรวจสอบงวดไม่สำเร็จ: ${label}`)
+        return
+      }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `period-closing-${id}-auditor-package.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      setMsg(`ดาวน์โหลดแพ็กผู้ตรวจสอบงวด ${label} แล้ว`)
+      addActivity('info', `ดาวน์โหลดแพ็กผู้ตรวจสอบงวดสำเร็จ: ${label}`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ดาวน์โหลดแพ็กผู้ตรวจสอบงวดไม่สำเร็จ: ${label}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function markPeriodClosingAuditorSent(id: string, label: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(id)
+      const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/mark-auditor-sent`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auditor_sent_by: auditorSentBy.trim() || 'finance-admin',
+          auditor_handoff_note: auditorHandoffNote.trim() || null,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('ยืนยันการส่งผู้ตรวจสอบ', p.status, p.payload, p.rawText))
+      setMsg(`ยืนยันการส่งผู้ตรวจสอบงวด ${label} แล้ว`)
+      addActivity('info', `ยืนยันส่งผู้ตรวจสอบสำเร็จ: ${label}`)
+      await Promise.all([loadPeriodClosings(), loadPeriodClosingDetail(id)])
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ยืนยันส่งผู้ตรวจสอบไม่สำเร็จ: ${label}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function markPeriodClosingAuditorCompleted(id: string, label: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(id)
+      const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}/mark-auditor-completed`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auditor_completed_by: auditorCompletedBy.trim() || 'finance-admin',
+          auditor_completed_note: auditorCompletedNote.trim() || null,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('ยืนยันปิดงานผู้ตรวจสอบ', p.status, p.payload, p.rawText))
+      setMsg(`ยืนยันปิดงานผู้ตรวจสอบงวด ${label} แล้ว`)
+      addActivity('info', `ยืนยันปิดงานผู้ตรวจสอบสำเร็จ: ${label}`)
+      await Promise.all([loadPeriodClosings(), loadPeriodClosingDetail(id)])
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ยืนยันปิดงานผู้ตรวจสอบไม่สำเร็จ: ${label}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadFiscalYears() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const q = new URLSearchParams()
+      q.set('legal_entity_code', toolsEntity)
+      const r = await fetch(`${base}/api/admin/finance/fiscal-years?${q}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดรอบปีบัญชี', p.status, p.payload, p.rawText))
+      const payload = (p.payload ?? {}) as { rows?: FiscalYearRow[] }
+      setFiscalYears(Array.isArray(payload.rows) ? payload.rows : [])
+      setMsg('โหลดรอบปีบัญชีแล้ว')
+      addActivity('info', 'โหลดรอบปีบัญชีสำเร็จ')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดรอบปีบัญชีไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function createFiscalYear() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!fiscalPeriodFrom || !fiscalPeriodTo || fiscalPeriodFrom > fiscalPeriodTo) {
+      return setMsg('ระบุช่วงรอบปีบัญชี (period_from / period_to) ให้ถูกต้อง')
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/fiscal-years`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          legal_entity_code: toolsEntity,
+          period_from: fiscalPeriodFrom,
+          period_to: fiscalPeriodTo,
+          fiscal_label: fiscalLabel.trim() || null,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('สร้างรอบปีบัญชี', p.status, p.payload, p.rawText))
+      setMsg('สร้างรอบปีบัญชีแล้ว')
+      addActivity('info', `สร้างรอบปีบัญชีสำเร็จ: ${toolsEntity} ${fiscalPeriodFrom}–${fiscalPeriodTo}`)
+      await loadFiscalYears()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'สร้างรอบปีบัญชีไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function closeFiscalYear(id: string, label: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(id)
+      const r = await fetch(`${base}/api/admin/finance/fiscal-years/${safeId}/close`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          closed_by: fiscalCloseBy.trim() || 'finance-admin',
+          close_note: fiscalCloseNote.trim() || null,
+          accumulated_surplus_account_code: fiscalCloseSurplusCode.trim() || '3110',
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('ปิดรอบปีบัญชี', p.status, p.payload, p.rawText))
+      setMsg(`ปิดรอบปีบัญชี ${label} แล้ว`)
+      addActivity('info', `ปิดรอบปีบัญชีสำเร็จ: ${label}`)
+      await loadFiscalYears()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ปิดรอบปีบัญชีไม่สำเร็จ: ${label}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadFixedAssets() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const q = new URLSearchParams()
+      q.set('legal_entity_code', toolsEntity)
+      const r = await fetch(`${base}/api/admin/finance/fixed-assets?${q}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดทะเบียนสินทรัพย์', p.status, p.payload, p.rawText))
+      const payload = (p.payload ?? {}) as { rows?: FixedAssetRow[] }
+      setFixedAssets(Array.isArray(payload.rows) ? payload.rows : [])
+      setMsg('โหลดทะเบียนสินทรัพย์แล้ว')
+      addActivity('info', 'โหลดทะเบียนสินทรัพย์ถาวรสำเร็จ')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดทะเบียนสินทรัพย์ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function createFixedAsset() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    const cost = Number(faCost)
+    const residual = Number(faResidual)
+    const life = Number(faLifeMonths)
+    if (!faCode.trim() || !faName.trim() || !Number.isFinite(cost) || cost <= 0) {
+      return setMsg('กรอกรหัส ชื่อ และต้นทุนให้ครบ')
+    }
+    if (!Number.isFinite(life) || life <= 0) return setMsg('อายุการใช้งาน (เดือน) ต้องเป็นตัวเลขบวก')
+    if (!faDepAccCode.trim() || !faAccumAccCode.trim()) {
+      return setMsg('ระบุรหัสบัญชีค่าเสื่อมและค่าเสื่อมสะสม')
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/fixed-assets`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          legal_entity_code: toolsEntity,
+          asset_code: faCode.trim(),
+          asset_name: faName.trim(),
+          purchase_date: faPurchaseDate,
+          cost,
+          residual_value: Number.isFinite(residual) && residual >= 0 ? residual : 0,
+          useful_life_months: Math.floor(life),
+          depreciation_account_code: faDepAccCode.trim(),
+          accumulated_depreciation_account_code: faAccumAccCode.trim(),
+          note: faNote.trim() || null,
+          created_by: faCreatedBy.trim() || 'finance-admin',
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('สร้างสินทรัพย์ถาวร', p.status, p.payload, p.rawText))
+      setMsg('บันทึกสินทรัพย์ถาวรแล้ว')
+      addActivity('info', `สร้างสินทรัพย์ถาวรสำเร็จ: ${faCode.trim()}`)
+      setFaCode('')
+      setFaName('')
+      await loadFixedAssets()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'สร้างสินทรัพย์ถาวรไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function runFixedAssetDepreciation() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!/^\d{4}-\d{2}$/.test(depMonth.trim())) return setMsg('เดือนค่าเสื่อมต้องเป็น YYYY-MM')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/fixed-assets/run-depreciation`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          legal_entity_code: toolsEntity,
+          month: depMonth.trim(),
+          posted_by: faCreatedBy.trim() || 'finance-admin',
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('รันค่าเสื่อม', p.status, p.payload, p.rawText))
+      const body = p.payload as { posted?: boolean; reason?: string; journal_entry_id?: string; asset_count?: number }
+      if (body.posted) {
+        setMsg(
+          `โพสต์ค่าเสื่อมแล้ว — รายการ ${body.asset_count ?? 0} รายการ · journal ${body.journal_entry_id ?? '-'}`,
+        )
+        addActivity('info', `รันค่าเสื่อมสำเร็จ ${toolsEntity} ${depMonth}`)
+      } else {
+        setMsg(body.reason ?? 'ไม่มีรายการค่าเสื่อมใหม่')
+        addActivity('info', `รันค่าเสื่อม: ${body.reason ?? 'ไม่มีรายการ'}`)
+      }
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'รันค่าเสื่อมไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadTaxMonthly() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!/^\d{4}-\d{2}$/.test(taxMonth.trim())) return setMsg('เดือนภาษีต้องเป็น YYYY-MM')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const q = new URLSearchParams()
+      q.set('month', taxMonth.trim())
+      q.set('legal_entity_code', toolsEntity)
+      const r = await fetch(`${base}/api/admin/finance/reports/tax-monthly?${q}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดรายงานภาษีรายเดือน', p.status, p.payload, p.rawText))
+      const payload = p.payload as {
+        totals?: { base_amount: number; vat_amount: number; wht_amount: number }
+        rows?: TaxMonthlyRow[]
+      }
+      setTaxMonthly({
+        totals: payload.totals ?? { base_amount: 0, vat_amount: 0, wht_amount: 0 },
+        rows: Array.isArray(payload.rows) ? payload.rows : [],
+      })
+      setMsg('โหลดรายงานภาษีรายเดือนแล้ว')
+      addActivity('info', `โหลดภาษีรายเดือน ${taxMonth} สำเร็จ`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดรายงานภาษีรายเดือนไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function calculateTaxPreview() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    const baseAmount = Number(taxCalcBase)
+    if (!Number.isFinite(baseAmount) || baseAmount <= 0) return setMsg('ยอดฐาน (ก่อน VAT) ต้องเป็นตัวเลขบวก')
+    const vatRate = Number(taxCalcVat)
+    const whtRate = Number(taxCalcWht)
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/tax/calculate`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base_amount: baseAmount, vat_rate: vatRate, wht_rate: whtRate }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('คำนวณภาษี', p.status, p.payload, p.rawText))
+      const body = p.payload as {
+        baseAmount?: number
+        vatRate?: number
+        whtRate?: number
+        vatAmount?: number
+        whtAmount?: number
+        grossAmount?: number
+        netPayable?: number
+      }
+      setTaxCalcResult({
+        baseAmount: Number(body.baseAmount ?? 0),
+        vatRate: Number(body.vatRate ?? 0),
+        whtRate: Number(body.whtRate ?? 0),
+        vatAmount: Number(body.vatAmount ?? 0),
+        whtAmount: Number(body.whtAmount ?? 0),
+        grossAmount: Number(body.grossAmount ?? 0),
+        netPayable: Number(body.netPayable ?? 0),
+      })
+      setMsg('คำนวณภาษีแล้ว')
+      addActivity('info', 'คำนวณภาษี (preview) สำเร็จ')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'คำนวณภาษีไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadJournals() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/journals${buildJournalsQueryString()}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดสมุดรายวัน', p.status, p.payload, p.rawText))
+      const payload = p.payload as { journals?: JournalListItem[] }
+      setJournalList(Array.isArray(payload.journals) ? payload.journals : [])
+      setMsg('โหลดรายการสมุดรายวันแล้ว')
+      addActivity('info', 'โหลดรายการ journal สำเร็จ')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดสมุดรายวันไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadJournalDetail(id: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!id.trim()) return setMsg('ระบุรหัสเอกสารสมุดรายวัน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(id.trim())
+      const r = await fetch(`${base}/api/admin/finance/journals/${safeId}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดรายละเอียดสมุดรายวัน', p.status, p.payload, p.rawText))
+      const payload = p.payload as {
+        journal?: Record<string, unknown>
+        lines?: Array<Record<string, unknown> & { account_code?: string }>
+        totals?: { debit: number; credit: number; isBalanced: boolean }
+      }
+      setJournalDetail({
+        journal: payload.journal ?? {},
+        lines: Array.isArray(payload.lines) ? payload.lines : [],
+        totals: payload.totals ?? { debit: 0, credit: 0, isBalanced: true },
+      })
+      setJournalActiveId(id.trim())
+      setMsg('โหลดรายละเอียดสมุดรายวันแล้ว')
+      addActivity('info', `โหลด journal ${id.trim()} สำเร็จ`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดรายละเอียดสมุดรายวันไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function createJournalDraft() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!journalDraftDate || !/^\d{4}-\d{2}-\d{2}$/.test(journalDraftDate)) {
+      return setMsg('วันที่เอกสารต้องเป็น YYYY-MM-DD')
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/journals`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          legal_entity_code: journalDraftEntity,
+          entry_date: journalDraftDate,
+          reference_no: journalDraftRef.trim() || null,
+          memo: journalDraftMemo.trim() || null,
+          created_by: journalDraftBy.trim() || 'finance-admin',
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('สร้างร่างสมุดรายวัน', p.status, p.payload, p.rawText))
+      const j = (p.payload as { journal?: { id?: string } }).journal
+      if (j?.id) setJournalActiveId(String(j.id))
+      setMsg('สร้างร่างสมุดรายวันแล้ว — กดรายการเพื่อโหลดรายละเอียดหรือเพิ่มบรรทัด')
+      addActivity('info', 'สร้างร่าง journal สำเร็จ')
+      await loadJournals()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'สร้างร่างสมุดรายวันไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function addJournalLine() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!journalActiveId.trim()) return setMsg('เลือกหรือสร้างเอกสารสมุดรายวันก่อน')
+    const debit = Number(journalLineDebit)
+    const credit = Number(journalLineCredit)
+    if (!journalLineAccount.trim() || (!Number.isFinite(debit) && !Number.isFinite(credit))) {
+      return setMsg('ระบุรหัสบัญชีและเดบิตหรือเครดิต')
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(journalActiveId.trim())
+      const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/lines`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account_code: journalLineAccount.trim(),
+          debit_amount: Number.isFinite(debit) && debit > 0 ? debit : 0,
+          credit_amount: Number.isFinite(credit) && credit > 0 ? credit : 0,
+          description: journalLineDesc.trim() || null,
+          actor: journalLineBy.trim() || 'finance-admin',
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('เพิ่มบรรทัดสมุดรายวัน', p.status, p.payload, p.rawText))
+      setMsg('เพิ่มบรรทัดแล้ว')
+      setJournalLineDebit('')
+      setJournalLineCredit('')
+      setJournalLineDesc('')
+      addActivity('info', `เพิ่มบรรทัด journal ${journalActiveId}`)
+      await loadJournalDetail(journalActiveId.trim())
+      await loadJournals()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'เพิ่มบรรทัดสมุดรายวันไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function postJournal() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!journalActiveId.trim()) return setMsg('ระบุรหัสเอกสารสมุดรายวัน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(journalActiveId.trim())
+      const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/post`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posted_by: journalPostBy.trim() || 'finance-admin' }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โพสต์สมุดรายวัน', p.status, p.payload, p.rawText))
+      setMsg('โพสต์สมุดรายวันแล้ว')
+      addActivity('info', `โพสต์ journal ${journalActiveId}`)
+      await loadJournalDetail(journalActiveId.trim())
+      await loadJournals()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โพสต์สมุดรายวันไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function voidJournal() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!journalActiveId.trim()) return setMsg('ระบุรหัสเอกสารสมุดรายวัน')
+    if (!journalVoidReason.trim()) return setMsg('ระบุเหตุผลการ void')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const safeId = encodeURIComponent(journalActiveId.trim())
+      const r = await fetch(`${base}/api/admin/finance/journals/${safeId}/void`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voided_by: journalVoidBy.trim() || 'finance-admin',
+          reason: journalVoidReason.trim(),
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('ยกเลิกสมุดรายวัน', p.status, p.payload, p.rawText))
+      setMsg('บันทึก void สมุดรายวันแล้ว')
+      addActivity('warn', `void journal ${journalActiveId}`)
+      await loadJournalDetail(journalActiveId.trim())
+      await loadJournals()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'void สมุดรายวันไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadIncomeStatementReport() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/reports/income-statement${buildReportQueryString()}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดงบกำไรขาดทุน', p.status, p.payload, p.rawText))
+      const payload = p.payload as IncomeStatementPayload & { ok?: boolean }
+      setIncomeStatement({
+        revenueRows: payload.revenueRows ?? [],
+        expenseRows: payload.expenseRows ?? [],
+        totals: payload.totals ?? { revenue: 0, expense: 0, netIncome: 0 },
+        journalEntryCount: payload.journalEntryCount ?? 0,
+      })
+      setMsg('โหลดงบกำไรขาดทุนแล้ว')
+      addActivity('info', 'โหลด income statement สำเร็จ')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดงบกำไรขาดทุนไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadBalanceSheetReport() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/reports/balance-sheet${buildBalanceSheetQueryString()}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดงบดุล', p.status, p.payload, p.rawText))
+      const payload = p.payload as BalanceSheetPayload & { ok?: boolean; filters?: unknown }
+      setBalanceSheet({
+        assets: payload.assets ?? [],
+        liabilities: payload.liabilities ?? [],
+        equity: payload.equity ?? [],
+        totals: payload.totals ?? { assets: 0, liabilities: 0, equity: 0 },
+        accountingEquation: payload.accountingEquation ?? {
+          left: 0,
+          right: 0,
+          diff: 0,
+          isBalanced: true,
+        },
+        journalEntryCount: payload.journalEntryCount ?? 0,
+      })
+      setMsg('โหลดงบดุลแล้ว')
+      addActivity('info', 'โหลด balance sheet สำเร็จ')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดงบดุลไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadGeneralLedgerReport() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!glAccountCode.trim()) return setMsg('ระบุรหัสบัญชี (account_code) สำหรับสมุดบัญชีแยกประเภท')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/reports/general-ledger${buildGlQueryString()}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดสมุดบัญชีแยกประเภท', p.status, p.payload, p.rawText))
+      const payload = p.payload as GeneralLedgerPayload & { ok?: boolean }
+      setGeneralLedger({
+        account: payload.account ?? { account_code: '', account_name: '', account_type: '' },
+        rows: payload.rows ?? [],
+        totals: payload.totals ?? { debit: 0, credit: 0, netMovement: 0, endingBalance: 0 },
+      })
+      setMsg('โหลดสมุดบัญชีแยกประเภทแล้ว')
+      addActivity('info', `โหลด GL ${glAccountCode.trim()} สำเร็จ`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลด GL ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -1270,6 +2012,505 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
   }
 
+  async function loadMeetingMinutes() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!meetingId.trim()) return setMsg('กรอกรหัสการประชุม')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดรายงานการประชุม', p.status, p.payload, p.rawText))
+      const payload = (p.payload ?? {}) as {
+        meetingSession?: {
+          minutes_markdown?: string | null
+          minutes_recorded_by?: string | null
+          minutes_updated_at?: string | null
+          minutes_published?: boolean
+        }
+      }
+      const minutes = payload.meetingSession?.minutes_markdown
+      setMeetingMinutes(typeof minutes === 'string' ? minutes : '')
+      const by = payload.meetingSession?.minutes_recorded_by ?? '-'
+      const at = payload.meetingSession?.minutes_updated_at ?? '-'
+      const published = payload.meetingSession?.minutes_published === true
+      setMeetingMinutesPublished(published)
+      setMeetingMinutesMeta(`ล่าสุดโดย ${by} เมื่อ ${at} · ${published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่'}`)
+      setMsg('โหลดรายงานการประชุมแล้ว')
+      addActivity('info', `โหลดรายงานการประชุมสำเร็จ: ${meetingId.trim()}`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `โหลดรายงานการประชุมไม่สำเร็จ: ${meetingId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function saveMeetingMinutes() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!meetingId.trim()) return setMsg('กรอกรหัสการประชุม')
+    if (!meetingMinutes.trim()) return setMsg('กรอกบันทึกรายงานการประชุมก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          minutes_markdown: meetingMinutes.trim(),
+          minutes_recorded_by: attendanceName.trim() || 'admin-ui',
+          publish_to_portal: meetingMinutesPublished,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('บันทึกรายงานการประชุม', p.status, p.payload, p.rawText))
+      setMsg('บันทึกรายงานการประชุมแล้ว')
+      addActivity('info', `บันทึกรายงานการประชุมสำเร็จ: ${meetingId.trim()}`)
+      await loadMeetingMinutes()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `บันทึกรายงานการประชุมไม่สำเร็จ: ${meetingId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function downloadMeetingMinutesTxt() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!meetingId.trim()) return setMsg('กรอกรหัสการประชุม')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes.txt`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      if (!r.ok) {
+        const p = await readApiJson(r)
+        return setMsg(formatFetchError('ดาวน์โหลดรายงานการประชุม', p.status, p.payload, p.rawText))
+      }
+      const blob = await r.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `meeting-minutes-${meetingId.trim()}.txt`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      setMsg('ดาวน์โหลดรายงานการประชุมแล้ว')
+      addActivity('info', `ดาวน์โหลดรายงานการประชุมสำเร็จ: ${meetingId.trim()}`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ดาวน์โหลดรายงานการประชุมไม่สำเร็จ: ${meetingId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function setMeetingMinutesPublishState(published: boolean) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!meetingId.trim()) return setMsg('กรอกรหัสการประชุม')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-sessions/${meetingId.trim()}/minutes/publish`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('อัปเดตสถานะเผยแพร่รายงานประชุม', p.status, p.payload, p.rawText))
+      setMeetingMinutesPublished(published)
+      setMsg(published ? 'เผยแพร่รายงานการประชุมแล้ว' : 'ซ่อนรายงานการประชุมจากพอร์ทัลแล้ว')
+      addActivity('info', `${published ? 'เผยแพร่' : 'ซ่อน'}รายงานการประชุมสำเร็จ: ${meetingId.trim()}`)
+      await loadMeetingMinutes()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `อัปเดตสถานะเผยแพร่รายงานประชุมไม่สำเร็จ: ${meetingId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadMeetingAgendas() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const qs = new URLSearchParams()
+      qs.set('scope', meetingEntity)
+      if (agendaStatusFilter !== 'all') qs.set('status', agendaStatusFilter)
+      if (meetingId.trim()) qs.set('meeting_session_id', meetingId.trim())
+      const r = await fetch(`${base}/api/admin/finance/meeting-agendas?${qs.toString()}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดวาระประชุม', p.status, p.payload, p.rawText))
+      const payload = (p.payload ?? {}) as { agendas?: MeetingAgendaItem[] }
+      setAgendas(Array.isArray(payload.agendas) ? payload.agendas : [])
+      setMsg('โหลดรายการวาระประชุมแล้ว')
+      addActivity('info', `โหลดวาระประชุมสำเร็จ (${meetingEntity}/${agendaStatusFilter})`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดวาระประชุมไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function createMeetingAgenda() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!agendaTitle.trim()) return setMsg('กรอกหัวข้อวาระก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-agendas`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scope: meetingEntity,
+          title: agendaTitle.trim(),
+          details: agendaDetails.trim() || null,
+          meeting_session_id: meetingId.trim() || null,
+          created_by: 'admin-ui',
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('สร้างวาระประชุม', p.status, p.payload, p.rawText))
+      setAgendaTitle('')
+      setAgendaDetails('')
+      setMsg('สร้างวาระประชุมแล้ว')
+      addActivity('info', `สร้างวาระประชุมสำเร็จ: ${agendaTitle.trim()}`)
+      await loadMeetingAgendas()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `สร้างวาระประชุมไม่สำเร็จ: ${agendaTitle.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function castAgendaVote() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!voteAgendaId.trim() || !agendaVoterName.trim()) {
+      return setMsg('กรอกรหัสวาระและชื่อผู้โหวต')
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${voteAgendaId.trim()}/votes`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voter_name: agendaVoterName.trim(),
+          voter_role_code: attendanceRole,
+          vote: agendaVote,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('ลงมติวาระประชุม', p.status, p.payload, p.rawText))
+      setMsg('บันทึกผลโหวตแล้ว')
+      addActivity('info', `ลงมติสำเร็จ: ${voteAgendaId.trim()} (${agendaVote})`)
+      await loadAgendaVoteSummary(voteAgendaId.trim())
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ลงมติไม่สำเร็จ: ${voteAgendaId.trim()} (${agendaVote})`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadAgendaVoteSummary(agendaId: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!agendaId.trim()) return setMsg('กรอกรหัสวาระ')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaId.trim()}/vote-summary`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('สรุปผลโหวตวาระ', p.status, p.payload, p.rawText))
+      setAgendaVoteSummary(JSON.stringify(p.payload, null, 2))
+      setMsg('โหลดสรุปผลโหวตวาระแล้ว')
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function closeMeetingAgenda(agendaId: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!agendaId.trim()) return setMsg('กรอกรหัสวาระ')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaId.trim()}/close`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('ปิดวาระประชุม', p.status, p.payload, p.rawText))
+      setMsg('ปิดวาระประชุมแล้ว')
+      addActivity('info', `ปิดวาระประชุมสำเร็จ: ${agendaId.trim()}`)
+      await loadMeetingAgendas()
+      await loadAgendaVoteSummary(agendaId.trim())
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ปิดวาระประชุมไม่สำเร็จ: ${agendaId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function beginPatchMeetingAgenda(agenda: MeetingAgendaItem) {
+    setAgendaPatchId(agenda.id)
+    setAgendaPatchTitle(agenda.title)
+    setAgendaPatchDetails(agenda.details ?? '')
+    setAgendaPatchStatus(agenda.status)
+    setMsg(null)
+  }
+
+  function cancelPatchMeetingAgenda() {
+    setAgendaPatchId('')
+    setAgendaPatchTitle('')
+    setAgendaPatchDetails('')
+    setAgendaPatchStatus('open')
+  }
+
+  async function savePatchMeetingAgenda() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!agendaPatchId.trim()) return setMsg('เลือกวาระที่จะแก้ไขก่อน')
+    if (!agendaPatchTitle.trim()) return setMsg('กรอกหัวข้อวาระ')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-agendas/${agendaPatchId.trim()}`, {
+        method: 'PATCH',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: agendaPatchTitle.trim(),
+          details: agendaPatchDetails.trim() || null,
+          status: agendaPatchStatus,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('แก้ไขวาระประชุม', p.status, p.payload, p.rawText))
+      setMsg('บันทึกการแก้ไขวาระแล้ว')
+      addActivity('info', `แก้ไขวาระประชุมสำเร็จ: ${agendaPatchId.trim()}`)
+      cancelPatchMeetingAgenda()
+      await loadMeetingAgendas()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `แก้ไขวาระประชุมไม่สำเร็จ: ${agendaPatchId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadMeetingDocuments() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const qs = new URLSearchParams()
+      qs.set('scope', meetingEntity)
+      if (documentMeetingId.trim()) qs.set('meeting_session_id', documentMeetingId.trim())
+      if (documentAgendaId.trim()) qs.set('agenda_id', documentAgendaId.trim())
+      const r = await fetch(`${base}/api/admin/finance/meeting-documents?${qs.toString()}`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('โหลดเอกสารประชุม', p.status, p.payload, p.rawText))
+      const payload = (p.payload ?? {}) as { documents?: MeetingDocumentItem[] }
+      setDocuments(Array.isArray(payload.documents) ? payload.documents : [])
+      setMsg('โหลดเอกสารประชุมแล้ว')
+      addActivity('info', `โหลดเอกสารประชุมสำเร็จ (${meetingEntity})`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', 'โหลดเอกสารประชุมไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function createMeetingDocument() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!documentTitle.trim()) return setMsg('กรอกชื่อเอกสารก่อน')
+    if (!documentUrl.trim() && !documentText.trim()) {
+      return setMsg('กรอกลิงก์เอกสาร หรือเนื้อหาเอกสารอย่างน้อยหนึ่งค่า')
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-documents`, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scope: meetingEntity,
+          title: documentTitle.trim(),
+          meeting_session_id: documentMeetingId.trim() || null,
+          agenda_id: documentAgendaId.trim() || null,
+          document_url: documentUrl.trim() || null,
+          document_text: documentText.trim() || null,
+          uploaded_by: attendanceName.trim() || 'admin-ui',
+          published_to_portal: false,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('เพิ่มเอกสารประชุม', p.status, p.payload, p.rawText))
+      setMsg('เพิ่มเอกสารประชุมแล้ว')
+      setDocumentTitle('')
+      setDocumentUrl('')
+      setDocumentText('')
+      addActivity('info', `เพิ่มเอกสารประชุมสำเร็จ: ${documentTitle.trim()}`)
+      await loadMeetingDocuments()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `เพิ่มเอกสารประชุมไม่สำเร็จ: ${documentTitle.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function deleteMeetingDocument(documentId: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!documentId.trim()) return setMsg('ต้องมีรหัสเอกสาร')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('ลบเอกสารประชุม', p.status, p.payload, p.rawText))
+      setMsg('ลบเอกสารประชุมแล้ว')
+      addActivity('warn', `ลบเอกสารประชุมสำเร็จ: ${documentId.trim()}`)
+      await loadMeetingDocuments()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ลบเอกสารประชุมไม่สำเร็จ: ${documentId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function downloadMeetingDocumentTxt(documentId: string) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!documentId.trim()) return setMsg('ต้องมีรหัสเอกสาร')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}/download.txt`, {
+        headers: { 'x-admin-key': adminKey.trim() },
+      })
+      if (!r.ok) {
+        const p = await readApiJson(r)
+        return setMsg(formatFetchError('ดาวน์โหลดเอกสารประชุม', p.status, p.payload, p.rawText))
+      }
+      const blob = await r.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `meeting-document-${documentId.trim()}.txt`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      setMsg('ดาวน์โหลดเอกสารประชุมแล้ว')
+      addActivity('info', `ดาวน์โหลดเอกสารประชุมสำเร็จ: ${documentId.trim()}`)
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `ดาวน์โหลดเอกสารประชุมไม่สำเร็จ: ${documentId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function toggleMeetingDocumentPublished(documentId: string, nextPublished: boolean) {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!documentId.trim()) return setMsg('ต้องมีรหัสเอกสาร')
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentId.trim()}`, {
+        method: 'PATCH',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published_to_portal: nextPublished }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('อัปเดตสถานะเผยแพร่เอกสารประชุม', p.status, p.payload, p.rawText))
+      setMsg(nextPublished ? 'เผยแพร่เอกสารประชุมแล้ว' : 'ซ่อนเอกสารประชุมจากพอร์ทัลแล้ว')
+      addActivity('info', `${nextPublished ? 'เผยแพร่' : 'ซ่อน'}เอกสารประชุมสำเร็จ: ${documentId.trim()}`)
+      await loadMeetingDocuments()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `อัปเดตสถานะเผยแพร่เอกสารไม่สำเร็จ: ${documentId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function beginPatchMeetingDocument(doc: MeetingDocumentItem) {
+    setDocumentPatchId(doc.id)
+    setDocumentPatchTitle(doc.title)
+    setDocumentPatchUrl(doc.document_url ?? '')
+    setDocumentPatchText(doc.document_text ?? '')
+    setDocumentPatchMeetingId(doc.meeting_session_id ?? '')
+    setDocumentPatchAgendaId(doc.agenda_id ?? '')
+    setMsg(null)
+  }
+
+  function cancelPatchMeetingDocument() {
+    setDocumentPatchId('')
+    setDocumentPatchTitle('')
+    setDocumentPatchUrl('')
+    setDocumentPatchText('')
+    setDocumentPatchMeetingId('')
+    setDocumentPatchAgendaId('')
+  }
+
+  async function savePatchMeetingDocument() {
+    if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
+    if (!documentPatchId.trim()) return setMsg('เลือกเอกสารที่จะแก้ไขก่อน')
+    if (!documentPatchTitle.trim()) return setMsg('กรอกชื่อเอกสาร')
+    const urlT = documentPatchUrl.trim()
+    const textT = documentPatchText.trim()
+    if (!urlT && !textT) {
+      return setMsg('ต้องมีลิงก์เอกสารหรือเนื้อหาอย่างน้อยหนึ่งค่า (ตรงกับกติกาตอนสร้างเอกสาร)')
+    }
+    setLoading(true)
+    setMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/finance/meeting-documents/${documentPatchId.trim()}`, {
+        method: 'PATCH',
+        headers: { 'x-admin-key': adminKey.trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: documentPatchTitle.trim(),
+          document_url: urlT || null,
+          document_text: textT || null,
+          meeting_session_id: documentPatchMeetingId.trim() || null,
+          agenda_id: documentPatchAgendaId.trim() || null,
+        }),
+      })
+      const p = await readApiJson(r)
+      if (!p.ok) return setMsg(formatFetchError('แก้ไขเอกสารประชุม', p.status, p.payload, p.rawText))
+      setMsg('บันทึกการแก้ไขเอกสารแล้ว')
+      addActivity('info', `แก้ไขเอกสารประชุมสำเร็จ: ${documentPatchId.trim()}`)
+      cancelPatchMeetingDocument()
+      await loadMeetingDocuments()
+    } catch {
+      setMsg('เรียก API ไม่สำเร็จ')
+      addActivity('error', `แก้ไขเอกสารประชุมไม่สำเร็จ: ${documentPatchId.trim()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function createPaymentRequest() {
     if (!adminKey.trim()) return setMsg('ใส่ Admin key ก่อน')
     const amount = Number(paymentAmount)
@@ -1278,6 +2519,9 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
     if (amount <= 20000 && !paymentBankAccountId) {
       return setMsg('ยอด <= 20,000 ต้องเลือกบัญชีธนาคาร')
+    }
+    if (amount <= 20000 && paymentPurposeCategory === 'other') {
+      return setMsg('ยอดไม่เกิน 20,000 บาทต้องเลือกหมวดค่าใช้จ่ายปกติธุระ (ห้ามใช้ “อื่นๆ”) — ใช้ยอดเกิน 20,000 พร้อมมติประชุมแทน')
     }
     if (amount > 20000 && !paymentMeetingId.trim()) {
       return setMsg('ยอด > 20,000 ต้องกรอกรหัสการประชุม')
@@ -1291,7 +2535,11 @@ export function AdminFinancePanel({ apiBase }: Props) {
         body: JSON.stringify({
           legal_entity_code: paymentEntity,
           purpose: paymentPurpose.trim(),
+          purpose_category: paymentPurposeCategory || undefined,
           amount,
+          vat_rate: Number(paymentVatRate),
+          wht_rate: Number(paymentWhtRate),
+          taxpayer_id: paymentTaxpayerId.trim() || undefined,
           bank_account_id: amount <= 20000 ? paymentBankAccountId : undefined,
           meeting_session_id: amount > 20000 ? paymentMeetingId.trim() : undefined,
           requested_by: 'admin-ui',
@@ -1299,13 +2547,13 @@ export function AdminFinancePanel({ apiBase }: Props) {
       })
       const p = await readApiJson(r)
       if (!p.ok) {
-        addActivity('error', `สร้างคำขอจ่ายเงินไม่สำเร็จ: ${paymentPurpose.trim()} (${amount.toLocaleString()})`)
+        addActivity('error', `สร้างคำขอจ่ายเงินไม่สำเร็จ: ${paymentPurpose.trim()} (${formatThNumber(amount)})`)
         return setMsg(formatFetchError('สร้างคำขอจ่ายเงิน', p.status, p.payload, p.rawText))
       }
       const j = (p.payload ?? {}) as { paymentRequest?: { id?: string } }
       if (j.paymentRequest?.id) setPaymentRequestId(j.paymentRequest.id)
       setMsg('สร้างคำขอจ่ายเงินแล้ว')
-      addActivity('info', `สร้างคำขอจ่ายเงินสำเร็จ: ${paymentPurpose.trim()} (${amount.toLocaleString()})`)
+      addActivity('info', `สร้างคำขอจ่ายเงินสำเร็จ: ${paymentPurpose.trim()} (${formatThNumber(amount)})`)
     } catch {
       setMsg('เรียก API ไม่สำเร็จ')
       addActivity('error', `สร้างคำขอจ่ายเงินไม่สำเร็จ: ${paymentPurpose.trim()}`)
@@ -1357,783 +2605,438 @@ export function AdminFinancePanel({ apiBase }: Props) {
     }
   }
 
+  const paymentAmountParsed = Number(paymentAmount)
+  const paymentLowAmountOtherBlocked =
+    Number.isFinite(paymentAmountParsed) &&
+    paymentAmountParsed > 0 &&
+    paymentAmountParsed <= 20000 &&
+    paymentPurposeCategory === 'other'
+
   return (
-    <section className="mt-6 rounded-xl border border-emerald-900/50 bg-emerald-950/20 p-6">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-emerald-200/90">
-        Admin Finance — บัญชี/ประชุม/อนุมัติจ่ายเงิน
-      </h2>
-      <p className="mt-2 text-xs text-slate-500">
-        ใช้คีย์เดียวกับแผงผู้ดูแล (Admin) ด้านบน (อ่านจากเซสชันเดียวกัน)
-      </p>
+    <FinanceAdminPanelSection loading={loading}>
+      <FinanceAdminPanelHeader />
 
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={loadOverviewAndAccounts}
-          className={`rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          โหลดภาพรวม + บัญชีธนาคาร
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={loadPlSummary}
-          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          โหลดสรุป P/L
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={loadDonationsReport}
-          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          โหลดแดชบอร์ดเงินบริจาค
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={loadAllReports}
-          className={`rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          โหลดรายงานทั้งหมด
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => downloadCsv('/api/admin/finance/exports/donations.csv', 'finance-donations.csv')}
-          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          ส่งออก Donations CSV
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() =>
-            downloadCsv('/api/admin/finance/exports/payment-requests.csv', 'finance-payment-requests.csv')
+      <FinanceAdminToolbarRegion>
+        <FinanceQuickActionsBar
+          loading={loading}
+          onLoadOverviewAndAccounts={() => void loadOverviewAndAccounts()}
+          onLoadPlSummary={() => void loadPlSummary()}
+          onLoadDonationsReport={() => void loadDonationsReport()}
+          onLoadTrialBalanceReport={() => void loadTrialBalanceReport()}
+          onLoadAllReports={() => void loadAllReports()}
+          onExportDonationsCsv={() => void downloadCsv('/api/admin/finance/exports/donations.csv', 'finance-donations.csv')}
+          onExportPaymentRequestsCsv={() =>
+            void downloadCsv('/api/admin/finance/exports/payment-requests.csv', 'finance-payment-requests.csv')
           }
-          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          ส่งออก Payment Requests CSV
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => downloadCsv('/api/admin/finance/exports/meeting-sessions.csv', 'finance-meeting-sessions.csv')}
-          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          ส่งออก Meeting Sessions CSV
-        </button>
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={autoRefreshEnabled}
-            onChange={(e) => toggleAutoRefresh(e.target.checked)}
-            className={portalFocusRing}
-          />
-          รีเฟรชรายงานอัตโนมัติ
-        </label>
-        <select
-          value={autoRefreshSeconds}
-          onChange={(e) => setAutoRefreshSeconds(Number(e.target.value) as 30 | 60)}
-          className={`rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs ${portalFocusRing}`}
-          disabled={!autoRefreshEnabled}
-        >
-          <option value={30}>ทุก 30 วินาที</option>
-          <option value={60}>ทุก 60 วินาที</option>
-        </select>
-        <span>
-          ล่าสุด: {lastAutoRefreshAt ? lastAutoRefreshAt : '-'}
-        </span>
-        <span
-          className={`rounded px-2 py-1 text-[11px] ${
-            !autoRefreshEnabled
-              ? 'bg-slate-800 text-slate-300'
-              : autoRefreshPausedByError
-                ? 'bg-rose-900/70 text-rose-200'
-              : isAutoRefreshing
-                ? 'bg-amber-900/70 text-amber-200'
-                : 'bg-emerald-900/70 text-emerald-200'
-          }`}
-        >
-          {!autoRefreshEnabled
-            ? 'ปิด'
-            : autoRefreshPausedByError
-              ? 'หยุดชั่วคราว'
-              : isAutoRefreshing
-                ? 'กำลังรีเฟรช...'
-                : 'เปิด'}
-        </span>
-        {autoRefreshFailureCount > 0 ? (
-          <span className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200">
-            ผิดพลาด {autoRefreshFailureCount}/{AUTO_REFRESH_MAX_FAILURES} ครั้ง
-          </span>
-        ) : null}
-        {autoRefreshPausedByError ? (
-          <button
-            type="button"
-            onClick={resumeAutoRefresh}
-            className={`rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600 ${portalFocusRing}`}
-          >
-            ทำงานรีเฟรชอัตโนมัติต่อ
-          </button>
-        ) : null}
-        {lastAutoRefreshError ? (
-          <span className="w-full text-[11px] text-rose-300">{lastAutoRefreshError}</span>
-        ) : null}
-        <label className="flex items-center gap-1 text-[11px] text-slate-300">
-          <input
-            type="checkbox"
-            checked={alertOnPause}
-            onChange={(e) => setAlertOnPause(e.target.checked)}
-            className={portalFocusRing}
-          />
-          แจ้งเตือนเดสก์ท็อป
-        </label>
-        <label className="flex items-center gap-1 text-[11px] text-slate-300">
-          <input
-            type="checkbox"
-            checked={soundOnPause}
-            onChange={(e) => setSoundOnPause(e.target.checked)}
-            className={portalFocusRing}
-          />
-          เสียงแจ้งเตือน
-        </label>
-      </div>
-
-      <div className="mt-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <p className="font-medium text-slate-200">บันทึกกิจกรรม (ล่าสุด 20)</p>
-            <input
-              type="text"
-              value={activitySearch}
-              onChange={(e) => setActivitySearch(e.target.value)}
-              className={`w-48 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 ${portalFocusRing}`}
-              placeholder="ค้นหากิจกรรม..."
-            />
-            <select
-              value={String(activityLimit)}
-              onChange={(e) => setActivityLimit(e.target.value === 'all' ? 'all' : (Number(e.target.value) as 10 | 20))}
-              className={`rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 ${portalFocusRing}`}
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="all">ทั้งหมด</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={copyActivityFilterSummary}
-              className={`rounded bg-cyan-700 px-2 py-1 text-[11px] text-white hover:bg-cyan-600 ${portalFocusRing}`}
-            >
-              คัดลอกสรุป
-            </button>
-            <button
-              type="button"
-              onClick={copyVisibleActivityRows}
-              className={`rounded bg-sky-700 px-2 py-1 text-[11px] text-white hover:bg-sky-600 ${portalFocusRing}`}
-            >
-              คัดลอกแถวข้อมูล
-            </button>
-            <button
-              type="button"
-              onClick={exportActivityLogCsv}
-              className={`rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600 ${portalFocusRing}`}
-            >
-              ส่งออก CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => setActivityLog([])}
-              className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
-            >
-              ล้างรายการ
-            </button>
-          </div>
-        </div>
-        <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
-          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
-            ตัวกรอง: {activityLevelLabel(activityFilter)}
-          </span>
-          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
-            ค้นหา: {activitySearchTrimmed || '-'}
-          </span>
-          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">จำนวน: {String(activityLimit)}</span>
-          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
-            แสดง: {visibleActivityLog.length}
-          </span>
-          <span className="rounded bg-slate-800 px-2 py-1 text-slate-100">
-            สแนปช็อต: {activitySnapshotAt}
-          </span>
-        </div>
-        <div className="mb-2 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => applyIncidentPreset('error')}
-            className={`rounded bg-rose-700 px-2 py-1 text-[11px] text-white hover:bg-rose-600 ${portalFocusRing}`}
-          >
-            เฉพาะข้อผิดพลาด
-          </button>
-          <button
-            type="button"
-            onClick={() => applyIncidentPreset('warn')}
-            className={`rounded bg-amber-700 px-2 py-1 text-[11px] text-white hover:bg-amber-600 ${portalFocusRing}`}
-          >
-            เฉพาะคำเตือน
-          </button>
-          <button
-            type="button"
-            onClick={resetActivityView}
-            className={`rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600 ${portalFocusRing}`}
-          >
-            รีเซ็ตมุมมองกิจกรรม
-          </button>
-          {ACTIVITY_SHORTCUTS.map((shortcut) => {
-            const active = activitySearchTrimmed.toLowerCase() === shortcut.keyword.toLowerCase()
-            return (
-              <button
-                key={shortcut.label}
-                type="button"
-                onClick={() => setActivitySearch(shortcut.keyword)}
-                className={`rounded px-2 py-1 text-[11px] ${portalFocusRing} ${
-                  active
-                    ? 'bg-cyan-900/70 text-cyan-200 ring-1 ring-white/30'
-                    : 'bg-slate-800 text-slate-200'
-                }`}
-              >
-                {shortcut.label}
-              </button>
-            )
-          })}
-          <button
-            type="button"
-            onClick={() => setActivitySearch('')}
-            className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 ${portalFocusRing}`}
-          >
-            ล้างคำค้นหา
-          </button>
-        </div>
-        <div className="mb-2 flex flex-wrap gap-2">
-          {([
-            ['all', activityCounts.all, 'bg-slate-800 text-slate-100'],
-            ['info', activityCounts.info, 'bg-emerald-900/70 text-emerald-200'],
-            ['warn', activityCounts.warn, 'bg-amber-900/70 text-amber-200'],
-            ['error', activityCounts.error, 'bg-rose-900/70 text-rose-200'],
-          ] as const).map(([level, count, color]) => (
-            <button
-              key={level}
-              type="button"
-              onClick={() => setActivityFilter(level)}
-              className={`rounded px-2 py-1 text-[11px] ${portalFocusRing} ${
-                activityFilter === level ? `${color} ring-1 ring-white/30` : color
-              }`}
-            >
-              {activityLevelLabel(level)}: {count}
-            </button>
-          ))}
-        </div>
-        {visibleActivityLog.length === 0 ? (
-          <p className="text-[11px] text-slate-500">ยังไม่มีเหตุการณ์</p>
-        ) : (
-          <div className="max-h-36 space-y-1 overflow-auto">
-            {visibleActivityLog.map((it) => (
-              <div key={it.id} className="flex items-start gap-2 text-[11px]">
-                <span
-                  className={`mt-0.5 inline-block h-2 w-2 rounded-full ${
-                    it.level === 'error'
-                      ? 'bg-rose-400'
-                      : it.level === 'warn'
-                        ? 'bg-amber-400'
-                        : 'bg-emerald-400'
-                  }`}
-                />
-                <span className="w-40 shrink-0 text-slate-500">{it.atLabel}</span>
-                <span className="text-slate-200">{it.message}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-5">
-        <select
-          value={reportEntity}
-          onChange={(e) => setReportEntity(e.target.value as ReportFilterEntity)}
-          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-        >
-          <option value="">ทุกหน่วยงาน (ทั้งหมด)</option>
-          <option value="association">สมาคมศิษย์เก่า (association)</option>
-          <option value="cram_school">โรงเรียนกวดวิชา (cram_school)</option>
-        </select>
-        <input
-          type="date"
-          value={reportFrom}
-          onChange={(e) => setReportFrom(e.target.value)}
-          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          placeholder="วันที่เริ่ม (from)"
+          onExportMeetingSessionsCsv={() =>
+            void downloadCsv('/api/admin/finance/exports/meeting-sessions.csv', 'finance-meeting-sessions.csv')
+          }
+          onExportAuditorPackageCsv={() =>
+            void downloadCsv('/api/admin/finance/exports/auditor-package.csv', 'finance-auditor-package.csv')
+          }
+          onLoadPeriodClosings={() => void loadPeriodClosings()}
         />
-        <input
-          type="date"
-          value={reportTo}
-          onChange={(e) => setReportTo(e.target.value)}
-          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          placeholder="วันที่สิ้นสุด (to)"
+
+        <FinanceAutoRefreshBar
+          autoRefreshEnabled={autoRefreshEnabled}
+          onToggleAutoRefresh={toggleAutoRefresh}
+          autoRefreshSeconds={autoRefreshSeconds}
+          setAutoRefreshSeconds={setAutoRefreshSeconds}
+          lastAutoRefreshAt={lastAutoRefreshAt}
+          autoRefreshPausedByError={autoRefreshPausedByError}
+          isAutoRefreshing={isAutoRefreshing}
+          autoRefreshFailureCount={autoRefreshFailureCount}
+          lastAutoRefreshError={lastAutoRefreshError}
+          onResumeAutoRefresh={resumeAutoRefresh}
+          alertOnPause={alertOnPause}
+          setAlertOnPause={setAlertOnPause}
+          soundOnPause={soundOnPause}
+          setSoundOnPause={setSoundOnPause}
         />
-        <input
-          type="text"
-          value={reportKeyword}
-          onChange={(e) => setReportKeyword(e.target.value)}
-          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          placeholder="ค้นหาผู้บริจาค (donor) / รุ่น (batch) / บัญชี (account)"
+
+        <FinanceActivityLogPanel
+          activitySearch={activitySearch}
+          setActivitySearch={setActivitySearch}
+          activityLimit={activityLimit}
+          setActivityLimit={setActivityLimit}
+          activityFilter={activityFilter}
+          setActivityFilter={setActivityFilter}
+          activitySearchTrimmed={activitySearchTrimmed}
+          activityCounts={activityCounts}
+          visibleActivityLog={visibleActivityLog}
+          activitySnapshotAt={activitySnapshotAt}
+          onCopyFilterSummary={copyActivityFilterSummary}
+          onCopyVisibleRows={copyVisibleActivityRows}
+          onExportCsv={exportActivityLogCsv}
+          onClearLog={() => setActivityLog([])}
+          onApplyIncidentPreset={applyIncidentPreset}
+          onResetActivityView={resetActivityView}
         />
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => {
+
+        <FinanceReportFilters
+          loading={loading}
+          reportEntity={reportEntity}
+          setReportEntity={setReportEntity}
+          reportFrom={reportFrom}
+          setReportFrom={setReportFrom}
+          reportTo={reportTo}
+          setReportTo={setReportTo}
+          reportKeyword={reportKeyword}
+          setReportKeyword={setReportKeyword}
+          onClearFilters={() => {
             setReportEntity('')
             setReportFrom('')
             setReportTo('')
             setReportKeyword('')
           }}
-          className={`rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          ล้างตัวกรองรายงาน
-        </button>
-      </div>
-
-      <div className="mt-2 grid gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs md:grid-cols-5">
-        <select
-          value={selectedPresetId}
-          onChange={(e) => setSelectedPresetId(e.target.value)}
-          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-        >
-          {allPresets.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.id.startsWith('custom:') ? `[กำหนดเอง] ${p.name}` : `[ระบบ] ${p.name}`}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={applySelectedPreset}
-          className={`rounded bg-slate-700 px-3 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          ใช้พรีเซ็ต
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={applySelectedPresetAndLoad}
-          className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          ใช้พรีเซ็ต + โหลดทันที
-        </button>
-        <input
-          type="text"
-          value={presetName}
-          onChange={(e) => setPresetName(e.target.value)}
-          className={`rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          placeholder="ชื่อพรีเซ็ตใหม่"
         />
-        <button
-          type="button"
-          disabled={loading}
-          onClick={saveCurrentPreset}
-          className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          บันทึกพรีเซ็ตปัจจุบัน
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={deleteSelectedPreset}
-          className={`rounded bg-rose-700 px-3 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-50 ${portalFocusRing}`}
-        >
-          ลบพรีเซ็ตที่เลือก
-        </button>
-      </div>
 
-      <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300">
-        <p>บัญชีธนาคาร: {accounts.length}</p>
-        {overview ? (
-          <>
-            <p className="mt-1">รายการรอจ่าย: {overview.pendingPayments.length}</p>
-            <p className="mt-1">
-              จำนวนรุ่นที่มีเงินบริจาค: {Object.keys(overview.donationByBatch).length} | ยอดรวมเงินบริจาค:{' '}
-              {Object.values(overview.donationByBatch)
-                .reduce((s, n) => s + n, 0)
-                .toLocaleString()}
-            </p>
-          </>
-        ) : null}
-        {plSummary ? (
-          <p className="mt-1">
-            P/L: รายรับ {plSummary.totals.revenue.toLocaleString()} | รายจ่าย{' '}
-            {plSummary.totals.expense.toLocaleString()} | สุทธิ {plSummary.totals.netIncome.toLocaleString()}
-          </p>
-        ) : null}
-        {donationsReport ? (
-          <p className="mt-1">
-            เงินบริจาค: {donationsReport.totals.donations} รายการ | รวม{' '}
-            {donationsReport.totals.totalAmount.toLocaleString()}
-          </p>
-        ) : null}
-      </div>
+        <FinanceReportPresets
+          loading={loading}
+          allPresets={allPresets}
+          selectedPresetId={selectedPresetId}
+          setSelectedPresetId={setSelectedPresetId}
+          presetName={presetName}
+          setPresetName={setPresetName}
+          onApplyPreset={applySelectedPreset}
+          onApplyPresetAndLoad={() => void applySelectedPresetAndLoad()}
+          onSaveCurrentPreset={saveCurrentPreset}
+          onDeleteSelectedPreset={deleteSelectedPreset}
+        />
 
-      {plSummary ? (
-        <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="font-medium">บัญชี P/L (ทั้งหมด)</p>
-            <button
-              type="button"
-              onClick={() => downloadCurrentViewCsv('finance-current-pl.csv', plExportRows)}
-              className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
-            >
-              ส่งออก CSV ของมุมมองนี้
-            </button>
-          </div>
-          <div className="grid grid-cols-4 gap-2 font-semibold text-slate-400">
-            <button type="button" onClick={() => togglePlSort('accountCode')} className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}>
-              รหัส{sortArrow(plSortKey === 'accountCode', plSortDir)}
-            </button>
-            <button type="button" onClick={() => togglePlSort('accountName')} className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}>
-              ชื่อ{sortArrow(plSortKey === 'accountName', plSortDir)}
-            </button>
-            <button type="button" onClick={() => togglePlSort('accountType')} className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}>
-              ประเภท{sortArrow(plSortKey === 'accountType', plSortDir)}
-            </button>
-            <button
-              type="button"
-              onClick={() => togglePlSort('net')}
-              className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
-            >
-              สุทธิ{sortArrow(plSortKey === 'net', plSortDir)}
-            </button>
-          </div>
-          {plPaged.pageRows.map((r) => (
-            <div key={`${r.accountCode}:${r.accountName}`} className="grid grid-cols-4 gap-2 py-1">
-              <span>{r.accountCode}</span>
-              <span>{r.accountName}</span>
-              <span>{r.accountType}</span>
-              <span className="text-right">{r.net.toLocaleString()}</span>
-            </div>
-          ))}
-          {renderPager(plPaged.page, plPaged.totalPages, setPlPage)}
-        </div>
-      ) : null}
+        <FinanceOverviewSummary
+          accountCount={accounts.length}
+          overview={overview}
+          plSummary={plSummary}
+          donationsReport={donationsReport}
+          trialBalance={trialBalance}
+          periodClosings={periodClosings}
+          periodClosingsSentCount={periodClosingsSentCount}
+          periodClosingsCompletedCount={periodClosingsCompletedCount}
+        />
+      </FinanceAdminToolbarRegion>
 
-      {donationsReport ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="font-medium">ผู้บริจาค (ทั้งหมด)</p>
-              <button
-                type="button"
-                onClick={() => downloadCurrentViewCsv('finance-current-donors.csv', donorExportRows)}
-                className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
-              >
-                ส่งออก CSV ของมุมมองนี้
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-2 font-semibold text-slate-400">
-              <button
-                type="button"
-                onClick={() => toggleDonorSort('donorLabel')}
-                className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}
-              >
-                ผู้บริจาค{sortArrow(donorSortKey === 'donorLabel', donorSortDir)}
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleDonorSort('count')}
-                className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
-              >
-                จำนวนครั้ง{sortArrow(donorSortKey === 'count', donorSortDir)}
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleDonorSort('totalAmount')}
-                className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
-              >
-                ยอดเงิน{sortArrow(donorSortKey === 'totalAmount', donorSortDir)}
-              </button>
-            </div>
-            {donorPaged.pageRows.map((r) => (
-              <div key={r.donorLabel} className="grid grid-cols-3 gap-2 py-1">
-                <span>{r.donorLabel}</span>
-                <span className="text-right">{r.count.toLocaleString()}</span>
-                <span className="text-right">{r.totalAmount.toLocaleString()}</span>
-              </div>
-            ))}
-            {renderPager(donorPaged.page, donorPaged.totalPages, setDonorPage)}
-          </div>
+      <FinanceAdminAccountingRegion>
+        <FinanceAdminAccountingStack
+          pl={
+            plSummary
+              ? {
+                  plPaged,
+                  plSortKey,
+                  plSortDir,
+                  sortArrow,
+                  onToggleSort: togglePlSort,
+                  onExportViewCsv: () => downloadCurrentViewCsv('finance-current-pl.csv', plExportRows),
+                  setPlPage,
+                }
+              : null
+          }
+          periodClosing={{
+            loading,
+            closePeriodFrom,
+            setClosePeriodFrom,
+            closePeriodTo,
+            setClosePeriodTo,
+            closeBy,
+            setCloseBy,
+            closeNote,
+            setCloseNote,
+            onCloseAccountingPeriod: closeAccountingPeriod,
+            periodHandoffFilter,
+            setPeriodHandoffFilter,
+            auditorSentBy,
+            setAuditorSentBy,
+            auditorHandoffNote,
+            setAuditorHandoffNote,
+            auditorCompletedBy,
+            setAuditorCompletedBy,
+            auditorCompletedNote,
+            setAuditorCompletedNote,
+            periodClosings,
+            onLoadPeriodClosingDetail: loadPeriodClosingDetail,
+            onMarkAuditorSent: markPeriodClosingAuditorSent,
+            onMarkAuditorCompleted: markPeriodClosingAuditorCompleted,
+            onDownloadAuditorPackage: downloadPeriodClosingAuditorPackage,
+            periodClosingDetail,
+            setPeriodClosingDetail,
+          }}
+          trialBalance={
+            trialBalance
+              ? {
+                  trialBalance,
+                  onExportViewCsv: () =>
+                    downloadCurrentViewCsv('finance-current-trial-balance.csv', trialBalanceExportRows),
+                }
+              : null
+          }
+          journalsGl={{
+            loading,
+            journalStatusFilter,
+            setJournalStatusFilter,
+            onLoadJournals: loadJournals,
+            journalList,
+            onLoadJournalDetail: loadJournalDetail,
+            journalDraftEntity,
+            setJournalDraftEntity,
+            journalDraftDate,
+            setJournalDraftDate,
+            journalDraftRef,
+            setJournalDraftRef,
+            journalDraftBy,
+            setJournalDraftBy,
+            journalDraftMemo,
+            setJournalDraftMemo,
+            onCreateJournalDraft: createJournalDraft,
+            journalActiveId,
+            journalLineAccount,
+            setJournalLineAccount,
+            journalLineDebit,
+            setJournalLineDebit,
+            journalLineCredit,
+            setJournalLineCredit,
+            journalLineDesc,
+            setJournalLineDesc,
+            journalLineBy,
+            setJournalLineBy,
+            onAddJournalLine: addJournalLine,
+            journalPostBy,
+            setJournalPostBy,
+            onPostJournal: postJournal,
+            journalVoidReason,
+            setJournalVoidReason,
+            journalVoidBy,
+            setJournalVoidBy,
+            onVoidJournal: voidJournal,
+            journalDetail,
+            onLoadIncomeStatement: loadIncomeStatementReport,
+            bsAsOf,
+            setBsAsOf,
+            onLoadBalanceSheet: loadBalanceSheetReport,
+            glAccountCode,
+            setGlAccountCode,
+            onLoadGeneralLedger: loadGeneralLedgerReport,
+            incomeStatement,
+            balanceSheet,
+            generalLedger,
+          }}
+          fiscal={{
+            loading,
+            toolsEntity,
+            setToolsEntity,
+            fiscalPeriodFrom,
+            setFiscalPeriodFrom,
+            fiscalPeriodTo,
+            setFiscalPeriodTo,
+            fiscalLabel,
+            setFiscalLabel,
+            onLoadFiscalYears: loadFiscalYears,
+            onCreateFiscalYear: createFiscalYear,
+            fiscalYears,
+            onCloseFiscalYear: closeFiscalYear,
+            fiscalCloseSurplusCode,
+            setFiscalCloseSurplusCode,
+            fiscalCloseBy,
+            setFiscalCloseBy,
+            fiscalCloseNote,
+            setFiscalCloseNote,
+            faCode,
+            setFaCode,
+            faName,
+            setFaName,
+            faPurchaseDate,
+            setFaPurchaseDate,
+            faCost,
+            setFaCost,
+            faResidual,
+            setFaResidual,
+            faLifeMonths,
+            setFaLifeMonths,
+            faDepAccCode,
+            setFaDepAccCode,
+            faAccumAccCode,
+            setFaAccumAccCode,
+            faNote,
+            setFaNote,
+            faCreatedBy,
+            setFaCreatedBy,
+            onLoadFixedAssets: loadFixedAssets,
+            onCreateFixedAsset: createFixedAsset,
+            fixedAssets,
+            depMonth,
+            setDepMonth,
+            onRunFixedAssetDepreciation: runFixedAssetDepreciation,
+            taxMonth,
+            setTaxMonth,
+            onLoadTaxMonthly: loadTaxMonthly,
+            taxMonthly,
+            taxCalcBase,
+            setTaxCalcBase,
+            taxCalcVat,
+            setTaxCalcVat,
+            taxCalcWht,
+            setTaxCalcWht,
+            onCalculateTaxPreview: calculateTaxPreview,
+            taxCalcResult,
+          }}
+          donations={
+            donationsReport
+              ? {
+                  loading,
+                  donorPaged,
+                  batchPaged,
+                  entityPaged,
+                  donorSortKey,
+                  donorSortDir,
+                  onToggleDonorSort: toggleDonorSort,
+                  batchSortKey,
+                  batchSortDir,
+                  onToggleBatchSort: toggleBatchSort,
+                  entitySortKey,
+                  entitySortDir,
+                  onToggleEntitySort: toggleEntitySort,
+                  sortArrow,
+                  setDonorPage,
+                  setBatchPage,
+                  setEntityPage,
+                  onExportDonorsCsv: () => downloadCurrentViewCsv('finance-current-donors.csv', donorExportRows),
+                  onExportBatchCsv: () => downloadCurrentViewCsv('finance-current-batch.csv', batchExportRows),
+                  onExportEntityCsv: () => downloadCurrentViewCsv('finance-current-entity.csv', entityExportRows),
+                }
+              : null
+          }
+        />
+      </FinanceAdminAccountingRegion>
 
-          <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="font-medium">เงินบริจาคแยกรุ่น</p>
-              <button
-                type="button"
-                onClick={() => downloadCurrentViewCsv('finance-current-batch.csv', batchExportRows)}
-                className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
-              >
-                ส่งออก CSV ของมุมมองนี้
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
-              <button type="button" onClick={() => toggleBatchSort('batch')} className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}>
-                รุ่น{sortArrow(batchSortKey === 'batch', batchSortDir)}
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleBatchSort('totalAmount')}
-                className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
-              >
-                ยอดเงิน{sortArrow(batchSortKey === 'totalAmount', batchSortDir)}
-              </button>
-            </div>
-            {batchPaged.pageRows.map((r) => (
-              <div key={r.batch} className="grid grid-cols-2 gap-2 py-1">
-                <span>{r.batch}</span>
-                <span className="text-right">{r.totalAmount.toLocaleString()}</span>
-              </div>
-            ))}
-            {renderPager(batchPaged.page, batchPaged.totalPages, setBatchPage)}
-          </div>
+      <FinanceAdminMeetingPaymentSection
+        meeting={{
+          loading,
+          meetingEntity,
+          setMeetingEntity,
+          meetingTitle,
+          setMeetingTitle,
+          meetingExpected,
+          setMeetingExpected,
+          onCreateMeeting: createMeeting,
+          meetingId,
+          setMeetingId,
+          attendanceName,
+          setAttendanceName,
+          attendanceRole,
+          setAttendanceRole,
+          attendanceLineUid,
+          setAttendanceLineUid,
+          onSignAttendance: signAttendance,
+          onLoadMeetingSummary: loadMeetingSummary,
+          onLoadMeetingMinutes: loadMeetingMinutes,
+          meetingSummary,
+          meetingMinutesMeta,
+          meetingMinutes,
+          setMeetingMinutes,
+          onSaveMeetingMinutes: saveMeetingMinutes,
+          onDownloadMeetingMinutesTxt: downloadMeetingMinutesTxt,
+          onPublishMinutes: () => void setMeetingMinutesPublishState(true),
+          onUnpublishMinutes: () => void setMeetingMinutesPublishState(false),
+          meetingMinutesPublished,
+          agendas,
+          agendaTitle,
+          setAgendaTitle,
+          agendaDetails,
+          setAgendaDetails,
+          onCreateMeetingAgenda: createMeetingAgenda,
+          agendaStatusFilter,
+          setAgendaStatusFilter,
+          onLoadMeetingAgendas: loadMeetingAgendas,
+          onSelectAgendaForSummary: (agenda) => {
+            setVoteAgendaId(agenda.id)
+            void loadAgendaVoteSummary(agenda.id)
+          },
+          onCloseMeetingAgenda: closeMeetingAgenda,
+          onBeginPatchMeetingAgenda: beginPatchMeetingAgenda,
+          agendaPatchId,
+          agendaPatchTitle,
+          setAgendaPatchTitle,
+          agendaPatchDetails,
+          setAgendaPatchDetails,
+          agendaPatchStatus,
+          setAgendaPatchStatus,
+          onSavePatchMeetingAgenda: () => void savePatchMeetingAgenda(),
+          onCancelPatchMeetingAgenda: cancelPatchMeetingAgenda,
+          voteAgendaId,
+          setVoteAgendaId,
+          agendaVoterName,
+          setAgendaVoterName,
+          agendaVote,
+          setAgendaVote,
+          onCastAgendaVote: castAgendaVote,
+          agendaVoteSummary,
+          documents,
+          documentTitle,
+          setDocumentTitle,
+          documentMeetingId,
+          setDocumentMeetingId,
+          documentAgendaId,
+          setDocumentAgendaId,
+          documentUrl,
+          setDocumentUrl,
+          documentText,
+          setDocumentText,
+          onCreateMeetingDocument: createMeetingDocument,
+          onLoadMeetingDocuments: loadMeetingDocuments,
+          onDownloadMeetingDocumentTxt: downloadMeetingDocumentTxt,
+          onToggleMeetingDocumentPublished: toggleMeetingDocumentPublished,
+          onBeginPatchMeetingDocument: beginPatchMeetingDocument,
+          onDeleteMeetingDocument: deleteMeetingDocument,
+          documentPatchId,
+          documentPatchTitle,
+          setDocumentPatchTitle,
+          documentPatchMeetingId,
+          setDocumentPatchMeetingId,
+          documentPatchAgendaId,
+          setDocumentPatchAgendaId,
+          documentPatchUrl,
+          setDocumentPatchUrl,
+          documentPatchText,
+          setDocumentPatchText,
+          onSavePatchMeetingDocument: () => void savePatchMeetingDocument(),
+          onCancelPatchMeetingDocument: cancelPatchMeetingDocument,
+        }}
+        payment={{
+          loading,
+          paymentEntity,
+          setPaymentEntity,
+          paymentPurpose,
+          setPaymentPurpose,
+          paymentAmount,
+          setPaymentAmount,
+          paymentPurposeCategory,
+          setPaymentPurposeCategory,
+          paymentVatRate,
+          setPaymentVatRate,
+          paymentWhtRate,
+          setPaymentWhtRate,
+          paymentTaxpayerId,
+          setPaymentTaxpayerId,
+          paymentBankAccountId,
+          setPaymentBankAccountId,
+          paymentMeetingId,
+          setPaymentMeetingId,
+          paymentRequestId,
+          setPaymentRequestId,
+          paymentLowAmountOtherBlocked,
+          filteredAccounts,
+          selectedAccount,
+          approveRoleCode,
+          setApproveRoleCode,
+          approveSignerId,
+          setApproveSignerId,
+          approveDecision,
+          setApproveDecision,
+          onCreatePaymentRequest: createPaymentRequest,
+          onApprovePayment: approvePayment,
+        }}
+      />
 
-          <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200 md:col-span-2">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="font-medium">เงินบริจาคแยกนิติบุคคล</p>
-              <button
-                type="button"
-                onClick={() => downloadCurrentViewCsv('finance-current-entity.csv', entityExportRows)}
-                className={`rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 ${portalFocusRing}`}
-              >
-                ส่งออก CSV ของมุมมองนี้
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 font-semibold text-slate-400">
-              <button
-                type="button"
-                onClick={() => toggleEntitySort('legalEntityCode')}
-                className={`rounded-sm text-left hover:text-slate-200 ${portalFocusRing}`}
-              >
-                นิติบุคคล{sortArrow(entitySortKey === 'legalEntityCode', entitySortDir)}
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleEntitySort('totalAmount')}
-                className={`rounded-sm text-right hover:text-slate-200 ${portalFocusRing}`}
-              >
-                ยอดเงิน{sortArrow(entitySortKey === 'totalAmount', entitySortDir)}
-              </button>
-            </div>
-            {entityPaged.pageRows.map((r) => (
-              <div key={r.legalEntityCode} className="grid grid-cols-2 gap-2 py-1">
-                <span>{r.legalEntityCode}</span>
-                <span className="text-right">{r.totalAmount.toLocaleString()}</span>
-              </div>
-            ))}
-            {renderPager(entityPaged.page, entityPaged.totalPages, setEntityPage)}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-4">
-          <h3 className="text-sm font-medium text-slate-200">1) สร้างประชุม</h3>
-          <select
-            value={meetingEntity}
-            onChange={(e) => setMeetingEntity(e.target.value as 'association' | 'cram_school')}
-            className={`mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          >
-            <option value="association">สมาคมศิษย์เก่า (association)</option>
-            <option value="cram_school">โรงเรียนกวดวิชา (cram_school)</option>
-          </select>
-          <input
-            value={meetingTitle}
-            onChange={(e) => setMeetingTitle(e.target.value)}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            placeholder="หัวข้อการประชุม"
-          />
-          <input
-            value={meetingExpected}
-            onChange={(e) => setMeetingExpected(e.target.value)}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            placeholder="จำนวนผู้เข้าร่วมที่คาดไว้"
-          />
-          <button
-            type="button"
-            disabled={loading}
-            onClick={createMeeting}
-            className={`mt-3 rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
-          >
-            สร้างประชุม
-          </button>
-
-          <input
-            value={meetingId}
-            onChange={(e) => setMeetingId(e.target.value)}
-            className={`mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            placeholder="รหัสการประชุม"
-          />
-          <div className="mt-2 grid grid-cols-1 gap-2">
-            <input
-              value={attendanceName}
-              onChange={(e) => setAttendanceName(e.target.value)}
-              className={`w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-              placeholder="ชื่อผู้เข้าประชุม"
-            />
-            <select
-              value={attendanceRole}
-              onChange={(e) => setAttendanceRole(e.target.value as 'committee' | 'cram_executive')}
-              className={`w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            >
-              <option value="committee">คณะกรรมการ (committee)</option>
-              <option value="cram_executive">ผู้บริหารกวดวิชา (cram_executive)</option>
-            </select>
-            <input
-              value={attendanceLineUid}
-              onChange={(e) => setAttendanceLineUid(e.target.value)}
-              className={`w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-              placeholder="LINE UID (ไม่บังคับ)"
-            />
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={signAttendance}
-              className={`rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
-            >
-              ลงชื่อเข้าประชุม
-            </button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={loadMeetingSummary}
-              className={`rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
-            >
-              สรุปประชุม
-            </button>
-          </div>
-          {meetingSummary ? (
-            <pre className="mt-3 max-h-40 overflow-auto rounded bg-slate-950 p-2 text-[11px] text-slate-300">
-              {meetingSummary}
-            </pre>
-          ) : null}
-        </div>
-
-        <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-4">
-          <h3 className="text-sm font-medium text-slate-200">2) สร้าง/อนุมัติคำขอจ่ายเงิน</h3>
-          <select
-            value={paymentEntity}
-            onChange={(e) => setPaymentEntity(e.target.value as 'association' | 'cram_school')}
-            className={`mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          >
-            <option value="association">สมาคมศิษย์เก่า (association)</option>
-            <option value="cram_school">โรงเรียนกวดวิชา (cram_school)</option>
-          </select>
-          <input
-            value={paymentPurpose}
-            onChange={(e) => setPaymentPurpose(e.target.value)}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            placeholder="วัตถุประสงค์การจ่าย"
-          />
-          <input
-            value={paymentAmount}
-            onChange={(e) => setPaymentAmount(e.target.value)}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            placeholder="จำนวนเงิน"
-          />
-          <select
-            value={paymentBankAccountId}
-            onChange={(e) => setPaymentBankAccountId(e.target.value)}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          >
-            <option value="">{'รหัสบัญชีธนาคาร (bank_account_id) — ใช้เมื่อจำนวนเงิน <= 20000'}</option>
-            {filteredAccounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.account_name} ({a.account_no_masked})
-              </option>
-            ))}
-          </select>
-          <input
-            value={paymentMeetingId}
-            onChange={(e) => setPaymentMeetingId(e.target.value)}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            placeholder="รหัสรอบประชุม (meeting_session_id) — ใช้เมื่อจำนวนเงิน > 20000"
-          />
-          <button
-            type="button"
-            disabled={loading}
-            onClick={createPaymentRequest}
-            className={`mt-3 rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
-          >
-            สร้างคำขอจ่ายเงิน
-          </button>
-
-          <input
-            value={paymentRequestId}
-            onChange={(e) => setPaymentRequestId(e.target.value)}
-            className={`mt-3 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            placeholder="รหัสคำขอจ่ายเงิน"
-          />
-          <select
-            value={approveRoleCode}
-            onChange={(e) => setApproveRoleCode(e.target.value as 'bank_signer_3of5' | 'committee')}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          >
-            <option value="bank_signer_3of5">ผู้ลงนามธนาคาร 3 ใน 5 (bank_signer_3of5)</option>
-            <option value="committee">คณะกรรมการ (committee)</option>
-          </select>
-          <select
-            value={approveSignerId}
-            onChange={(e) => setApproveSignerId(e.target.value)}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-            disabled={approveRoleCode !== 'bank_signer_3of5'}
-          >
-            <option value="">ผู้อนุมัติ (approver_signer_id)</option>
-            {(selectedAccount?.signers ?? []).map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.signer_name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={approveDecision}
-            onChange={(e) => setApproveDecision(e.target.value as 'approve' | 'reject')}
-            className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
-          >
-            <option value="approve">อนุมัติ</option>
-            <option value="reject">ปฏิเสธ</option>
-          </select>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={approvePayment}
-            className={`mt-3 rounded bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
-          >
-            อนุมัติ/ปฏิเสธ
-          </button>
-        </div>
-      </div>
-
-      {msg ? (
-        <pre
-          className="mt-4 max-h-56 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-slate-300"
-          role="status"
-          aria-live="polite"
-        >
-          {msg}
-        </pre>
-      ) : null}
-    </section>
+      <FinanceAdminFeedbackFooter msg={msg} isErrorMsg={isErrorMsg} loading={loading} />
+    </FinanceAdminPanelSection>
   )
 }

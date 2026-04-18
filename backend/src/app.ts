@@ -64,12 +64,12 @@ export function createApp(): express.Express {
         adminImportSummary:
           'GET /api/admin/members/summary?importBatchId=... (ต้องใช้ Admin key: x-admin-key)',
         finance:
-          'GET /api/admin/finance/overview | bank-accounts | reports/pl-summary | reports/donations | exports/donations.csv | exports/payment-requests.csv | exports/meeting-sessions.csv (รองรับ query: legal_entity_code, from, to), POST /api/admin/finance/payment-requests, POST /api/admin/finance/payment-requests/:id/approve, POST /api/admin/finance/meeting-sessions, POST /api/admin/finance/meeting-sessions/:id/sign-attendance',
+          'GET /api/admin/finance/overview | bank-accounts | journals | journals/:id | fixed-assets | fiscal-years | reports/pl-summary | reports/donations | reports/trial-balance | reports/general-ledger | reports/income-statement | reports/balance-sheet | reports/tax-monthly | exports/donations.csv | exports/payment-requests.csv | exports/meeting-sessions.csv | exports/auditor-package.csv | period-closing | period-closing/:id | period-closing/:id/auditor-package.csv | meeting-agendas | meeting-agendas/:id/vote-summary | meeting-sessions/:id/minutes | meeting-sessions/:id/minutes.txt | meeting-documents | meeting-documents/:id/download.txt (รองรับ query: legal_entity_code, from, to, scope, status, meeting_session_id, agenda_id, limit, auditor_handoff_status), POST /api/admin/finance/payment-requests | payment-requests/:id/approve | journals | journals/:id/lines | journals/:id/post | journals/:id/void | fixed-assets | fixed-assets/run-depreciation | fiscal-years | fiscal-years/:id/close | tax/calculate | period-closing | period-closing/:id/mark-auditor-sent | period-closing/:id/mark-auditor-completed | meeting-sessions | meeting-sessions/:id/sign-attendance | meeting-sessions/:id/minutes | meeting-sessions/:id/minutes/publish | meeting-agendas | meeting-agendas/:id/votes | meeting-agendas/:id/close | meeting-documents, PATCH /api/admin/finance/meeting-agendas/:id | meeting-documents/:id, DELETE /api/admin/finance/meeting-documents/:id',
         memberRequests:
           'GET /api/admin/member-requests (Admin key: x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
         push: 'GET /api/push/vapid-public, POST /api/push/subscribe',
         portal:
-          'GET /api/portal/member | /api/portal/committee | /api/portal/academy — สแนปช็อตสำหรับแดชบอร์ดพอร์ทัล',
+          'GET /api/portal/member | /api/portal/committee | /api/portal/academy | /api/portal/committee/documents/:id/download.txt | /api/portal/committee/meetings/:id/minutes.txt | /api/portal/committee/agendas/:id/vote-summary, POST /api/portal/committee/agendas/:id/vote — สแนปช็อต/เอกสาร/รายงาน/ลงมติสำหรับแดชบอร์ดพอร์ทัล',
         cramSchool:
           'GET/POST/PATCH /api/admin/cram/classrooms, GET/POST/PATCH/DELETE /api/admin/cram/students (Admin key: x-admin-key) — ห้อง/นักเรียนกวดวิชา',
         schoolActivities:

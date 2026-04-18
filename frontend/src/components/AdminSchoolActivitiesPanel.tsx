@@ -29,6 +29,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
   const [editTitle, setEditTitle] = useState('')
   const [editCategory, setEditCategory] = useState('')
   const [editDescription, setEditDescription] = useState('')
+  const isErrorMsg = msg !== null && (msg.includes('ไม่สำเร็จ') || msg.includes('HTTP'))
 
   useEffect(() => {
     setAdminKey(sessionStorage.getItem(ADMIN_UPLOAD_STORAGE_KEY) ?? '')
@@ -195,7 +196,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
   }
 
   return (
-    <section className="mt-8 rounded-xl border border-amber-900/40 bg-amber-950/10 p-6">
+    <section className="mt-8 rounded-xl border border-amber-900/40 bg-amber-950/10 p-6" aria-busy={loading}>
       <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200">Admin — คอร์ส / กิจกรรม (ตาราง school_activities)</h2>
       <p className="mt-2 text-xs text-slate-500">
         รายการที่แสดงในพอร์ทัลโรงเรียนกวดวิชา (Academy) หน้าคอร์สเรียน — ใช้ Admin key เดียวกับการนำเข้าสมาชิก
@@ -207,34 +208,38 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           autoComplete="off"
           value={adminKey}
           onChange={(e) => setAdminKey(e.target.value)}
+          aria-label="Admin key สำหรับจัดการคอร์สและกิจกรรม"
           className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-amber-600 ${portalFocusRing}`}
           placeholder="ค่า ADMIN_UPLOAD_KEY"
         />
       </label>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="เครื่องมือโหลดข้อมูลคอร์สและกิจกรรม">
         <button
           type="button"
           disabled={loading}
           onClick={() => void loadActivities()}
+          aria-label="โหลดรายการคอร์สและกิจกรรมทั้งหมด"
           className={`rounded-lg bg-amber-800 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
         >
           โหลดรายการ
         </button>
       </div>
 
-      <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+      <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950/50 p-4" role="group" aria-label="ฟอร์มเพิ่มคอร์สหรือกิจกรรมใหม่">
         <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">เพิ่มคอร์ส/กิจกรรม</h3>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <input
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
+            aria-label="หมวดของคอร์สหรือกิจกรรมใหม่"
             placeholder="หมวด (เช่น วิชาหลัก)"
             className={`rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm ${portalFocusRing}`}
           />
           <input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
+            aria-label="ชื่อคอร์สหรือกิจกรรมใหม่"
             placeholder="ชื่อคอร์ส / กิจกรรม"
             className={`rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm ${portalFocusRing}`}
           />
@@ -242,6 +247,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
         <textarea
           value={newDescription}
           onChange={(e) => setNewDescription(e.target.value)}
+          aria-label="รายละเอียดคอร์สหรือกิจกรรมใหม่"
           placeholder="รายละเอียด (ถ้ามี)"
           rows={2}
           className={`mt-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-200 ${portalFocusRing}`}
@@ -250,27 +256,28 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={() => void addActivity()}
+          aria-label="เพิ่มคอร์สหรือกิจกรรมใหม่"
           className={`mt-2 rounded bg-emerald-800 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
         >
           เพิ่ม
         </button>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/50">
-        <table className="w-full min-w-[560px] text-left text-sm">
+      <div className="mt-6 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/50" role="group" aria-label="ตารางจัดการคอร์สและกิจกรรม">
+        <table className="w-full min-w-[560px] text-left text-sm" aria-label="ตารางคอร์สและกิจกรรมโรงเรียนกวดวิชา">
           <thead>
             <tr className="border-b border-slate-800 text-xs uppercase text-slate-500">
-              <th className="px-3 py-2">หมวด</th>
-              <th className="px-3 py-2">ชื่อ</th>
-              <th className="px-3 py-2">รายละเอียด</th>
-              <th className="px-3 py-2">สถานะ</th>
-              <th className="px-3 py-2"> </th>
+              <th scope="col" className="px-3 py-2">หมวด</th>
+              <th scope="col" className="px-3 py-2">ชื่อ</th>
+              <th scope="col" className="px-3 py-2">รายละเอียด</th>
+              <th scope="col" className="px-3 py-2">สถานะ</th>
+              <th scope="col" className="px-3 py-2"> </th>
             </tr>
           </thead>
           <tbody>
             {activities.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-3 py-6 text-center text-slate-500" role="status" aria-live="polite" aria-atomic="true">
                   ยังไม่มีข้อมูล — กดโหลดรายการ
                 </td>
               </tr>
@@ -279,35 +286,38 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                 editingId === a.id ? (
                   <tr key={a.id} className="border-b border-slate-800/80 bg-slate-900/40">
                     <td className="px-3 py-2 align-top" colSpan={3}>
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <input
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                          className={`flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                          aria-label="หมวด"
-                        />
-                        <input
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          className={`flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                          aria-label="ชื่อ"
+                      <div id={`school-activity-edit-${a.id}`} role="region" aria-label={`ฟอร์มแก้ไขกิจกรรม ${a.title}`}>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <input
+                            value={editCategory}
+                            onChange={(e) => setEditCategory(e.target.value)}
+                            className={`flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
+                            aria-label="หมวด"
+                          />
+                          <input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className={`flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
+                            aria-label="ชื่อ"
+                          />
+                        </div>
+                        <textarea
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          rows={2}
+                          className={`mt-2 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
+                          aria-label="รายละเอียด"
                         />
                       </div>
-                      <textarea
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        rows={2}
-                        className={`mt-2 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                        aria-label="รายละเอียด"
-                      />
                     </td>
                     <td className="px-3 py-2 align-middle text-slate-500">—</td>
                     <td className="px-3 py-2 align-top">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2" role="group" aria-label="คำสั่งบันทึกหรือยกเลิกการแก้ไขกิจกรรม">
                         <button
                           type="button"
                           className={`rounded-sm text-xs text-emerald-400 hover:underline ${portalFocusRing}`}
                           onClick={() => void saveEdit(a.id)}
+                          aria-label={`บันทึกการแก้ไขกิจกรรม ${a.title}`}
                         >
                           บันทึก
                         </button>
@@ -315,6 +325,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                           type="button"
                           className={`rounded-sm text-xs text-slate-400 hover:underline ${portalFocusRing}`}
                           onClick={cancelEdit}
+                          aria-label="ยกเลิกการแก้ไขกิจกรรม"
                         >
                           ยกเลิก
                         </button>
@@ -332,17 +343,22 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                       <button
                         type="button"
                         onClick={() => void toggleActive(a)}
+                        aria-pressed={a.active}
+                        aria-label={`สลับสถานะการใช้งานกิจกรรม ${a.title}`}
                         className={`rounded-sm text-xs underline ${portalFocusRing} ${a.active ? 'text-emerald-400' : 'text-slate-500'}`}
                       >
                         {a.active ? 'เปิด' : 'ปิด'}
                       </button>
                     </td>
                     <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-3" role="group" aria-label="คำสั่งแก้ไขหรือลบกิจกรรม">
                         <button
                           type="button"
                           className={`rounded-sm text-xs text-amber-300 hover:underline ${portalFocusRing}`}
                           onClick={() => startEdit(a)}
+                          aria-expanded={false}
+                          aria-controls={`school-activity-edit-${a.id}`}
+                          aria-label={`แก้ไขกิจกรรม ${a.title}`}
                         >
                           แก้ไข
                         </button>
@@ -350,6 +366,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                           type="button"
                           className={`rounded-sm text-xs text-red-400 hover:underline ${portalFocusRing}`}
                           onClick={() => void deleteActivity(a.id)}
+                          aria-label={`ลบกิจกรรม ${a.title}`}
                         >
                           ลบ
                         </button>
@@ -366,13 +383,18 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
       {msg ? (
         <pre
           className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400"
-          role="status"
-          aria-live="polite"
+          role={isErrorMsg ? 'alert' : 'status'}
+          aria-live={isErrorMsg ? undefined : 'polite'}
+          aria-atomic="true"
         >
           {msg}
         </pre>
       ) : null}
-      {loading ? <p className="mt-2 text-xs text-slate-500">กำลังโหลด…</p> : null}
+      {loading ? (
+        <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          กำลังโหลดรายการคอร์สและกิจกรรม...
+        </p>
+      ) : null}
     </section>
   )
 }
