@@ -62,3 +62,19 @@ export function financeGlQuerySuffix(params: {
   const s = q.toString()
   return s ? `?${s}` : ''
 }
+
+export type FinancePeriodHandoffFilter = 'all' | 'pending' | 'sent' | 'completed'
+
+/** query สำหรับ `GET /api/admin/finance/period-closing` */
+export function financePeriodClosingsQuerySuffix(params: {
+  reportEntity: ReportFilterEntity
+  periodHandoffFilter: FinancePeriodHandoffFilter
+  limit?: number
+}): string {
+  const q = new URLSearchParams()
+  if (params.reportEntity) q.set('legal_entity_code', params.reportEntity)
+  if (params.periodHandoffFilter !== 'all') q.set('auditor_handoff_status', params.periodHandoffFilter)
+  q.set('limit', String(params.limit ?? 50))
+  const s = q.toString()
+  return s ? `?${s}` : ''
+}

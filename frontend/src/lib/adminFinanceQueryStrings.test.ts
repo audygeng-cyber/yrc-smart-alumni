@@ -3,6 +3,7 @@ import {
   financeBalanceSheetQuerySuffix,
   financeGlQuerySuffix,
   financeJournalsQuerySuffix,
+  financePeriodClosingsQuerySuffix,
   financeReportQuerySuffix,
 } from './adminFinanceQueryStrings'
 
@@ -35,6 +36,23 @@ describe('financeBalanceSheetQuerySuffix', () => {
     expect(
       financeBalanceSheetQuerySuffix({ reportEntity: 'cram_school', bsAsOf: '2026-06-30' }),
     ).toBe('?legal_entity_code=cram_school&as_of=2026-06-30')
+  })
+})
+
+describe('financePeriodClosingsQuerySuffix', () => {
+  it('รวม limit และกรอง handoff', () => {
+    expect(
+      financePeriodClosingsQuerySuffix({
+        reportEntity: 'association',
+        periodHandoffFilter: 'pending',
+        limit: 50,
+      }),
+    ).toBe('?legal_entity_code=association&auditor_handoff_status=pending&limit=50')
+  })
+  it('เมื่อ all ไม่ใส่ auditor_handoff_status', () => {
+    expect(
+      financePeriodClosingsQuerySuffix({ reportEntity: '', periodHandoffFilter: 'all' }),
+    ).toBe('?limit=50')
   })
 })
 

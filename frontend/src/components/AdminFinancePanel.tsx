@@ -15,9 +15,16 @@ import {
   fetchTrialBalanceReport,
 } from '../lib/adminFinanceReportApi'
 import {
+  fetchJournalDetail,
+  fetchJournalsList,
+  fetchPeriodClosingDetail,
+  fetchPeriodClosingsList,
+} from '../lib/adminFinanceJournalPeriodApi'
+import {
   financeBalanceSheetQuerySuffix,
   financeGlQuerySuffix,
   financeJournalsQuerySuffix,
+  financePeriodClosingsQuerySuffix,
   financeReportQuerySuffix,
 } from '../lib/adminFinanceQueryStrings'
 import {
@@ -875,15 +882,15 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const q = new URLSearchParams()
-      if (reportEntity) q.set('legal_entity_code', reportEntity)
-      if (periodHandoffFilter !== 'all') q.set('auditor_handoff_status', periodHandoffFilter)
-      q.set('limit', '50')
-      const url = `${base}/api/admin/finance/period-closing${q.toString() ? `?${q.toString()}` : ''}`
-      const r = await fetch(url, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchPeriodClosingsList(
+        base,
+        adminKey,
+        financePeriodClosingsQuerySuffix({
+          reportEntity,
+          periodHandoffFilter,
+          limit: 50,
+        }),
+      )
       if (!p.ok) return setMsg(formatFetchError('โหลดประวัติปิดงวดบัญชี', p.status, p.payload, p.rawText))
       const payload = (p.payload ?? {}) as { rows?: FinancePeriodClosingItem[] }
       const rows = Array.isArray(payload.rows) ? payload.rows : []
@@ -942,11 +949,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const safeId = encodeURIComponent(id)
-      const r = await fetch(`${base}/api/admin/finance/period-closing/${safeId}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchPeriodClosingDetail(base, adminKey, id)
       if (!p.ok) return setMsg(formatFetchError('โหลดรายละเอียดงวดบัญชี', p.status, p.payload, p.rawText))
       const payload = (p.payload ?? null) as FinancePeriodClosingDetail | null
       setPeriodClosingDetail(payload)
@@ -1321,18 +1324,16 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const r = await fetch(
-        `${base}/api/admin/finance/journals${financeJournalsQuerySuffix({
+      const p = await fetchJournalsList(
+        base,
+        adminKey,
+        financeJournalsQuerySuffix({
           reportEntity,
           reportFrom,
           reportTo,
           journalStatusFilter,
-        })}`,
-        {
-          headers: financeAdminHeaders(adminKey),
-        },
+        }),
       )
-      const p = await readApiJson(r)
       if (!p.ok) return setMsg(formatFetchError('โหลดสมุดรายวัน', p.status, p.payload, p.rawText))
       const payload = p.payload as { journals?: JournalListItem[] }
       setJournalList(Array.isArray(payload.journals) ? payload.journals : [])
@@ -1352,11 +1353,7 @@ export function AdminFinancePanel({ apiBase }: Props) {
     setLoading(true)
     setMsg(null)
     try {
-      const safeId = encodeURIComponent(id.trim())
-      const r = await fetch(`${base}/api/admin/finance/journals/${safeId}`, {
-        headers: financeAdminHeaders(adminKey),
-      })
-      const p = await readApiJson(r)
+      const p = await fetchJournalDetail(base, adminKey, id)
       if (!p.ok) return setMsg(formatFetchError('โหลดรายละเอียดสมุดรายวัน', p.status, p.payload, p.rawText))
       const payload = p.payload as {
         journal?: Record<string, unknown>
