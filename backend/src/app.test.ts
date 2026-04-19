@@ -26,6 +26,8 @@ describe.sequential('createApp', () => {
     expect(res.status).toBe(200)
     expect(res.body.ok).toBe(true)
     expect(res.body.paths?.health).toBe('/health')
+    expect(String(res.body.paths?.adminMemberRoles ?? '')).toContain('app-roles')
+    expect(String(res.body.paths?.portal ?? '')).toContain('rsvp-summary')
   })
 
   it('POST /api/members/donations/history returns 400 without line_uid', async () => {
@@ -120,6 +122,16 @@ describe.sequential('createApp', () => {
     vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
     const app = createApp()
     const res = await request(app).get('/api/admin/members/summary')
+    expect(res.status).toBe(401)
+    expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
+  })
+
+  it('PATCH /api/admin/members/app-roles/:memberId requires admin key', async () => {
+    vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
+    const app = createApp()
+    const res = await request(app)
+      .patch('/api/admin/members/app-roles/00000000-0000-0000-0000-000000000001')
+      .send({ committee: true })
     expect(res.status).toBe(401)
     expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
   })
