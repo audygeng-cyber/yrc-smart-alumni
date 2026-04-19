@@ -2,7 +2,11 @@
 
 ไฟล์นี้ใช้เป็น **ลำดับงานจริง** ขณะไล่พัฒนา/ปิดช่องว่าง ไม่ใช่แค่รายการฟีเจอร์แยกกัน — ทำบนล่างไปบนเมื่อเป็นไปได้ (ฐานระบบ → ข้อมูล → API → UI → ทดสอบ)
 
+**แผนที่ Master Guidelines (เทียบ repo):** [`PROJECT_MASTER_GUIDELINES.md`](./PROJECT_MASTER_GUIDELINES.md)
+
 **เกณฑ์อ้างอิง:** [`OPERATIONAL_RUNBOOK.md`](./OPERATIONAL_RUNBOOK.md), [`MODULE_PROGRESS_2026-04-17.md`](./MODULE_PROGRESS_2026-04-17.md), [`ACCOUNTING_FLOW.md`](./ACCOUNTING_FLOW.md)
+
+**หมายเหตุ:** Phase 5–7 ด้านล่างอาจล้าหลังเมื่อเทียบกับรายละเอียดใน **MODULE_PROGRESS** — ถ้าขัดแย้ง ให้ยึด MODULE_PROGRESS + โค้ดจริง แล้วค่อยอัปเดตช่อง `[ ]` ในไฟล์นี้ให้ตรง
 
 **ก่อนเริ่มแต่ละขั้น:** `npm run ci` เมื่อแก้ชุดใหญ่; หลังแก้ migration รัน/ตรวจบน Supabase ตามสภาพแวดล้อม
 
