@@ -8,7 +8,7 @@ import {
 } from '../util/financePolicy.js'
 import { canDepreciateInMonth, isMonthKey, monthEndDate, monthlyDepreciationAmount } from '../util/fixedAsset.js'
 import { calculateThaiTax, isSupportedVatRate, isSupportedWhtRate } from '../util/tax.js'
-import { majorityRequired, quorumRequired } from '../util/meetingRules.js'
+import { committeeMotionOutcome, committeeQuorumRequired, majorityRequired } from '../util/meetingRules.js'
 import { rowsToCsv } from '../util/csvRows.js'
 import { withUtf8Bom } from '../util/csvUtf8.js'
 
@@ -1053,7 +1053,7 @@ financeAdminRouter.get('/exports/meeting-sessions.csv', async (req, res) => {
     const rows = (sessions ?? []).map((s) => {
       const expected = Number(s.expected_participants ?? 0)
       const attendees = attendeesBySession.get(String(s.id)) ?? 0
-      const quorumNeed = quorumRequired(expected)
+      const quorumNeed = committeeQuorumRequired()
       const majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
       return {
         meeting_session_id: s.id,
@@ -3275,7 +3275,12 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       res.status(400).json({ error: 'คำขอไม่ได้อยู่ในสถานะ pending', status: reqRow.status })
       return
     }
-    if (approver_role_code !== reqRow.required_role_code) {
+    const requiredRole = String(reqRow.required_role_code ?? '')
+    const paymentApproverOk =
+      requiredRole === approver_role_code ||
+      (requiredRole === 'committee' && approver_role_code === 'payment_approver') ||
+      (requiredRole === 'payment_approver' && approver_role_code === 'committee')
+    if (!paymentApproverOk) {
       res.status(403).json({
         error: 'role นี้ไม่สามารถอนุมัติคำขอนี้ได้',
         required_role_code: reqRow.required_role_code,
@@ -3333,7 +3338,7 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       }
       const { data: session, error: sessErr } = await supabase
         .from('meeting_sessions')
-        .select('id,expected_participants')
+        .select('id')
         .eq('id', meetingSessionId)
         .maybeSingle()
       if (sessErr || !session) {
@@ -3345,14 +3350,13 @@ financeAdminRouter.post('/payment-requests/:id/approve', async (req, res) => {
       }
 
       attendeeCount = await countMeetingAttendance(supabase, meetingSessionId)
-      const expected = Number(session.expected_participants ?? 0)
-      quorumNeed = quorumRequired(expected)
+      quorumNeed = committeeQuorumRequired()
       if (attendeeCount < quorumNeed) {
         res.status(400).json({
           error: 'องค์ประชุมไม่ครบ',
           attendees: attendeeCount,
           quorumRequired: quorumNeed,
-          expectedParticipants: expected,
+          committeeFullMembers: 35,
         })
         return
       }
@@ -3467,7 +3471,7 @@ financeAdminRouter.post('/meeting-sessions', async (req, res) => {
     res.status(201).json({
       ok: true,
       meetingSession: row,
-      quorumRequired: quorumRequired(expectedParticipants),
+      quorumRequired: committeeQuorumRequired(),
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
@@ -3534,7 +3538,7 @@ financeAdminRouter.get('/meeting-sessions/:id/summary', async (req, res) => {
     }
 
     const attendees = await countMeetingAttendance(supabase, id)
-    const quorumNeed = quorumRequired(Number(session.expected_participants ?? 0))
+    const quorumNeed = committeeQuorumRequired()
     const majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
 
     res.json({
@@ -3939,24 +3943,28 @@ financeAdminRouter.get('/meeting-agendas/:id/vote-summary', async (req, res) => 
     let quorumMet = false
     if (agenda.meeting_session_id) {
       attendees = await countMeetingAttendance(supabase, String(agenda.meeting_session_id))
-      majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
-      const { data: session, error: sessionErr } = await supabase
-        .from('meeting_sessions')
-        .select('expected_participants')
-        .eq('id', agenda.meeting_session_id)
-        .maybeSingle()
-      if (sessionErr) {
-        res.status(500).json({ error: 'โหลดข้อมูลรอบประชุมไม่สำเร็จ', details: sessionErr })
-        return
-      }
-      quorumNeed = quorumRequired(Number(session?.expected_participants ?? 0))
-      quorumMet = attendees >= quorumNeed
-    } else {
-      attendees = summary.total
-      majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
-      quorumNeed = 0
-      quorumMet = true
+      const motion = committeeMotionOutcome(attendees, summary.approve)
+      quorumNeed = motion.quorumRequired
+      quorumMet = motion.quorumMet
+      majorityNeed = motion.majorityRequired
+      const approvedByVote = motion.approvedByVote
+      res.json({
+        ok: true,
+        agenda,
+        summary,
+        attendees,
+        majorityRequired: majorityNeed,
+        quorumRequired: quorumNeed,
+        quorumMet,
+        approvedByVote,
+      })
+      return
     }
+
+    attendees = summary.total
+    majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
+    quorumNeed = 0
+    quorumMet = true
 
     res.json({
       ok: true,
@@ -4003,28 +4011,21 @@ financeAdminRouter.post('/meeting-agendas/:id/close', async (req, res) => {
     let majorityNeed = 0
     let quorumNeed = 0
     let quorumMet = false
+    let approvedByVote = false
     if (agenda.meeting_session_id) {
       attendees = await countMeetingAttendance(supabase, String(agenda.meeting_session_id))
-      majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
-      const { data: session, error: sessionErr } = await supabase
-        .from('meeting_sessions')
-        .select('expected_participants')
-        .eq('id', agenda.meeting_session_id)
-        .maybeSingle()
-      if (sessionErr) {
-        res.status(500).json({ error: 'โหลดข้อมูลรอบประชุมไม่สำเร็จ', details: sessionErr })
-        return
-      }
-      quorumNeed = quorumRequired(Number(session?.expected_participants ?? 0))
-      quorumMet = attendees >= quorumNeed
+      const motion = committeeMotionOutcome(attendees, summary.approve)
+      quorumNeed = motion.quorumRequired
+      quorumMet = motion.quorumMet
+      majorityNeed = motion.majorityRequired
+      approvedByVote = motion.approvedByVote
     } else {
       attendees = summary.total
       majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
       quorumNeed = 0
       quorumMet = true
+      approvedByVote = summary.approve >= majorityNeed && majorityNeed > 0 && quorumMet
     }
-
-    const approvedByVote = summary.approve >= majorityNeed && majorityNeed > 0 && quorumMet
 
     const { data: updatedAgenda, error: updateErr } = await supabase
       .from('meeting_agendas')

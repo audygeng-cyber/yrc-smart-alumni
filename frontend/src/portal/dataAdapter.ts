@@ -76,6 +76,11 @@ export type CommitteeAttendanceSession = {
   expectedParticipants: number
   quorumNumerator: number
   quorumDenominator: number
+  /** 2/3 ของกรรมการเต็มชุด (35) — ปกติ 24 */
+  quorumRequiredCount: number
+  rsvpYes: number
+  rsvpNo: number
+  rsvpMaybe: number
   status: string
   signedCount: number
 }
@@ -279,6 +284,10 @@ export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePo
     typeof as.signedCount === 'number'
   ) {
     const scheduledAt = as.scheduledAt === null ? null : (as.scheduledAt as string)
+    const qrc = typeof as.quorumRequiredCount === 'number' ? (as.quorumRequiredCount as number) : 24
+    const rsvpY = typeof as.rsvpYes === 'number' ? (as.rsvpYes as number) : 0
+    const rsvpN = typeof as.rsvpNo === 'number' ? (as.rsvpNo as number) : 0
+    const rsvpM = typeof as.rsvpMaybe === 'number' ? (as.rsvpMaybe as number) : 0
     attendanceSession = {
       id: as.id as string,
       title: as.title as string,
@@ -286,6 +295,10 @@ export function normalizeCommitteePortalData(raw: unknown, fallback: CommitteePo
       expectedParticipants: as.expectedParticipants as number,
       quorumNumerator: as.quorumNumerator as number,
       quorumDenominator: as.quorumDenominator as number,
+      quorumRequiredCount: qrc,
+      rsvpYes: rsvpY,
+      rsvpNo: rsvpN,
+      rsvpMaybe: rsvpM,
       status: as.status as string,
       signedCount: as.signedCount as number,
     }

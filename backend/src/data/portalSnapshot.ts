@@ -104,6 +104,10 @@ export const committeePortalPayload = {
     expectedParticipants: number
     quorumNumerator: number
     quorumDenominator: number
+    quorumRequiredCount: number
+    rsvpYes: number
+    rsvpNo: number
+    rsvpMaybe: number
     status: string
     signedCount: number
   },

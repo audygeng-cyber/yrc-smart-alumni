@@ -5,7 +5,7 @@ import {
   memberPortalPayload,
 } from '../data/portalSnapshot.js'
 import { tryAssociationMonthlyPlFromJournal, tryCramSchoolMonthlyPlFromJournal } from './plFromJournal.js'
-import { majorityRequired, quorumRequired } from '../util/meetingRules.js'
+import { committeeMotionOutcome, committeeQuorumRequired, majorityRequired } from '../util/meetingRules.js'
 
 /** โครงเดียวกับ snapshot แต่ mutable (ไม่ใช่ readonly จาก `as const`) */
 type MetricCard = { label: string; value: string; hint: string }
@@ -42,6 +42,11 @@ type CommitteeAttendanceSession = {
   expectedParticipants: number
   quorumNumerator: number
   quorumDenominator: number
+  /** องค์ประชุมจาก 2/3 ของกรรมการเต็มชุด (35) */
+  quorumRequiredCount: number
+  rsvpYes: number
+  rsvpNo: number
+  rsvpMaybe: number
   status: string
   signedCount: number
 }
@@ -467,6 +472,22 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
       .select('*', { count: 'exact', head: true })
       .eq('meeting_session_id', ls.id)
     const signedCount = e4 ? 0 : (attCount ?? 0)
+    const quorumNeed = committeeQuorumRequired()
+    let rsvpYes = 0
+    let rsvpNo = 0
+    let rsvpMaybe = 0
+    const { data: rsvpRows, error: rsvpErr } = await supabase
+      .from('meeting_session_rsvp')
+      .select('status')
+      .eq('meeting_session_id', ls.id)
+    if (!rsvpErr && rsvpRows?.length) {
+      for (const r of rsvpRows as Array<{ status?: string }>) {
+        const s = r.status
+        if (s === 'yes') rsvpYes += 1
+        else if (s === 'no') rsvpNo += 1
+        else if (s === 'maybe') rsvpMaybe += 1
+      }
+    }
     if (!e4) {
       base.metricCards[2] = {
         ...base.metricCards[2],
@@ -480,6 +501,10 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
       expectedParticipants: exp,
       quorumNumerator: ls.quorum_numerator ?? 2,
       quorumDenominator: ls.quorum_denominator ?? 3,
+      quorumRequiredCount: quorumNeed,
+      rsvpYes,
+      rsvpNo,
+      rsvpMaybe,
       status: ls.status,
       signedCount,
     }
@@ -647,7 +672,7 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
     const meetingSessionIds = closedAgendaRows
       .map((r: { meeting_session_id?: string | null }) => r.meeting_session_id ?? null)
       .filter((v): v is string => Boolean(v))
-    const [voteRowsRes, attendanceRowsRes, sessionRowsRes] = await Promise.all([
+    const [voteRowsRes, attendanceRowsRes] = await Promise.all([
       supabase.from('meeting_votes').select('agenda_id,vote').in('agenda_id', agendaIds),
       meetingSessionIds.length > 0
         ? supabase
@@ -655,16 +680,9 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
             .select('meeting_session_id,id')
             .in('meeting_session_id', meetingSessionIds)
         : Promise.resolve({ data: [], error: null }),
-      meetingSessionIds.length > 0
-        ? supabase
-            .from('meeting_sessions')
-            .select('id,expected_participants')
-            .in('id', meetingSessionIds)
-        : Promise.resolve({ data: [], error: null }),
     ])
     const voteRows = voteRowsRes.error ? [] : voteRowsRes.data ?? []
     const attendanceRows = attendanceRowsRes.error ? [] : attendanceRowsRes.data ?? []
-    const sessionRows = sessionRowsRes.error ? [] : sessionRowsRes.data ?? []
     const voteMap = new Map<string, { approve: number; reject: number; abstain: number }>()
     for (const row of voteRows as Array<{ agenda_id: string; vote: string }>) {
       const cur = voteMap.get(row.agenda_id) ?? { approve: 0, reject: 0, abstain: 0 }
@@ -676,11 +694,6 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
     const attendanceCountMap = new Map<string, number>()
     for (const row of attendanceRows as Array<{ meeting_session_id: string }>) {
       attendanceCountMap.set(row.meeting_session_id, (attendanceCountMap.get(row.meeting_session_id) ?? 0) + 1)
-    }
-    const sessionExpectedMap = new Map<string, number>()
-    for (const row of sessionRows as Array<{ id: string; expected_participants?: number | null }>) {
-      const exp = Number(row.expected_participants ?? 0)
-      if (Number.isFinite(exp) && exp > 0) sessionExpectedMap.set(row.id, exp)
     }
     base.closedAgendaResults = closedAgendaRows.map(
       (row: {
@@ -694,14 +707,20 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
         const totalVotes = vote.approve + vote.reject + vote.abstain
         const meetingSessionId = row.meeting_session_id ?? null
         const attendees = meetingSessionId ? (attendanceCountMap.get(meetingSessionId) ?? 0) : totalVotes
-        const majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
         let quorumNeed = 0
         let quorumMet = true
-        if (meetingSessionId && sessionExpectedMap.has(meetingSessionId)) {
-          quorumNeed = quorumRequired(sessionExpectedMap.get(meetingSessionId)!)
-          quorumMet = attendees >= quorumNeed
+        let majorityNeed = 0
+        let approvedByVote = false
+        if (meetingSessionId) {
+          const motion = committeeMotionOutcome(attendees, vote.approve)
+          quorumNeed = motion.quorumRequired
+          quorumMet = motion.quorumMet
+          majorityNeed = motion.majorityRequired
+          approvedByVote = motion.approvedByVote
+        } else {
+          majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
+          approvedByVote = vote.approve >= majorityNeed && majorityNeed > 0 && quorumMet
         }
-        const approvedByVote = vote.approve >= majorityNeed && majorityNeed > 0 && quorumMet
         return {
           id: row.id,
           title: row.title,

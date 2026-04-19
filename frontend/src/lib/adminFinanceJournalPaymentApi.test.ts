@@ -157,7 +157,7 @@ describe('postPaymentRequestApprove', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await postPaymentRequestApprove('http://localhost:4000', 'k', 'pr/1', {
-      approver_role_code: 'committee',
+      approver_role_code: 'payment_approver',
       decision: 'approve',
     })
 
@@ -166,7 +166,7 @@ describe('postPaymentRequestApprove', () => {
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
-          approver_role_code: 'committee',
+          approver_role_code: 'payment_approver',
           decision: 'approve',
         }),
       }),

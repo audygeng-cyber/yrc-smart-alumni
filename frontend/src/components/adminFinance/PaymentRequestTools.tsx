@@ -28,8 +28,8 @@ export type PaymentRequestToolsProps = {
   paymentLowAmountOtherBlocked: boolean
   filteredAccounts: BankAccount[]
   selectedAccount: BankAccount | null
-  approveRoleCode: 'bank_signer_3of5' | 'committee'
-  setApproveRoleCode: Dispatch<SetStateAction<'bank_signer_3of5' | 'committee'>>
+  approveRoleCode: 'bank_signer_3of5' | 'payment_approver'
+  setApproveRoleCode: Dispatch<SetStateAction<'bank_signer_3of5' | 'payment_approver'>>
   approveSignerId: string
   setApproveSignerId: Dispatch<SetStateAction<string>>
   approveDecision: 'approve' | 'reject'
@@ -204,12 +204,12 @@ export function PaymentRequestTools({
       />
       <select
         value={approveRoleCode}
-        onChange={(e) => setApproveRoleCode(e.target.value as 'bank_signer_3of5' | 'committee')}
+        onChange={(e) => setApproveRoleCode(e.target.value as 'bank_signer_3of5' | 'payment_approver')}
         aria-label="เลือกบทบาทผู้อนุมัติ"
         className={`mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm ${portalFocusRing}`}
       >
         <option value="bank_signer_3of5">ผู้ลงนามธนาคาร 3 ใน 5 (bank_signer_3of5)</option>
-        <option value="committee">คณะกรรมการ (committee)</option>
+        <option value="payment_approver">ผู้อนุมัติตามมติประชุม (payment_approver)</option>
       </select>
       <select
         value={approveSignerId}

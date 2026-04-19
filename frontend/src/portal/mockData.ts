@@ -135,6 +135,10 @@ export const committeeAttendanceSessionMock = {
   expectedParticipants: 35,
   quorumNumerator: 2,
   quorumDenominator: 3,
+  quorumRequiredCount: 24,
+  rsvpYes: 28,
+  rsvpNo: 2,
+  rsvpMaybe: 1,
   status: 'open',
   signedCount: 29,
 }

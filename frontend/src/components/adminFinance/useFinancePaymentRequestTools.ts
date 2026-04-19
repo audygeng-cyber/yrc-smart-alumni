@@ -53,7 +53,7 @@ export function useFinancePaymentRequestTools({
   const [paymentJournalEntryId, setPaymentJournalEntryId] = useState('')
 
   const [approveSignerId, setApproveSignerId] = useState('')
-  const [approveRoleCode, setApproveRoleCode] = useState<'bank_signer_3of5' | 'committee'>('bank_signer_3of5')
+  const [approveRoleCode, setApproveRoleCode] = useState<'bank_signer_3of5' | 'payment_approver'>('bank_signer_3of5')
   const [approveDecision, setApproveDecision] = useState<'approve' | 'reject'>('approve')
 
   const filteredAccounts = useMemo(() => {
@@ -164,7 +164,7 @@ export function useFinancePaymentRequestTools({
       const p = await postPaymentRequestApprove(base, adminKey, paymentRequestId.trim(), {
         approver_role_code: approveRoleCode,
         approver_signer_id: approveRoleCode === 'bank_signer_3of5' ? approveSignerId.trim() : undefined,
-        approver_name: approveRoleCode === 'committee' ? 'committee-voter' : undefined,
+        approver_name: approveRoleCode === 'payment_approver' ? 'payment-approver' : undefined,
         decision: approveDecision,
       })
       if (!p.ok) {

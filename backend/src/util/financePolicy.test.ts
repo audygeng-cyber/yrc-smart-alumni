@@ -24,7 +24,7 @@ describe('resolveFinanceApprovalPolicy', () => {
   it('uses committee-35 policy for > 20,000', () => {
     const p = resolveFinanceApprovalPolicy(20000.01)
     expect(p.rule).toBe('committee_35_over_20000')
-    expect(p.requiredRoleCode).toBe('committee')
+    expect(p.requiredRoleCode).toBe('payment_approver')
     expect(p.requiredApprovals).toBe(0)
     expect(p.dynamicMeetingMajority).toBe(true)
   })

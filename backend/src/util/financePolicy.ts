@@ -1,6 +1,6 @@
 export type FinanceApprovalPolicy = {
   rule: 'committee_3of5_upto_20000' | 'committee_35_over_20000'
-  requiredRoleCode: 'bank_signer_3of5' | 'committee'
+  requiredRoleCode: 'bank_signer_3of5' | 'payment_approver'
   requiredApprovals: number
   dynamicMeetingMajority?: boolean
 }
@@ -119,7 +119,7 @@ export function resolveFinanceApprovalPolicy(amount: number): FinanceApprovalPol
   }
   return {
     rule: 'committee_35_over_20000',
-    requiredRoleCode: 'committee',
+    requiredRoleCode: 'payment_approver',
     requiredApprovals: 0,
     dynamicMeetingMajority: true,
   }

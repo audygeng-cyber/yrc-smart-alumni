@@ -6,6 +6,7 @@ import { adminAuth } from './middleware/adminAuth.js'
 import { cramAdminRouter } from './routes/cramAdmin.js'
 import { schoolActivitiesAdminRouter } from './routes/schoolActivitiesAdmin.js'
 import { financeAdminRouter } from './routes/financeAdmin.js'
+import { appRolesAdminRouter } from './routes/appRolesAdmin.js'
 import { importMembersRouter } from './routes/importMembers.js'
 import { importTemplateRouter } from './routes/importTemplate.js'
 import { lineAuthRouter } from './routes/lineAuth.js'
@@ -74,7 +75,9 @@ export function createApp(): express.Express {
           'GET /api/admin/member-requests (Admin key: x-admin-key) — president-approve/reject ใช้ x-president-key หรือ x-admin-key',
         push: 'GET /api/push/vapid-public, POST /api/push/subscribe',
         portal:
-          'GET /api/portal/member | /api/portal/committee | /api/portal/academy | /api/portal/committee/documents/:id/download.txt | /api/portal/committee/meetings/:id/minutes.txt | /api/portal/committee/agendas/:id/vote-summary, POST /api/portal/committee/agendas/:id/vote — สแนปช็อต/เอกสาร/รายงาน/ลงมติสำหรับแดชบอร์ดพอร์ทัล',
+          'GET /api/portal/member | /api/portal/committee | /api/portal/academy | /api/portal/committee/documents/:id/download.txt | /api/portal/committee/meetings/:id/minutes.txt | /api/portal/committee/meetings/:sessionId/rsvp-summary | /api/portal/committee/agendas/:id/vote-summary, POST /api/portal/committee/agendas/:id/vote | POST /api/portal/committee/meetings/:sessionId/rsvp — พอร์ทัล',
+        adminMemberRoles:
+          'PATCH /api/admin/members/app-roles/:memberId (x-admin-key) — committee / payment_approver',
         cramSchool:
           'GET/POST/PATCH /api/admin/cram/classrooms, GET/POST/PATCH/DELETE /api/admin/cram/students (Admin key: x-admin-key) — ห้อง/นักเรียนกวดวิชา',
         schoolActivities:
@@ -110,6 +113,7 @@ export function createApp(): express.Express {
   app.use('/api/admin/school-activities', adminAuth, schoolActivitiesAdminRouter)
   app.use('/api/admin/members', importTemplateRouter)
   app.use('/api/admin/members', adminAuth, importMembersRouter)
+  app.use('/api/admin/members', adminAuth, appRolesAdminRouter)
   app.use('/api/members', membersPublicLimit, membersRouter)
 
   return app

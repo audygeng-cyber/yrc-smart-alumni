@@ -490,7 +490,7 @@ function AppChrome(props: AppChromeProps) {
             path="/committee/*"
             element={
               <RequireAppRoles lineUid={props.lineUid} allow={RBAC_NAV.committee}>
-                <CommitteeArea apiBase={props.apiBase} />
+                <CommitteeArea apiBase={props.apiBase} lineUid={props.lineUid} />
               </RequireAppRoles>
             }
           />

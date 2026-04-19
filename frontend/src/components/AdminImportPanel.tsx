@@ -16,6 +16,11 @@ export function AdminImportPanel({ apiBase }: Props) {
   const [lastImportBatchId, setLastImportBatchId] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [roleMemberId, setRoleMemberId] = useState('')
+  const [committeeRole, setCommitteeRole] = useState(false)
+  const [paymentApproverRole, setPaymentApproverRole] = useState(false)
+  const [roleMsg, setRoleMsg] = useState<string | null>(null)
+  const [roleLoading, setRoleLoading] = useState(false)
   const fileStatusId = 'admin-import-file-status'
   const isErrorMsg = msg !== null && (msg.includes('ไม่สำเร็จ') || msg.includes('HTTP'))
 
@@ -64,6 +69,49 @@ export function AdminImportPanel({ apiBase }: Props) {
       setMsg('เรียก API ไม่สำเร็จ')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function saveMemberAppRoles() {
+    if (!adminKey.trim()) {
+      setRoleMsg('ใส่ Admin key ก่อน')
+      return
+    }
+    const mid = roleMemberId.trim()
+    if (!mid) {
+      setRoleMsg('กรอก UUID สมาชิก (members.id)')
+      return
+    }
+    setRoleLoading(true)
+    setRoleMsg(null)
+    try {
+      const r = await fetch(`${base}/api/admin/members/app-roles/${encodeURIComponent(mid)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey.trim(),
+        },
+        body: JSON.stringify({
+          committee: committeeRole,
+          payment_approver: paymentApproverRole,
+        }),
+      })
+      const text = await r.text()
+      let payload: unknown = null
+      try {
+        payload = JSON.parse(text) as unknown
+      } catch {
+        payload = text
+      }
+      if (!r.ok) {
+        setRoleMsg(formatFetchError('บันทึกบทบาท', r.status, payload, text))
+        return
+      }
+      setRoleMsg(typeof text === 'string' ? text : JSON.stringify(payload, null, 2))
+    } catch {
+      setRoleMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setRoleLoading(false)
     }
   }
 
@@ -236,6 +284,49 @@ export function AdminImportPanel({ apiBase }: Props) {
           กำลังประมวลผลคำสั่งนำเข้าหรือสรุปผล...
         </p>
       ) : null}
+
+      <div className="mt-10 border-t border-slate-800 pt-8">
+        <h3 className="text-sm font-medium text-slate-200">บทบาทกรรมการและผู้อนุมัติจ่าย</h3>
+        <p className="mt-2 text-xs leading-relaxed text-slate-500">
+          กำหนดว่าสมาชิกคนใดเป็นกรรมการ (<code className="text-slate-400">committee</code>) และคนใดมีอำนาจอนุมัติคำขอจ่ายที่เกี่ยวกับมติประชุม (
+          <code className="text-slate-400">payment_approver</code>) — สมาชิกต้องผูก LINE แล้ว และเคยเปิดแอปเพื่อให้มีแถว{' '}
+          <code className="text-slate-400">app_users</code>
+        </p>
+        <input
+          value={roleMemberId}
+          onChange={(e) => setRoleMemberId(e.target.value)}
+          placeholder="members.id (UUID)"
+          className={`mt-3 w-full max-w-xl rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 ${portalFocusRing}`}
+          aria-label="รหัสสมาชิกสำหรับกำหนดบทบาท"
+        />
+        <div className="mt-3 flex flex-col gap-2 text-sm text-slate-300">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={committeeRole} onChange={(e) => setCommitteeRole(e.target.checked)} />
+            กรรมการ (committee)
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={paymentApproverRole}
+              onChange={(e) => setPaymentApproverRole(e.target.checked)}
+            />
+            ผู้อนุมัติคำขอจ่ายตามมติประชุม (payment_approver)
+          </label>
+        </div>
+        <button
+          type="button"
+          disabled={roleLoading}
+          onClick={() => void saveMemberAppRoles()}
+          className={`mt-3 rounded-lg bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
+        >
+          {roleLoading ? 'กำลังบันทึก…' : 'บันทึกบทบาท'}
+        </button>
+        {roleMsg ? (
+          <pre className="mt-3 max-h-40 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-slate-300" role="status">
+            {roleMsg}
+          </pre>
+        ) : null}
+      </div>
     </section>
   )
 }

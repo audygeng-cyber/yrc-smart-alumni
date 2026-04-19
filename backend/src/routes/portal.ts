@@ -10,6 +10,7 @@ import {
   buildMemberPortalFromDb,
 } from '../lib/portalFromDb.js'
 import { getServiceSupabase } from '../lib/supabase.js'
+import { committeeMotionOutcome, majorityRequired } from '../util/meetingRules.js'
 
 type CommitteeVoteChoice = 'approve' | 'reject' | 'abstain'
 
@@ -132,8 +133,161 @@ portalRouter.get('/committee/agendas/:id/vote-summary', async (req, res) => {
       res.status(400).json({ error: 'ต้องระบุ id' })
       return
     }
+    const supabase = getServiceSupabase()
+    const { data: agenda, error: agendaErr } = await supabase
+      .from('meeting_agendas')
+      .select('id,meeting_session_id')
+      .eq('id', agendaId)
+      .maybeSingle()
+    if (agendaErr || !agenda) {
+      res.status(agendaErr ? 500 : 404).json({ error: agendaErr ? 'โหลดวาระไม่สำเร็จ' : 'ไม่พบวาระ', details: agendaErr })
+      return
+    }
     const summary = await getAgendaVoteSummaryForPortal(agendaId)
-    res.json({ ok: true, summary })
+    if (agenda.meeting_session_id) {
+      const { count, error: cErr } = await supabase
+        .from('meeting_attendance')
+        .select('*', { count: 'exact', head: true })
+        .eq('meeting_session_id', agenda.meeting_session_id)
+      if (cErr) {
+        res.status(500).json({ error: 'นับผู้เข้าประชุมไม่สำเร็จ', details: cErr })
+        return
+      }
+      const attendees = count ?? 0
+      const motion = committeeMotionOutcome(attendees, summary.approve)
+      res.json({
+        ok: true,
+        summary,
+        attendees,
+        majorityRequired: motion.majorityRequired,
+        quorumRequired: motion.quorumRequired,
+        quorumMet: motion.quorumMet,
+        approvedByVote: motion.approvedByVote,
+      })
+      return
+    }
+    const attendees = summary.total
+    const majorityNeed = attendees > 0 ? majorityRequired(attendees) : 0
+    res.json({
+      ok: true,
+      summary,
+      attendees,
+      majorityRequired: majorityNeed,
+      quorumRequired: 0,
+      quorumMet: true,
+      approvedByVote: summary.approve >= majorityNeed && majorityNeed > 0,
+    })
+  } catch {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ' })
+  }
+})
+
+async function userHasCommitteeRole(
+  supabase: ReturnType<typeof getServiceSupabase>,
+  appUserId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('app_user_roles')
+    .select('role_code')
+    .eq('user_id', appUserId)
+    .eq('role_code', 'committee')
+    .maybeSingle()
+  return Boolean(data)
+}
+
+portalRouter.post('/committee/meetings/:sessionId/rsvp', async (req, res) => {
+  try {
+    const sessionId = typeof req.params.sessionId === 'string' ? req.params.sessionId.trim() : ''
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
+    const statusRaw = typeof req.body?.status === 'string' ? req.body.status.trim() : 'yes'
+    const status = statusRaw === 'no' ? 'no' : statusRaw === 'maybe' ? 'maybe' : 'yes'
+    if (!sessionId || !line_uid) {
+      res.status(400).json({ error: 'ต้องระบุ sessionId และ line_uid' })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: au, error: uErr } = await supabase.from('app_users').select('id').eq('line_uid', line_uid).maybeSingle()
+    if (uErr) {
+      res.status(500).json({ error: 'ค้นหาผู้ใช้แอปไม่สำเร็จ', details: uErr })
+      return
+    }
+    if (!au?.id) {
+      res.status(403).json({ error: 'ไม่พบบัญชีผู้ใช้แอปสำหรับ LINE นี้ — ให้เข้าแอปและซิงก์บทบาทก่อน' })
+      return
+    }
+    const okCommittee = await userHasCommitteeRole(supabase, au.id as string)
+    if (!okCommittee) {
+      res.status(403).json({ error: 'เฉพาะผู้มีบทบาทกรรมการ (committee) เท่านั้นที่แจ้งความประสงค์เข้าประชุมล่วงหน้าได้' })
+      return
+    }
+    const { data: session, error: sErr } = await supabase.from('meeting_sessions').select('id').eq('id', sessionId).maybeSingle()
+    if (sErr) {
+      res.status(500).json({ error: 'โหลดรอบประชุมไม่สำเร็จ', details: sErr })
+      return
+    }
+    if (!session) {
+      res.status(404).json({ error: 'ไม่พบรอบประชุม' })
+      return
+    }
+
+    const now = new Date().toISOString()
+    const payload = {
+      meeting_session_id: sessionId,
+      app_user_id: au.id,
+      status,
+      updated_at: now,
+    }
+    const { data: inserted, error: insErr } = await supabase.from('meeting_session_rsvp').insert(payload).select().single()
+    const insCode = insErr ? (insErr as { code?: string }).code : undefined
+    if (insErr && insCode !== '23505') {
+      res.status(500).json({ error: 'บันทึกความประสงค์เข้าประชุมไม่สำเร็จ', details: insErr })
+      return
+    }
+    if (insCode === '23505') {
+      const { data: updated, error: upErr } = await supabase
+        .from('meeting_session_rsvp')
+        .update({ status, updated_at: now })
+        .eq('meeting_session_id', sessionId)
+        .eq('app_user_id', au.id)
+        .select()
+        .single()
+      if (upErr || !updated) {
+        res.status(500).json({ error: 'อัปเดตความประสงค์เข้าประชุมไม่สำเร็จ', details: upErr })
+        return
+      }
+      res.status(200).json({ ok: true, rsvp: updated })
+      return
+    }
+    res.status(201).json({ ok: true, rsvp: inserted })
+  } catch {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ' })
+  }
+})
+
+portalRouter.get('/committee/meetings/:sessionId/rsvp-summary', async (req, res) => {
+  try {
+    const sessionId = typeof req.params.sessionId === 'string' ? req.params.sessionId.trim() : ''
+    if (!sessionId) {
+      res.status(400).json({ error: 'ต้องระบุ sessionId' })
+      return
+    }
+    const supabase = getServiceSupabase()
+    const { data: rows, error } = await supabase.from('meeting_session_rsvp').select('status').eq('meeting_session_id', sessionId)
+    if (error) {
+      res.status(500).json({ error: 'โหลดสรุปความประสงค์ไม่สำเร็จ', details: error })
+      return
+    }
+    let yes = 0
+    let no = 0
+    let maybe = 0
+    for (const r of rows ?? []) {
+      const s = typeof (r as { status?: string }).status === 'string' ? (r as { status: string }).status : ''
+      if (s === 'yes') yes += 1
+      else if (s === 'no') no += 1
+      else if (s === 'maybe') maybe += 1
+    }
+    res.json({ ok: true, yes, no, maybe, total: yes + no + maybe })
   } catch {
     res.status(500).json({ error: 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ' })
   }

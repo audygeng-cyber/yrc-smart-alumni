@@ -23,7 +23,7 @@ function committeeMeetingStatusLabel(s: 'ready' | 'pending_vote' | 'in_review') 
   return s === 'ready' ? 'พร้อม' : s === 'pending_vote' ? 'รอลงมติ' : 'ตรวจสอบ'
 }
 
-export function CommitteeArea(props: { apiBase: string }) {
+export function CommitteeArea(props: { apiBase: string; lineUid: string | null }) {
   const [roleView, setRoleView] = useState<CommitteeRoleView>('chair')
   const portalData = useCommitteePortalData(props.apiBase)
   const roleViewSummaryId = 'committee-role-view-summary'
@@ -70,7 +70,10 @@ export function CommitteeArea(props: { apiBase: string }) {
         <Route path="members" element={<CommitteeMembersPage portalState={portalData} />} />
         <Route path="finance" element={<CommitteeFinancePage roleView={roleView} portalState={portalData} />} />
         <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} apiBase={props.apiBase} />} />
-        <Route path="attendance" element={<CommitteeAttendancePage portalState={portalData} />} />
+        <Route
+          path="attendance"
+          element={<CommitteeAttendancePage portalState={portalData} apiBase={props.apiBase} lineUid={props.lineUid} />}
+        />
         <Route path="voting" element={<CommitteeVotingPage portalState={portalData} apiBase={props.apiBase} />} />
         <Route path="*" element={<PortalNotFound scopeLabel={portalNotFoundScopeLabel.committee} />} />
       </Routes>
@@ -475,10 +478,44 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
   )
 }
 
-function CommitteeAttendancePage(props: { portalState: PortalDataState<CommitteePortalData> }) {
+function CommitteeAttendancePage(props: {
+  portalState: PortalDataState<CommitteePortalData>
+  apiBase: string
+  lineUid: string | null
+}) {
   const { data, loading, source } = props.portalState
   const session = data.attendanceSession
   const rows = data.attendanceRows
+  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | 'maybe'>('yes')
+  const [rsvpMsg, setRsvpMsg] = useState<string | null>(null)
+  const [rsvpBusy, setRsvpBusy] = useState(false)
+
+  async function submitRsvp() {
+    if (!props.lineUid?.trim() || !session?.id) {
+      setRsvpMsg('ต้องเข้าสู่ระบบ LINE และมีรอบประชุมในระบบก่อนแจ้งความประสงค์')
+      return
+    }
+    setRsvpBusy(true)
+    setRsvpMsg(null)
+    try {
+      const r = await fetch(`${props.apiBase}/api/portal/committee/meetings/${encodeURIComponent(session.id)}/rsvp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ line_uid: props.lineUid.trim(), status: rsvpStatus }),
+      })
+      const body = (await r.json()) as { error?: string }
+      if (!r.ok) {
+        setRsvpMsg(body.error ?? `บันทึกไม่สำเร็จ (HTTP ${r.status})`)
+        return
+      }
+      setRsvpMsg('บันทึกความประสงค์เข้าประชุมแล้ว — รีเฟรชแดชบอร์ดเพื่ออัปเดตตัวเลข')
+      await props.portalState.refetch()
+    } catch {
+      setRsvpMsg('เรียก API ไม่สำเร็จ')
+    } finally {
+      setRsvpBusy(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -509,16 +546,55 @@ function CommitteeAttendancePage(props: { portalState: PortalDataState<Committee
                   ? new Date(session.scheduledAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
                   : '—'}
                 {' · '}
-                องค์ประชุม (quorum) {session.quorumNumerator}/{session.quorumDenominator} ของผู้เข้าร่วมที่คาด ({session.expectedParticipants}{' '}
-                คน)
+                องค์ประชุมตามธรรมนู: ต้องมีผู้เข้าประชุมไม่น้อยกว่า{' '}
+                <span className="font-mono text-slate-300">{session.quorumRequiredCount.toLocaleString('th-TH')}</span> จากกรรมการเต็มชุด{' '}
+                {session.expectedParticipants.toLocaleString('th-TH')} คน (สัดส่วน {session.quorumNumerator}/
+                {session.quorumDenominator})
+              </p>
+              <p className="mt-2 text-xs text-slate-400">
+                แจ้งความประสงค์ล่วงหน้า: เข้าร่วม {session.rsvpYes.toLocaleString('th-TH')} · ไม่เข้าร่วม{' '}
+                {session.rsvpNo.toLocaleString('th-TH')} · ไม่แน่ใจ {session.rsvpMaybe.toLocaleString('th-TH')}
               </p>
               <p className="mt-2 text-slate-200">
-                ลงชื่อแล้ว <span className="font-semibold text-emerald-300">{session.signedCount.toLocaleString('th-TH')}</span> /{' '}
-                {session.expectedParticipants.toLocaleString('th-TH')}
+                ลงชื่อเข้าประชุมแล้ว <span className="font-semibold text-emerald-300">{session.signedCount.toLocaleString('th-TH')}</span>{' '}
+                คน
                 <span className="ml-2 rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
                   {session.status === 'open' ? 'กำลังเปิดรับ' : 'ปิดรอบ'}
                 </span>
               </p>
+              <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-800/80 pt-3">
+                <label className="text-xs text-slate-500" htmlFor="committee-rsvp-status">
+                  แจ้งความประสงค์เข้าประชุม (กรรมการ)
+                </label>
+                <select
+                  id="committee-rsvp-status"
+                  value={rsvpStatus}
+                  onChange={(e) => setRsvpStatus(e.target.value as 'yes' | 'no' | 'maybe')}
+                  disabled={rsvpBusy || !props.lineUid?.trim()}
+                  className={`rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 ${portalFocusRing}`}
+                  aria-label="เลือกความประสงค์เข้าประชุม"
+                >
+                  <option value="yes">ตั้งใจเข้าร่วม</option>
+                  <option value="maybe">ยังไม่แน่ใจ</option>
+                  <option value="no">ไม่เข้าร่วม</option>
+                </select>
+                <button
+                  type="button"
+                  disabled={rsvpBusy || !props.lineUid?.trim() || session.status !== 'open'}
+                  onClick={() => void submitRsvp()}
+                  className={`rounded bg-slate-700 px-3 py-1.5 text-xs text-white disabled:opacity-50 ${portalFocusRing}`}
+                >
+                  {rsvpBusy ? 'กำลังบันทึก…' : 'บันทึกความประสงค์'}
+                </button>
+              </div>
+              {!props.lineUid?.trim() ? (
+                <p className="mt-2 text-xs text-amber-200/90">เข้าสู่ระบบ LINE ก่อนจึงจะแจ้งความประสงค์ได้</p>
+              ) : null}
+              {rsvpMsg ? (
+                <p className="mt-2 text-xs text-slate-400" role="status">
+                  {rsvpMsg}
+                </p>
+              ) : null}
             </div>
 
             {rows.length === 0 ? (
