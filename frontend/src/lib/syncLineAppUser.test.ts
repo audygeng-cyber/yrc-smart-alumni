@@ -55,4 +55,17 @@ describe('syncLineAppUser', () => {
       expect.any(Object),
     )
   })
+
+  it('strips erroneous /api suffix so request is not /api/api/members/...', async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ ok: true, line_uid: 'U1', app_user_id: null, roles: [] }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await syncLineAppUser('https://api.example.com/api', 'U1', { entrySource: null })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.com/api/members/app-roles',
+      expect.any(Object),
+    )
+  })
 })

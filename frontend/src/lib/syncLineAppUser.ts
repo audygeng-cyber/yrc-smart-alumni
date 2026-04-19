@@ -1,4 +1,5 @@
 import { readLineEntrySource, type LineEntrySource } from './lineEntrySource'
+import { normalizeApiBase } from './adminApi'
 
 /**
  * ซิงก์ LINE UID กับฐานข้อมูลผ่าน `POST /api/members/app-roles`
@@ -19,6 +20,9 @@ export type SyncLineAppUserFail = {
 
 export type SyncLineAppUserResult = SyncLineAppUserOk | SyncLineAppUserFail
 
+/** @deprecated ใช้ normalizeApiBase จาก adminApi — เก็บชื่อเดิมเพื่ออ่านง่าย */
+export const normalizeApiBaseUrl = normalizeApiBase
+
 export async function syncLineAppUser(
   apiBase: string,
   lineUid: string,
@@ -33,7 +37,7 @@ export async function syncLineAppUser(
   const body: Record<string, string> = { line_uid: uid }
   if (entry_source) body.entry_source = entry_source
 
-  const r = await fetch(`${apiBase.replace(/\/$/, '')}/api/members/app-roles`, {
+  const r = await fetch(`${normalizeApiBase(apiBase)}/api/members/app-roles`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

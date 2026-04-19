@@ -46,9 +46,10 @@ import {
   setMemberSnapshot,
   SS_OAUTH_STATE,
 } from './lineSession'
+import { normalizeApiBase } from './lib/adminApi'
 import { syncLineAppUser } from './lib/syncLineAppUser'
 
-const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
+const apiBase = normalizeApiBase(import.meta.env.VITE_API_URL ?? 'http://localhost:4000')
 
 const adminPanelSuspenseFallback = (
   <div
