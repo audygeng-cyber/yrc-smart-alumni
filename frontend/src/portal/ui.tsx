@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { portalFocusRing } from './portalLabels'
+import { portalAccent, portalFocusRing } from './portalLabels'
 
 export function PortalShell(props: {
   title: string
@@ -31,8 +31,8 @@ export function PortalShell(props: {
                     to={item.to}
                     aria-label={`ไปหน้า ${item.label}`}
                     className={({ isActive }) =>
-                      `block rounded px-3 py-2 text-sm ${portalFocusRing} ${
-                        isActive ? 'bg-emerald-800 text-white' : 'text-slate-300 hover:bg-slate-800'
+                      `tap-target block rounded px-3 py-2 text-sm ${portalFocusRing} ${
+                        isActive ? portalAccent.button : 'text-slate-300 hover:bg-slate-800'
                       }`
                     }
                   >
@@ -191,11 +191,11 @@ export function SectionPlaceholder(props: { title: string; description: string }
   )
 }
 
-export function TrendBars(props: { items: Array<{ label: string; value: number }>; color?: 'emerald' | 'violet' | 'cyan' }) {
+export function TrendBars(props: { items: Array<{ label: string; value: number }>; color?: 'fuchsia' | 'violet' | 'cyan' }) {
   const max = Math.max(...props.items.map((item) => item.value), 1)
   const tone =
-    props.color === 'violet' ? 'bg-violet-500/80' : props.color === 'cyan' ? 'bg-cyan-500/80' : 'bg-emerald-500/80'
-  const toneLabel = props.color === 'violet' ? 'ม่วง' : props.color === 'cyan' ? 'ฟ้า' : 'เขียว'
+    props.color === 'violet' ? 'bg-violet-500/80' : props.color === 'cyan' ? 'bg-cyan-500/80' : 'bg-fuchsia-500/80'
+  const toneLabel = props.color === 'violet' ? 'ม่วง' : props.color === 'cyan' ? 'ฟ้า' : 'บานเย็น'
   return (
     <div
       className="mt-4 space-y-2"
@@ -234,9 +234,9 @@ export function DonationCampaignCard(props: { title: string; progress: number; t
         aria-valuenow={progress}
         aria-valuetext={`${progress}%`}
       >
-        <div className="h-full rounded bg-emerald-500/80" style={{ width: `${progress}%` }} />
+        <div className="h-full rounded bg-fuchsia-500/80" style={{ width: `${progress}%` }} />
       </div>
-      <p className="mt-2 text-xs text-emerald-200">คืบหน้า {progress}%</p>
+      <p className="mt-2 text-xs text-fuchsia-200">คืบหน้า {progress}%</p>
     </div>
   )
 }
