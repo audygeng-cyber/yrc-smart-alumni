@@ -133,7 +133,7 @@ function AcademyStudentsPage(props: { roleView: AcademyRoleView; portalState: Po
             <p>ยังไม่มีข้อมูลห้องจากระบบ (หรือใช้ข้อมูลจำลองที่ไม่มีรายการห้อง)</p>
             <p className="mt-2">
               ผู้ดูแลสามารถเพิ่มห้องและนักเรียนได้ที่{' '}
-              <Link to="/admin" aria-label="ไปหน้าแผงผู้ดูแลระบบ" className={`rounded-sm text-emerald-400 underline hover:text-emerald-300 ${portalFocusRing}`}>
+              <Link to="/admin" aria-label="ไปหน้าแผงผู้ดูแลระบบ" className={`rounded-sm text-fuchsia-400 underline hover:text-fuchsia-300 ${portalFocusRing}`}>
                 ผู้ดูแล (Admin)
               </Link>{' '}
               หลังรัน migration และตั้งค่า API
@@ -225,7 +225,7 @@ function AcademyStudentsPage(props: { roleView: AcademyRoleView; portalState: Po
             ) : (
               <p className="mt-4 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
                 ยังไม่มีรายชื่อนักเรียนในสแนปช็อต — เพิ่มนักเรียนได้ที่{' '}
-                <Link to="/admin" aria-label="ไปหน้าแผงผู้ดูแลระบบ" className={`rounded-sm text-emerald-400/90 underline hover:text-emerald-300 ${portalFocusRing}`}>
+                <Link to="/admin" aria-label="ไปหน้าแผงผู้ดูแลระบบ" className={`rounded-sm text-fuchsia-400/90 underline hover:text-fuchsia-300 ${portalFocusRing}`}>
                   ผู้ดูแล (Admin)
                 </Link>{' '}
                 (ข้อมูลมาจาก cram_students)
@@ -419,7 +419,7 @@ function AcademyResultsPage(props: { roleView: AcademyRoleView; portalState: Por
               <Link
                 to="/academy/students"
                 aria-label="ไปหน้ารายห้องและรายชื่อนักเรียน"
-                className={`rounded-lg bg-emerald-800 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-700 ${portalFocusRing}`}
+                className={`rounded-lg bg-fuchsia-800 px-4 py-2 text-xs font-medium text-white hover:bg-fuchsia-700 ${portalFocusRing}`}
               >
                 ดูรายห้องและรายชื่อ
               </Link>

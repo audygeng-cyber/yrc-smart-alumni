@@ -94,7 +94,7 @@ export function FinanceMeetingAgendaPanel({
           disabled={loading}
           onClick={onCreateMeetingAgenda}
           aria-label="สร้างวาระประชุมใหม่"
-          className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+          className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
         >
           สร้างวาระ
         </button>
@@ -206,7 +206,7 @@ export function FinanceMeetingAgendaPanel({
               disabled={loading}
               onClick={() => void onSavePatchMeetingAgenda()}
               aria-label="บันทึกการแก้ไขวาระประชุม"
-              className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               บันทึกการแก้ไข
             </button>

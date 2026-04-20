@@ -312,7 +312,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={() => void downloadYupparajCsv()}
-          className={`rounded-lg border border-emerald-800 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-950/40 disabled:opacity-50 ${portalFocusRing}`}
+          className={`rounded-lg border border-fuchsia-800 px-4 py-2 text-sm text-fuchsia-100 hover:bg-fuchsia-950/40 disabled:opacity-50 ${portalFocusRing}`}
         >
           ดาวน์โหลด CSV บริจาคยุพราช
         </button>
@@ -382,7 +382,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           disabled={loading}
           onClick={() => void addActivity()}
           aria-label="เพิ่มคอร์สหรือกิจกรรมใหม่"
-          className={`mt-2 rounded bg-emerald-800 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
+          className={`mt-2 rounded bg-fuchsia-800 px-3 py-1.5 text-sm text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
         >
           เพิ่ม
         </button>
@@ -463,7 +463,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                       <div className="flex flex-wrap gap-2" role="group" aria-label="คำสั่งบันทึกหรือยกเลิกการแก้ไขกิจกรรม">
                         <button
                           type="button"
-                          className={`rounded-sm text-xs text-emerald-400 hover:underline ${portalFocusRing}`}
+                          className={`rounded-sm text-xs text-fuchsia-400 hover:underline ${portalFocusRing}`}
                           onClick={() => void saveEdit(a.id)}
                           aria-label={`บันทึกการแก้ไขกิจกรรม ${a.title}`}
                         >
@@ -503,7 +503,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                         onClick={() => void toggleActive(a)}
                         aria-pressed={a.active}
                         aria-label={`สลับสถานะการใช้งานกิจกรรม ${a.title}`}
-                        className={`rounded-sm text-xs underline ${portalFocusRing} ${a.active ? 'text-emerald-400' : 'text-slate-500'}`}
+                        className={`rounded-sm text-xs underline ${portalFocusRing} ${a.active ? 'text-fuchsia-400' : 'text-slate-500'}`}
                       >
                         {a.active ? 'เปิด' : 'ปิด'}
                       </button>

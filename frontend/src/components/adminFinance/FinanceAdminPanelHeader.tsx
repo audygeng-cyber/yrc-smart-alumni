@@ -1,7 +1,7 @@
 export function FinanceAdminPanelHeader() {
   return (
     <>
-      <h2 className="text-sm font-medium uppercase tracking-wide text-emerald-200/90">
+      <h2 className="text-sm font-medium uppercase tracking-wide text-fuchsia-200/90">
         แผงผู้ดูแลการเงิน (Admin Finance)
       </h2>
       <p className="mt-2 text-xs text-slate-500">

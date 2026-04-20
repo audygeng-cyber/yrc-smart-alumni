@@ -5,7 +5,7 @@ import { portalFocusRing } from '../portal/portalLabels'
 const adminNavFocus = `rounded-lg px-3 py-1.5 text-sm font-medium ${portalFocusRing}`
 
 function adminNavClass({ isActive }: { isActive: boolean }) {
-  return `${adminNavFocus} ${isActive ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`
+  return `${adminNavFocus} ${isActive ? 'bg-fuchsia-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`
 }
 
 /** โครงร่าง Admin: หัวเรื่อง + แท็บย่อย + `<Outlet />` สำหรับหน้าแรกหรือแผงแต่ละหมวด */
@@ -57,7 +57,7 @@ function AdminCard({ to, title, description, badge }: AdminCardProps) {
   return (
     <NavLink
       to={to}
-      className={`block rounded-xl border border-slate-800 bg-slate-900/40 p-5 transition hover:border-emerald-800/50 hover:bg-slate-900/70 ${portalFocusRing}`}
+      className={`block rounded-xl border border-slate-800 bg-slate-900/40 p-5 transition hover:border-fuchsia-800/50 hover:bg-slate-900/70 ${portalFocusRing}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h2 className="text-base font-semibold text-slate-100">{title}</h2>
@@ -68,7 +68,7 @@ function AdminCard({ to, title, description, badge }: AdminCardProps) {
         ) : null}
       </div>
       <p className="mt-2 text-sm text-slate-400">{description}</p>
-      <p className="mt-3 text-xs font-medium text-emerald-400/90">เปิดแผง →</p>
+      <p className="mt-3 text-xs font-medium text-fuchsia-400/90">เปิดแผง →</p>
     </NavLink>
   )
 }

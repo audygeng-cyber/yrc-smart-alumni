@@ -77,8 +77,8 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
 
   return (
     <div className="space-y-6">
-      <header className="rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-5" aria-label="ข้อมูลสมาชิกปัจจุบัน">
-        <p className="text-xs font-medium uppercase tracking-wide text-emerald-200/80">หน้าสมาชิก</p>
+      <header className="rounded-xl border border-fuchsia-900/40 bg-fuchsia-950/20 p-5" aria-label="ข้อมูลสมาชิกปัจจุบัน">
+        <p className="text-xs font-medium uppercase tracking-wide text-fuchsia-200/80">หน้าสมาชิก</p>
         <h2 className="mt-1 text-lg font-semibold text-slate-100">
           {first} {last}
           <span className="ml-2 text-sm font-normal text-slate-400">รุ่น {batch}</span>
@@ -119,7 +119,7 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
             }}
             className={`rounded-lg px-3 py-2 text-sm font-medium ${portalFocusRing} ${
               section === id
-                ? 'bg-emerald-800 text-white'
+                ? 'bg-fuchsia-800 text-white'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
@@ -211,7 +211,7 @@ function PortalRelatedLinks(props: { links: Array<{ to: string; label: string }>
             <Link
               to={l.to}
               aria-label={`ไปยัง ${l.label}`}
-              className={`rounded border border-emerald-900/45 bg-emerald-950/25 px-2.5 py-1 text-xs text-emerald-200 hover:bg-emerald-900/35 ${portalFocusRing}`}
+              className={`rounded border border-fuchsia-900/45 bg-fuchsia-950/25 px-2.5 py-1 text-xs text-fuchsia-200 hover:bg-fuchsia-900/35 ${portalFocusRing}`}
             >
               {l.label}
             </Link>

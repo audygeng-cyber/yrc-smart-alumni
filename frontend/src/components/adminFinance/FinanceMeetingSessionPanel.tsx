@@ -93,7 +93,7 @@ export function FinanceMeetingSessionPanel({
         disabled={loading}
         onClick={onCreateMeeting}
         aria-label="สร้างรอบประชุมใหม่"
-        className={`mt-3 rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+        className={`mt-3 rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
       >
         สร้างประชุม
       </button>
@@ -184,7 +184,7 @@ export function FinanceMeetingSessionPanel({
             disabled={loading}
             onClick={onSaveMeetingMinutes}
             aria-label="บันทึกรายงานการประชุม"
-            className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+            className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
           >
             บันทึก minutes
           </button>

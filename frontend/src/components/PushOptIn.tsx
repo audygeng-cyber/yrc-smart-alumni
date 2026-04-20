@@ -26,7 +26,7 @@ export function PushOptIn({ apiBase }: Props) {
   return (
     <div className="mt-6 rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-left" aria-busy={loading}>
       <h3 className="text-sm font-medium text-slate-300">การแจ้งเตือน (Web Push)</h3>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-slate-400">
         ใช้ได้เมื่อระบบ backend ตั้งค่า VAPID และรันไมเกรชัน (migration) ตาราง `push_subscriptions` — แจ้งเมื่อมีคำร้องสมาชิกใหม่
       </p>
       {supportHint ? (
@@ -34,7 +34,7 @@ export function PushOptIn({ apiBase }: Props) {
           {supportHint}
         </p>
       ) : (
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-slate-400">
           ถ้าเปิดจากมือถือ: Android ควรใช้ Chrome/Edge เวอร์ชันล่าสุด ส่วน iPhone/iPad ต้องเพิ่มเว็บลงหน้าจอหลัก (Home Screen)
           ก่อน แล้วเปิดจากไอคอนบนหน้าจอหลัก
         </p>
@@ -44,7 +44,7 @@ export function PushOptIn({ apiBase }: Props) {
         disabled={loading}
         onClick={() => void onEnable()}
         aria-label="เปิดการแจ้งเตือน Web Push สำหรับเบราว์เซอร์นี้"
-        className={`mt-3 rounded-lg bg-slate-700 px-4 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
+        className={`tap-target mt-3 rounded-lg bg-slate-700 px-4 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
       >
         {loading ? 'กำลังเปิด…' : 'เปิดการแจ้งเตือนในเบราว์เซอร์นี้'}
       </button>
@@ -54,7 +54,7 @@ export function PushOptIn({ apiBase }: Props) {
           aria-live={isErrorMsg ? undefined : 'polite'}
           aria-atomic="true"
           className={`mt-3 text-sm ${
-            msg.includes('เปิดการแจ้งเตือนแล้ว') ? 'text-emerald-300/90' : 'text-amber-200'
+            msg.includes('เปิดการแจ้งเตือนแล้ว') ? 'text-fuchsia-300/90' : 'text-amber-200'
           }`}
         >
           {msg}

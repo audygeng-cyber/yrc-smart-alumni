@@ -52,19 +52,19 @@ export function MemberArea(props: {
     >
       <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
+          <span className="text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as MemberRoleView)}
             aria-label="เลือกมุมมองบทบาทในพอร์ทัลสมาชิก"
             aria-describedby={roleViewSummaryId}
-            className={`rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
+            className={`tap-target rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
           >
             <option value="member">สมาชิกทั่วไป</option>
             <option value="staff">เจ้าหน้าที่สมาคม</option>
           </select>
-          <span className="text-xs text-slate-500">จำลองสิทธิ์เมนูภายในพอร์ทัลสมาชิก</span>
-          <span id={roleViewSummaryId} className="text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <span className="text-xs text-slate-400">จำลองสิทธิ์เมนูภายในพอร์ทัลสมาชิก</span>
+          <span id={roleViewSummaryId} className="text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
           </span>
           <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
@@ -126,13 +126,13 @@ function MemberDashboardSnapshotBar(props: { portalState: PortalDataState<Member
           <Link
             to="/member/statistics"
             aria-label="ไปหน้า สถิติสมาชิก"
-            className={`rounded-lg bg-emerald-900/50 px-2.5 py-1 text-xs font-medium text-emerald-100 hover:bg-emerald-800/60 ${portalFocusRing}`}
+            className={`tap-target rounded-lg bg-fuchsia-900/50 px-2.5 py-1 text-xs font-medium text-fuchsia-100 hover:bg-fuchsia-800/60 ${portalFocusRing}`}
           >
             ไปสถิติสมาชิก
           </Link>
         }
       >
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           สถิติสมาคมจากสแนปช็อต — กราฟคำร้อง 7 วันและสัดส่วนรุ่นอยู่ที่เมนูสถิติ (แหล่งข้อมูล: แถบบทบาทด้านบน)
         </p>
       </PortalSnapshotStatusRow>
@@ -179,15 +179,15 @@ function MemberStaffDocumentsPage() {
               <Link
                 to={item.to}
                 aria-label={`ไปหน้า ${item.title}`}
-                className={`block rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-3 transition hover:border-emerald-800/60 hover:bg-slate-900/70 ${portalFocusRing}`}
+                className={`block rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-3 transition hover:border-fuchsia-800/60 hover:bg-slate-900/70 ${portalFocusRing}`}
               >
-                <p className="font-medium text-emerald-200">{item.title}</p>
+                <p className="font-medium text-fuchsia-200">{item.title}</p>
                 <p className="mt-1 text-sm text-slate-400">{item.description}</p>
               </Link>
             </li>
           ))}
         </ul>
-        <p className="mt-5 text-xs text-slate-600">
+        <p className="mt-5 text-xs text-slate-400">
           หมายเหตุ: การเข้าถึงข้อมูลส่วนบัญชีอาจต้องใช้คีย์หรือสิทธิ์ตามที่กำหนดในแผงผู้ดูแล (Admin)
         </p>
       </section>
@@ -209,26 +209,26 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
   return (
     <div className="space-y-4">
       <div className="mx-auto max-w-md">
-        <div className="overflow-hidden rounded-2xl border border-emerald-800/50 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 shadow-xl ring-1 ring-emerald-500/20">
-          <div className="bg-emerald-950/50 px-6 py-4 text-center">
-            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-emerald-400">YRC Smart Alumni</p>
+        <div className="overflow-hidden rounded-2xl border border-fuchsia-800/50 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 shadow-xl ring-1 ring-fuchsia-500/20">
+          <div className="bg-fuchsia-950/50 px-6 py-4 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-fuchsia-400">YRC Smart Alumni</p>
             <p className="mt-1 text-xs text-slate-400">บัตรสมาชิกดิจิทัล</p>
           </div>
           <div className="px-6 py-8 text-center">
             <p className="text-xl font-semibold text-white">{fullName}</p>
             <p className="mt-2 text-sm text-slate-400">รุ่น {batch}</p>
             <div className="mt-6 flex justify-center">
-              <div className="flex h-28 w-28 items-center justify-center rounded-xl border border-dashed border-slate-600 bg-slate-900/80 text-[10px] text-slate-500">
+              <div className="flex h-28 w-28 items-center justify-center rounded-xl border border-dashed border-slate-600 bg-slate-900/80 text-[10px] text-slate-400">
                 QR
               </div>
             </div>
             <dl className="mt-6 space-y-2 text-left text-sm">
               <div className="flex justify-between gap-4 border-t border-slate-800 pt-3">
-                <dt className="text-slate-500">รหัสสมาชิก</dt>
+                <dt className="text-slate-400">รหัสสมาชิก</dt>
                 <dd className="font-mono text-xs text-slate-300">{code || '—'}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">สถานะ</dt>
+                <dt className="text-slate-400">สถานะ</dt>
                 <dd className="text-slate-200">{status}</dd>
               </div>
             </dl>
@@ -239,7 +239,7 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
         <Link
           to="/member/profile"
           aria-label="ไปหน้า ข้อมูลส่วนตัวสมาชิก"
-          className={`rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${portalFocusRing}`}
+          className={`rounded-lg bg-fuchsia-800 px-4 py-2 text-sm text-white hover:bg-fuchsia-700 ${portalFocusRing}`}
         >
           ข้อมูลส่วนตัว
         </Link>
@@ -273,12 +273,12 @@ function MemberProfilePage(props: { member: Record<string, unknown> }) {
         <dl className="mt-4 grid gap-3 sm:grid-cols-2" role="list" aria-label="รายการข้อมูลส่วนตัวสมาชิก">
           {rows.map((r) => (
             <div key={r.label} className="rounded border border-slate-800/80 bg-slate-900/30 px-3 py-2" role="listitem">
-              <dt className="text-xs text-slate-500">{r.label}</dt>
+              <dt className="text-xs text-slate-400">{r.label}</dt>
               <dd className="mt-0.5 text-sm text-slate-100">{r.value}</dd>
             </div>
           ))}
         </dl>
-        <p className="mt-4 text-xs text-slate-600">
+        <p className="mt-4 text-xs text-slate-400">
           หากข้อมูลไม่ครบหรือต้องแก้ไข ใช้ flow คำร้องในแอปหลักหลังเชื่อม LINE
         </p>
       </section>
@@ -296,11 +296,11 @@ function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: Po
           source={source}
           className="flex flex-wrap items-center justify-between gap-2"
         >
-          <p className="text-xs uppercase tracking-wide text-slate-500">ข้อมูลสแนปช็อต</p>
+          <p className="text-xs uppercase tracking-wide text-slate-400">ข้อมูลสแนปช็อต</p>
         </PortalSectionHeader>
       </section>
       {loading ? (
-        <PortalContentLoading className="text-sm text-slate-500" />
+        <PortalContentLoading className="text-sm text-slate-400" />
       ) : (
         <>
           <MetricCards items={data.statsCards} />
@@ -308,13 +308,13 @@ function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: Po
           <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">คำร้องใหม่ 7 วัน (UTC)</h3>
             <p className="mt-2 text-sm text-slate-400">
-              จำนวนคำร้องต่อวันจาก <code className="text-slate-500">member_update_requests</code> — เทียบกับแนวโน้มในพอร์ทัลคณะกรรมการ
+              จำนวนคำร้องต่อวันจาก <code className="text-slate-400">member_update_requests</code> — เทียบกับแนวโน้มในพอร์ทัลคณะกรรมการ
             </p>
             <TrendBars items={data.requestTrend} color="cyan" />
           </section>
           <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สัดส่วนสมาชิกตามรุ่น</h3>
-            <TrendBars items={data.batchDistribution} color="emerald" />
+            <TrendBars items={data.batchDistribution} color="fuchsia" />
           </section>
         </>
       )}
@@ -494,9 +494,9 @@ function MemberDonationsPage(props: {
               aria-label="ข้อมูลผู้บริจาคจากทะเบียนสมาชิก"
             >
               <p>
-                <span className="text-slate-500">ผู้บริจาค:</span> {donorName}{' '}
-                <span className="text-slate-500">· รุ่น</span> {donorBatch}{' '}
-                <span className="text-slate-500">· ชื่อรุ่น</span> {donorBatchName}
+                <span className="text-slate-400">ผู้บริจาค:</span> {donorName}{' '}
+                <span className="text-slate-400">· รุ่น</span> {donorBatch}{' '}
+                <span className="text-slate-400">· ชื่อรุ่น</span> {donorBatchName}
               </p>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2" role="list" aria-label="โครงการโรงเรียนยุพราช (กองแยกจากนิติบุคคลสมาคม/กวดวิชา)">
@@ -523,8 +523,8 @@ function MemberDonationsPage(props: {
                 })
               )}
             </div>
-            <div className="mt-6 space-y-3 rounded-lg border border-emerald-900/40 bg-emerald-950/15 p-4" aria-label="ฟอร์มบันทึกการบริจาค">
-              <p className="text-xs font-medium uppercase tracking-wide text-emerald-200/90">บันทึกการโอน</p>
+            <div className="mt-6 space-y-3 rounded-lg border border-fuchsia-900/40 bg-fuchsia-950/15 p-4" aria-label="ฟอร์มบันทึกการบริจาค">
+              <p className="text-xs font-medium uppercase tracking-wide text-fuchsia-200/90">บันทึกการโอน</p>
               <label className="block text-xs text-slate-400">
                 เลือกโครงการ
                 <select
@@ -580,7 +580,7 @@ function MemberDonationsPage(props: {
                 />
               </label>
               {formMsg ? (
-                <p className={`text-sm ${formMsg.includes('แล้ว') ? 'text-emerald-300' : 'text-amber-300'}`} role="status">
+                <p className={`text-sm ${formMsg.includes('แล้ว') ? 'text-fuchsia-300' : 'text-amber-300'}`} role="status">
                   {formMsg}
                 </p>
               ) : null}
@@ -589,7 +589,7 @@ function MemberDonationsPage(props: {
                 disabled={submitting || data.yupparajDonationActivities.length === 0}
                 onClick={() => void submitDonation()}
                 aria-label="ส่งข้อมูลการบริจาค"
-                className={`rounded bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
+                className={`rounded bg-fuchsia-800 px-4 py-2 text-sm text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
               >
                 {submitting ? 'กำลังส่ง…' : 'ยืนยันการบริจาค'}
               </button>
@@ -605,26 +605,26 @@ function MemberDonationsPage(props: {
                   type="button"
                   onClick={() => void loadDonationHistory()}
                   disabled={historyLoading || !props.lineUid.trim()}
-                  className={`rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50 ${portalFocusRing}`}
+                  className={`tap-target rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50 ${portalFocusRing}`}
                 >
                   {historyLoading ? 'กำลังโหลด…' : 'รีเฟรช'}
                 </button>
               </div>
               {portalMockMode ? (
-                <p className="mt-1 text-xs text-slate-500">ตัวอย่าง — พอร์ทัลโหลดจาก snapshot (ไม่มี API)</p>
+                <p className="mt-1 text-xs text-slate-400">ตัวอย่าง — พอร์ทัลโหลดจาก snapshot (ไม่มี API)</p>
               ) : null}
               {historyErr ? (
                 <p className="mt-2 text-sm text-amber-300" role="status">
                   {historyErr}
                 </p>
               ) : history.length === 0 && !historyLoading ? (
-                <p className="mt-2 text-sm text-slate-500">ยังไม่มีรายการบริจาคที่บันทึกผ่านพอร์ทัล</p>
+                <p className="mt-2 text-sm text-slate-400">ยังไม่มีรายการบริจาคที่บันทึกผ่านพอร์ทัล</p>
               ) : null}
               {history.length > 0 ? (
                 <div className="mt-3 overflow-x-auto">
                   <table className="w-full min-w-[36rem] border-collapse text-left text-sm text-slate-200">
                     <thead>
-                      <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
+                      <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-400">
                         <th className="py-2 pr-3 font-medium">บันทึก</th>
                         <th className="py-2 pr-3 font-medium">โอน</th>
                         <th className="py-2 pr-3 font-medium">โครงการ</th>
@@ -656,7 +656,7 @@ function MemberDonationsPage(props: {
                                   href={h.slipFileUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-emerald-400 underline hover:text-emerald-300"
+                                  className="text-fuchsia-400 underline hover:text-fuchsia-300"
                                 >
                                   สลิป
                                 </a>

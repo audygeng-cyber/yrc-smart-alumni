@@ -120,7 +120,7 @@ export function MemberLinkPanel({
   const requestStatusTone = useMemo(() => {
     switch (requestStatus?.status) {
       case 'approved':
-        return 'border-emerald-900/40 bg-emerald-950/20 text-emerald-100'
+        return 'border-fuchsia-900/40 bg-fuchsia-950/20 text-fuchsia-100'
       case 'rejected':
         return 'border-rose-900/40 bg-rose-950/20 text-rose-100'
       default:
@@ -255,7 +255,7 @@ export function MemberLinkPanel({
           {lineUidFromOAuth && lineUid ? (
             <div className="rounded-lg border border-slate-700 bg-slate-950/80 p-3 text-sm">
               <p className="text-slate-400">LINE UID (จาก LINE)</p>
-              <p className="mt-1 break-all font-mono text-emerald-300">{lineUid}</p>
+              <p className="mt-1 break-all font-mono text-fuchsia-300">{lineUid}</p>
               <button
                 type="button"
                 onClick={onClearLineSession}
@@ -292,7 +292,7 @@ export function MemberLinkPanel({
             onChange={(e) => onLineUidChange(e.target.value)}
             readOnly={lineUidFromOAuth && !showManualUid}
             aria-label="LINE UID"
-            className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none read-only:opacity-80 focus-visible:border-emerald-700 ${portalFocusRing}`}
+            className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none read-only:opacity-80 focus-visible:border-fuchsia-700 ${portalFocusRing}`}
             placeholder="ได้หลังเข้า LINE หรือใส่เองในโหมดทดสอบ"
           />
         </label>
@@ -338,7 +338,7 @@ export function MemberLinkPanel({
                         type="button"
                         onClick={applyApprovedRequestData}
                         aria-label="ใช้ข้อมูลจากคำร้องล่าสุดเพื่อเติมฟอร์ม"
-                        className={`rounded-lg bg-emerald-800 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 ${portalFocusRing}`}
+                        className={`rounded-lg bg-fuchsia-800 px-3 py-2 text-xs font-medium text-white hover:bg-fuchsia-700 ${portalFocusRing}`}
                       >
                         ใช้ข้อมูลจากคำร้องล่าสุด
                       </button>
@@ -347,7 +347,7 @@ export function MemberLinkPanel({
                         disabled={loading}
                         onClick={autoLinkFromApprovedRequest}
                         aria-label="ผูกบัญชีอัตโนมัติจากข้อมูลคำร้องล่าสุด"
-                        className={`rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50 ${portalFocusRing}`}
+                        className={`rounded-lg bg-fuchsia-600 px-3 py-2 text-xs font-medium text-white hover:bg-fuchsia-500 disabled:opacity-50 ${portalFocusRing}`}
                       >
                         ผูกอัตโนมัติ
                       </button>
@@ -381,7 +381,7 @@ export function MemberLinkPanel({
         onClick={verifyLink}
         aria-label="ตรวจสอบข้อมูลและผูกบัญชีสมาชิก"
         aria-describedby={`${verificationHintId} ${requestStatusSummaryId}`}
-        className={`mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
+        className={`mt-4 rounded-lg bg-fuchsia-700 px-4 py-2 text-sm font-medium text-white hover:bg-fuchsia-600 disabled:opacity-50 ${portalFocusRing}`}
       >
         ตรวจสอบและผูก
       </button>
@@ -421,7 +421,7 @@ export function MemberLinkPanel({
 
       {msg && (
         <pre
-          className="mt-4 max-h-56 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-emerald-200/90"
+          className="mt-4 max-h-56 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-fuchsia-200/90"
           role={isErrorMsg ? 'alert' : 'status'}
           aria-live={isErrorMsg ? undefined : 'polite'}
           aria-atomic="true"
@@ -456,7 +456,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
-        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-emerald-700 ${portalFocusRing}`}
+        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-fuchsia-700 ${portalFocusRing}`}
       />
     </label>
   )

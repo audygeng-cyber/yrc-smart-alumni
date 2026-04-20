@@ -277,7 +277,7 @@ export function FinanceJournalsGlPanel({
               type="button"
               disabled={loading}
               onClick={onPostJournal}
-              className={`rounded bg-emerald-800 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`rounded bg-fuchsia-800 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               โพสต์
             </button>
@@ -325,7 +325,7 @@ export function FinanceJournalsGlPanel({
                   type="button"
                   disabled={loading}
                   onClick={onLinkJournalToPaymentRequest}
-                  className={`mt-2 rounded bg-emerald-900/80 px-2 py-1 text-[11px] text-emerald-100 disabled:opacity-50 ${portalFocusRing}`}
+                  className={`mt-2 rounded bg-fuchsia-900/80 px-2 py-1 text-[11px] text-fuchsia-100 disabled:opacity-50 ${portalFocusRing}`}
                 >
                   ผูกคำขอจ่ายกับเอกสารสมุดนี้
                 </button>

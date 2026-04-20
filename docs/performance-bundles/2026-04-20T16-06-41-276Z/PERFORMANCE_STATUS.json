@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "generatedAt": "2026-04-20T16:06:38.578Z",
+  "snapshotGeneratedAt": "2026-04-20T16:06:36.602Z",
+  "metricCount": 8,
+  "metrics": {
+    "mainJsGzipBytes": 87088,
+    "totalJsGzipBytes": 195507,
+    "totalAssetsGzipBytes": 202964
+  },
+  "deltasPct": {
+    "mainJsGzipBytes": 0,
+    "totalJsGzipBytes": 0,
+    "totalAssetsGzipBytes": 0
+  },
+  "budgetLimits": {
+    "mainJsGzipBytes": 97280,
+    "totalJsGzipBytes": 215040,
+    "totalAssetsGzipBytes": 225280
+  },
+  "budgetPass": {
+    "mainJsGzipBytes": true,
+    "totalJsGzipBytes": true,
+    "totalAssetsGzipBytes": true
+  }
+}

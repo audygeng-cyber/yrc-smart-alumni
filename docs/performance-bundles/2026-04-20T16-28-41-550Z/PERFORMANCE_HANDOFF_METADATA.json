@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-20T16:28:39.815Z",
+  "owner": "engineering",
+  "channel": "#performance",
+  "environment": "preview",
+  "releaseCheckpoint": "pre-merge",
+  "gateOk": true,
+  "snapshotGeneratedAt": "2026-04-20T16:28:34.427Z",
+  "latestBundleDir": "docs\\performance-bundles\\2026-04-20T16-23-05-817Z",
+  "metrics": {
+    "mainJsGzipBytes": 87088,
+    "totalJsGzipBytes": 195507,
+    "totalAssetsGzipBytes": 202964
+  }
+}

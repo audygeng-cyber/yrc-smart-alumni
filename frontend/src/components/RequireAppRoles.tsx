@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAppRoles } from '../context/useAppRoles'
 import { rolesAllow } from '../lib/appRoles'
 
-const denyRing = `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950`
+const denyRing = `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950`
 
 function AccessDenied() {
   return (
@@ -64,7 +64,7 @@ function RolesFetchFailed() {
         <button
           type="button"
           onClick={() => refetchRoles()}
-          className={`inline-flex rounded-lg bg-emerald-900/50 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-900/70 ${denyRing}`}
+          className={`inline-flex rounded-lg bg-fuchsia-900/50 px-4 py-2 text-sm text-fuchsia-100 hover:bg-fuchsia-900/70 ${denyRing}`}
         >
           ลองอีกครั้ง
         </button>

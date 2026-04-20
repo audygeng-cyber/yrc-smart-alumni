@@ -116,7 +116,7 @@ export function FinanceMeetingDocumentsPanel({
           disabled={loading}
           onClick={onCreateMeetingDocument}
           aria-label="เพิ่มเอกสารประชุมใหม่"
-          className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+          className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
         >
           เพิ่มเอกสาร
         </button>
@@ -151,7 +151,7 @@ export function FinanceMeetingDocumentsPanel({
                   href={doc.document_url}
                   target="_blank"
                   rel="noreferrer"
-                  className={`mt-1 inline-flex text-[11px] text-emerald-300 underline ${portalFocusRing}`}
+                  className={`mt-1 inline-flex text-[11px] text-fuchsia-300 underline ${portalFocusRing}`}
                   aria-label={`เปิดลิงก์เอกสาร ${doc.title}`}
                 >
                   เปิดลิงก์เอกสาร
@@ -243,7 +243,7 @@ export function FinanceMeetingDocumentsPanel({
               disabled={loading}
               onClick={() => void onSavePatchMeetingDocument()}
               aria-label="บันทึกการแก้ไขเอกสารประชุม"
-              className={`rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               บันทึกการแก้ไข
             </button>

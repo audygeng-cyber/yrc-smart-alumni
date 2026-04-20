@@ -83,13 +83,13 @@ export function PaymentRequestTools({
         บัญชี = ความถูกต้องและหลักฐาน · การอนุมัติ = อำนาจจ่าย — ควรเป็นสายเดียว โดยคำขอจ่ายควรสัมพันธ์กับงานบัญชี ไม่ใช่กรอกแยกสองชุดที่ไม่ผูกกัน
       </p>
       {paymentJournalEntryId.trim() ? (
-        <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-emerald-300/95" role="status">
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-fuchsia-300/95" role="status">
           <span>
             ผูกกับสมุดรายวัน: <span className="font-mono">{paymentJournalEntryId.trim()}</span>
           </span>
           <button
             type="button"
-            className={`rounded border border-emerald-800/80 px-2 py-0.5 text-[11px] text-emerald-100 ${portalFocusRing}`}
+            className={`rounded border border-fuchsia-800/80 px-2 py-0.5 text-[11px] text-fuchsia-100 ${portalFocusRing}`}
             onClick={onClearPaymentJournalLink}
           >
             ยกเลิกการผูก
@@ -190,7 +190,7 @@ export function PaymentRequestTools({
         disabled={loading || paymentLowAmountOtherBlocked}
         onClick={onCreatePaymentRequest}
         aria-label="สร้างคำขอจ่ายเงินใหม่"
-        className={`mt-3 rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+        className={`mt-3 rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
       >
         สร้างคำขอจ่ายเงิน
       </button>

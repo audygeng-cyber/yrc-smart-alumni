@@ -203,7 +203,7 @@ export function AdminImportPanel({ apiBase }: Props) {
           <a
             href={`${base}/api/admin/members/import-template.xlsx`}
             aria-label="ดาวน์โหลดเทมเพลตไฟล์นำเข้าแบบ XLSX"
-            className={`inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-slate-700 ${portalFocusRing}`}
+            className={`inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-fuchsia-300 hover:bg-slate-700 ${portalFocusRing}`}
             target="_blank"
             rel="noreferrer"
           >
@@ -317,7 +317,7 @@ export function AdminImportPanel({ apiBase }: Props) {
           type="button"
           disabled={roleLoading}
           onClick={() => void saveMemberAppRoles()}
-          className={`mt-3 rounded-lg bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
+          className={`mt-3 rounded-lg bg-fuchsia-800 px-4 py-2 text-sm font-medium text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
         >
           {roleLoading ? 'กำลังบันทึก…' : 'บันทึกบทบาท'}
         </button>

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-20T16:28:40.154Z",
+  "gateOk": true,
+  "snapshotGeneratedAt": "2026-04-20T16:28:34.427Z",
+  "latestBundleDir": "docs\\performance-bundles\\2026-04-20T16-23-05-817Z",
+  "handoff": {
+    "owner": "engineering",
+    "channel": "#performance",
+    "environment": "preview",
+    "releaseCheckpoint": "pre-merge"
+  },
+  "badge": {
+    "label": "performance",
+    "message": "PASS",
+    "color": "brightgreen"
+  },
+  "metrics": {
+    "mainJsGzipBytes": 87088,
+    "totalJsGzipBytes": 195507,
+    "totalAssetsGzipBytes": 202964
+  },
+  "artifacts": [
+    "docs/PERFORMANCE_PACK_SUMMARY.md",
+    "docs/PERFORMANCE_HANDOFF.md",
+    "docs/PERFORMANCE_TRIAGE_CHECKLIST.md",
+    "docs/PERFORMANCE_RELEASE_NOTE.md",
+    "docs/PERFORMANCE_DASHBOARD.md",
+    "docs/PERFORMANCE_PR_COMMENT.md",
+    "docs/PERFORMANCE_BUNDLES_INDEX.md"
+  ]
+}

@@ -969,16 +969,16 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         </span>
         <span
           className={`rounded px-2 py-1 ${
-            autoRefresh ? 'bg-emerald-900/40 text-emerald-200' : 'bg-slate-900 text-slate-300'
+            autoRefresh ? 'bg-fuchsia-900/40 text-fuchsia-200' : 'bg-slate-900 text-slate-300'
           }`}
         >
           รีเฟรชอัตโนมัติ: {autoRefresh ? 'เปิด' : 'ปิด'}
         </span>
-        <span className="rounded bg-emerald-900/40 px-2 py-1 text-emerald-200">
+        <span className="rounded bg-fuchsia-900/40 px-2 py-1 text-fuchsia-200">
           ใหม่: {newRowIds.length.toLocaleString('th-TH')}
         </span>
       </div>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-slate-400">
         Admin ดูรายการด้วย Admin key (x-admin-key) — ประธานรุ่นอนุมัติขั้นแรกได้ด้วย President key (x-president-key)
         (ตั้ง PRESIDENT_UPLOAD_KEY ในระบบ backend) หรือให้ Admin ใช้ Admin key (x-admin-key) แทนได้
       </p>
@@ -1073,7 +1073,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           disabled={loading || (newRowIds.length === 0 && pendingIncrease === 0)}
           onClick={markAllAsSeen}
           aria-label="ทำเครื่องหมายคำร้องทั้งหมดว่าอ่านแล้ว"
-          className={`rounded-lg border border-emerald-800 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-950/30 disabled:opacity-50 ${portalFocusRing}`}
+          className={`rounded-lg border border-fuchsia-800 px-4 py-2 text-sm font-medium text-fuchsia-200 hover:bg-fuchsia-950/30 disabled:opacity-50 ${portalFocusRing}`}
         >
           ทำเครื่องหมายว่าอ่านแล้วทั้งหมด
         </button>
@@ -1098,7 +1098,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
         <SummaryCard label="ทั้งหมด" value={summary.total} tone="slate" />
         <SummaryCard label="รอประธานรุ่น" value={summary.pending_president} tone="amber" />
         <SummaryCard label="รอ Admin" value={summary.pending_admin} tone="violet" />
-        <SummaryCard label="อนุมัติแล้ว" value={summary.approved} tone="emerald" />
+        <SummaryCard label="อนุมัติแล้ว" value={summary.approved} tone="fuchsia" />
         <SummaryCard label="ถูกปฏิเสธ" value={summary.rejected} tone="red" />
         {summary.other > 0 ? <SummaryCard label="สถานะอื่น" value={summary.other} tone="slate" /> : null}
       </div>
@@ -1119,7 +1119,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           onClick={() => applyPreset('new_only')}
           aria-pressed={viewPreset === 'new_only'}
           aria-label="ใช้พรีเซ็ตเฉพาะรายการใหม่"
-          className={`rounded border border-emerald-800 px-3 py-1.5 text-xs text-emerald-200 hover:bg-emerald-950/30 ${portalFocusRing}`}
+          className={`rounded border border-fuchsia-800 px-3 py-1.5 text-xs text-fuchsia-200 hover:bg-fuchsia-950/30 ${portalFocusRing}`}
         >
           เฉพาะรายการใหม่
         </button>
@@ -1163,8 +1163,8 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           aria-label="แสดงเฉพาะคำร้องใหม่"
           className={`rounded border px-3 py-1.5 text-xs ${portalFocusRing} ${
             quickView === 'new'
-              ? 'border-emerald-700 bg-emerald-900/40 text-emerald-100'
-              : 'border-emerald-800 text-emerald-200 hover:bg-emerald-950/30'
+              ? 'border-fuchsia-700 bg-fuchsia-900/40 text-fuchsia-100'
+              : 'border-fuchsia-800 text-fuchsia-200 hover:bg-fuchsia-950/30'
           }`}
         >
           เฉพาะรายการใหม่ ({newRowIds.length.toLocaleString('th-TH')})
@@ -1217,7 +1217,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           onClick={() => setFilter('approved')}
           aria-pressed={filter === 'approved'}
           aria-label="กรองเฉพาะสถานะอนุมัติแล้ว"
-          className={`rounded border border-emerald-800 px-3 py-1.5 text-xs text-emerald-200 hover:bg-emerald-950/30 ${portalFocusRing}`}
+          className={`rounded border border-fuchsia-800 px-3 py-1.5 text-xs text-fuchsia-200 hover:bg-fuchsia-950/30 ${portalFocusRing}`}
         >
           อนุมัติแล้ว
         </button>
@@ -1278,7 +1278,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           <span className="rounded bg-slate-900 px-2 py-1 text-slate-300">ทั้งหมด: {activitySummary.all.toLocaleString('th-TH')}</span>
           <span className="rounded bg-slate-900 px-2 py-1 text-slate-300">ส่งคำร้อง: {activitySummary.submitted.toLocaleString('th-TH')}</span>
           <span className="rounded bg-amber-900/40 px-2 py-1 text-amber-200">ประธานรุ่นอนุมัติ: {activitySummary.president_approved.toLocaleString('th-TH')}</span>
-          <span className="rounded bg-emerald-900/40 px-2 py-1 text-emerald-200">Admin อนุมัติ: {activitySummary.admin_approved.toLocaleString('th-TH')}</span>
+          <span className="rounded bg-fuchsia-900/40 px-2 py-1 text-fuchsia-200">Admin อนุมัติ: {activitySummary.admin_approved.toLocaleString('th-TH')}</span>
           <span className="rounded bg-red-900/40 px-2 py-1 text-red-200">ปฏิเสธ: {activitySummary.rejected.toLocaleString('th-TH')}</span>
           <span className="rounded bg-red-950/60 px-2 py-1 text-red-100">วิกฤต: {activitySeveritySummary.critical.toLocaleString('th-TH')}</span>
           <span className="rounded bg-amber-950/50 px-2 py-1 text-amber-100">เตือน: {activitySeveritySummary.warning.toLocaleString('th-TH')}</span>
@@ -1417,14 +1417,14 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                         วันนี้
                       </span>
                     ) : null}
-                    <span className="font-mono text-xs text-slate-500">{entry.requestId}</span>
+                    <span className="font-mono text-xs text-slate-400">{entry.requestId}</span>
                   </div>
                   <span className="text-xs text-slate-400">{formatDateTime(entry.at)}</span>
                 </div>
                 <p className="mt-2 text-xs text-slate-400">
                   {entry.fullName || '-'} | รุ่น {entry.batch || '-'} | LINE UID {entry.lineUid || '-'}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-400">
                   โดย {entry.actor || '-'} | {entry.from_status ?? '-'} {'->'} {entry.to_status ?? '-'}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="คำสั่งด่วนจากบันทึกกิจกรรมคำร้อง">
@@ -1436,7 +1436,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                         openRequestDetailFromActivity(entry.requestId, 'approve')
                       }}
                       aria-label={`เปิดรีวิวเพื่ออนุมัติคำร้อง ${entry.requestId}`}
-                      className={`rounded border border-emerald-800 px-2.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-950/30 ${portalFocusRing}`}
+                      className={`tap-target rounded border border-fuchsia-800 px-2.5 py-1 text-[11px] text-fuchsia-200 hover:bg-fuchsia-950/30 ${portalFocusRing}`}
                     >
                       เปิดรีวิวเพื่ออนุมัติ
                     </button>
@@ -1449,7 +1449,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                         openRequestDetailFromActivity(entry.requestId, 'reject')
                       }}
                       aria-label={`เปิดรีวิวเพื่อปฏิเสธคำร้อง ${entry.requestId}`}
-                      className={`rounded border border-red-800 px-2.5 py-1 text-[11px] text-red-200 hover:bg-red-950/30 ${portalFocusRing}`}
+                      className={`tap-target rounded border border-red-800 px-2.5 py-1 text-[11px] text-red-200 hover:bg-red-950/30 ${portalFocusRing}`}
                     >
                       เปิดรีวิวเพื่อปฏิเสธ
                     </button>
@@ -1461,7 +1461,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                       void copyActivityValue('รหัสคำร้อง', entry.requestId)
                     }}
                     aria-label={`คัดลอกรหัสคำร้อง ${entry.requestId}`}
-                    className={`rounded border border-slate-700 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+                    className={`tap-target rounded border border-slate-700 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
                   >
                     คัดลอกรหัสคำร้อง
                   </button>
@@ -1472,7 +1472,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                       void copyActivityRowSummary(entry)
                     }}
                     aria-label={`คัดลอกสรุปกิจกรรมของคำร้อง ${entry.requestId}`}
-                    className={`rounded border border-sky-800 px-2.5 py-1 text-[11px] text-sky-200 hover:bg-sky-950/30 ${portalFocusRing}`}
+                    className={`tap-target rounded border border-sky-800 px-2.5 py-1 text-[11px] text-sky-200 hover:bg-sky-950/30 ${portalFocusRing}`}
                   >
                     คัดลอกสรุป
                   </button>
@@ -1483,7 +1483,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                       void copyActivityMemberIdentity(entry)
                     }}
                     aria-label={`คัดลอกข้อมูลสมาชิกของคำร้อง ${entry.requestId}`}
-                    className={`rounded border border-emerald-800 px-2.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-950/30 ${portalFocusRing}`}
+                    className={`tap-target rounded border border-fuchsia-800 px-2.5 py-1 text-[11px] text-fuchsia-200 hover:bg-fuchsia-950/30 ${portalFocusRing}`}
                   >
                     คัดลอกข้อมูลสมาชิก
                   </button>
@@ -1494,7 +1494,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                       void copyActivityValue('LINE UID', entry.lineUid)
                     }}
                     aria-label={`คัดลอก LINE UID ของคำร้อง ${entry.requestId}`}
-                    className={`rounded border border-violet-800 px-2.5 py-1 text-[11px] text-violet-200 hover:bg-violet-950/30 ${portalFocusRing}`}
+                    className={`tap-target rounded border border-violet-800 px-2.5 py-1 text-[11px] text-violet-200 hover:bg-violet-950/30 ${portalFocusRing}`}
                   >
                     คัดลอก LINE UID
                   </button>
@@ -1505,7 +1505,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                       focusRequestFromActivity(entry.requestId)
                     }}
                     aria-label={`กรองให้เหลือเฉพาะคำร้อง ${entry.requestId}`}
-                    className={`rounded border border-cyan-800 px-2.5 py-1 text-[11px] text-cyan-200 hover:bg-cyan-950/30 ${portalFocusRing}`}
+                    className={`tap-target rounded border border-cyan-800 px-2.5 py-1 text-[11px] text-cyan-200 hover:bg-cyan-950/30 ${portalFocusRing}`}
                   >
                     กรองรายการให้เหลือคำร้องนี้
                   </button>
@@ -1515,7 +1515,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
             </div>
           ))}
           {activityRows.length === 0 ? (
-            <p className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            <p className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
               ยังไม่มีกิจกรรมที่ตรงกับตัวกรองปัจจุบัน
             </p>
           ) : null}
@@ -1533,7 +1533,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
               highlightedRequestId === r.id
                 ? 'border-cyan-500/70 bg-cyan-950/25 shadow-[0_0_0_1px_rgba(34,211,238,0.22)]'
                 : newRowIdSet.has(r.id)
-                ? 'border-emerald-700/60 bg-emerald-950/20 shadow-[0_0_0_1px_rgba(16,185,129,0.18)]'
+                ? 'border-fuchsia-700/60 bg-fuchsia-950/20 shadow-[0_0_0_1px_rgba(217,70,239,0.18)]'
                 : 'border-slate-800 bg-slate-950/60'
             }`}
             role="listitem"
@@ -1541,18 +1541,18 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs text-slate-500">{r.id}</span>
+                <span className="font-mono text-xs text-slate-400">{r.id}</span>
                 {highlightedRequestId === r.id ? (
                   <span className="rounded bg-cyan-900/50 px-2 py-0.5 text-xs text-cyan-200">เลือกจากกิจกรรม</span>
                 ) : null}
                 {newRowIdSet.has(r.id) ? (
-                  <span className="rounded bg-emerald-900/50 px-2 py-0.5 text-xs text-emerald-200">ใหม่</span>
+                  <span className="rounded bg-fuchsia-900/50 px-2 py-0.5 text-xs text-fuchsia-200">ใหม่</span>
                 ) : null}
               </div>
               <span
                 className={`rounded px-2 py-0.5 text-xs ${
                   r.status === 'approved'
-                    ? 'bg-emerald-900/50 text-emerald-200'
+                    ? 'bg-fuchsia-900/50 text-fuchsia-200'
                     : r.status === 'rejected'
                       ? 'bg-red-900/40 text-red-200'
                       : 'bg-amber-900/40 text-amber-200'
@@ -1562,7 +1562,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
               </span>
             </div>
             <p className="mt-2 text-slate-300">
-              <span className="text-slate-500">LINE UID:</span>{' '}
+              <span className="text-slate-400">LINE UID:</span>{' '}
               <span className="break-all font-mono text-violet-200">{r.line_uid ?? '—'}</span>
             </p>
             <pre className="mt-2 max-h-32 overflow-auto rounded bg-slate-900/80 p-2 text-xs text-slate-400">
@@ -1630,7 +1630,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                       )
                     }
                     aria-label={`อนุมัติคำร้อง ${r.id} โดย Admin`}
-                    className={`rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 ${portalFocusRing}`}
+                    className={`rounded bg-fuchsia-800 px-3 py-1.5 text-xs text-white hover:bg-fuchsia-700 ${portalFocusRing}`}
                   >
                     อนุมัติ (Admin)
                   </button>
@@ -1661,14 +1661,14 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       </ul>
 
       {sortedRows.length === 0 && !loading && (
-        <p className="mt-6 text-center text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-6 text-center text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           {rows.length === 0
             ? 'ไม่มีรายการ (หรือยังไม่ได้กดโหลด)'
             : 'ไม่มีรายการที่ตรงกับตัวกรองด่วนหรือคำค้นปัจจุบัน'}
         </p>
       )}
       {loading ? (
-        <p className="mt-4 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-4 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           กำลังโหลดข้อมูลคำร้องและกิจกรรม...
         </p>
       ) : null}
@@ -1799,7 +1799,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                         : `อนุมัติคำร้อง ${selectedRequest.id} ด้วยข้อความร่างในขั้น Admin`
                     }
                     className={`rounded px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50 ${portalFocusRing} ${
-                      selectedRequest.status === 'pending_president' ? 'bg-amber-800 hover:bg-amber-700' : 'bg-emerald-800 hover:bg-emerald-700'
+                      selectedRequest.status === 'pending_president' ? 'bg-amber-800 hover:bg-amber-700' : 'bg-fuchsia-800 hover:bg-fuchsia-700'
                     }`}
                   >
                     {selectedRequest.status === 'pending_president' ? 'อนุมัติด้วยข้อความร่าง (ประธานรุ่น)' : 'อนุมัติด้วยข้อความร่าง (Admin)'}
@@ -1835,7 +1835,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                         disabled={loading}
                         onClick={() => runSelectedRequestAction('approve')}
                         aria-label={`อนุมัติคำร้อง ${selectedRequest.id} ในขั้น Admin`}
-                        className={`rounded bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
+                        className={`rounded bg-fuchsia-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
                       >
                         อนุมัติ (Admin)
                       </button>
@@ -1871,7 +1871,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
                 </div>
               ))}
               {getActionHistoryEntries(selectedRequest).length === 0 ? (
-                <p className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+                <p className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                   ยังไม่มีประวัติการดำเนินการ
                 </p>
               ) : null}
@@ -1899,7 +1899,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
           aria-atomic="true"
           className={`mt-4 rounded-lg border p-3 text-sm ${
           toast.tone === 'success'
-            ? 'border-emerald-900/40 bg-emerald-950/30 text-emerald-100'
+            ? 'border-fuchsia-900/40 bg-fuchsia-950/30 text-fuchsia-100'
             : toast.tone === 'warning'
               ? 'border-amber-900/40 bg-amber-950/30 text-amber-100'
               : toast.tone === 'error'
@@ -1926,7 +1926,7 @@ export function MemberRequestsPanel({ apiBase }: Props) {
               type="button"
               onClick={() => setDebugDetails(null)}
               aria-label="ล้างข้อมูลดีบัก"
-              className={`rounded border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-800 ${portalFocusRing}`}
+              className={`tap-target rounded border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-800 ${portalFocusRing}`}
             >
               ล้างข้อมูลดีบัก
             </button>
@@ -2117,7 +2117,7 @@ function getActionHistoryLabel(action: ActionHistoryEntry['action']): string {
 function getActionHistoryTone(action: ActionHistoryEntry['action']): string {
   if (action === 'submitted') return 'bg-slate-900 text-slate-200'
   if (action === 'president_approved') return 'bg-amber-900/40 text-amber-200'
-  if (action === 'admin_approved') return 'bg-emerald-900/40 text-emerald-200'
+  if (action === 'admin_approved') return 'bg-fuchsia-900/40 text-fuchsia-200'
   return 'bg-red-900/40 text-red-200'
 }
 
@@ -2268,7 +2268,7 @@ function getActionLabelFromPath(path: string): string {
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
       <p className="mt-1 break-words text-sm text-slate-100">{value}</p>
     </div>
   )
@@ -2281,15 +2281,15 @@ function SummaryCard({
 }: {
   label: string
   value: number
-  tone: 'slate' | 'amber' | 'violet' | 'emerald' | 'red'
+  tone: 'slate' | 'amber' | 'violet' | 'fuchsia' | 'red'
 }) {
   const toneClass =
     tone === 'amber'
       ? 'border-amber-900/40 bg-amber-950/20 text-amber-100'
       : tone === 'violet'
         ? 'border-violet-900/40 bg-violet-950/20 text-violet-100'
-        : tone === 'emerald'
-          ? 'border-emerald-900/40 bg-emerald-950/20 text-emerald-100'
+        : tone === 'fuchsia'
+          ? 'border-fuchsia-900/40 bg-fuchsia-950/20 text-fuchsia-100'
           : tone === 'red'
             ? 'border-red-900/40 bg-red-950/20 text-red-100'
             : 'border-slate-800 bg-slate-950/50 text-slate-100'

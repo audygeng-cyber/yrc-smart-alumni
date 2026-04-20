@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-20T16:06:36.602Z",
+  "rawTotal": 836869,
+  "gzipTotal": 202964,
+  "jsRaw": 797342,
+  "jsGzip": 195507,
+  "cssRaw": 39527,
+  "cssGzip": 7457,
+  "mainIndexJs": {
+    "name": "index-BHQdJOzu.js",
+    "ext": ".js",
+    "raw": 283948,
+    "gzip": 87088
+  },
+  "topRaw": [
+    {
+      "name": "index-BHQdJOzu.js",
+      "ext": ".js",
+      "raw": 283948,
+      "gzip": 87088
+    },
+    {
+      "name": "AdminFinancePanel-CBFzox08.js",
+      "ext": ".js",
+      "raw": 242988,
+      "gzip": 46492
+    },
+    {
+      "name": "MemberRequestsPanel-B_3p3cHC.js",
+      "ext": ".js",
+      "raw": 64595,
+      "gzip": 12566
+    },
+    {
+      "name": "committeePages-C70fMiuY.js",
+      "ext": ".js",
+      "raw": 42275,
+      "gzip": 7559
+    },
+    {
+      "name": "index-Df55nzQg.css",
+      "ext": ".css",
+      "raw": 39527,
+      "gzip": 7457
+    },
+    {
+      "name": "memberPages-Bv9EOZHm.js",
+      "ext": ".js",
+      "raw": 36015,
+      "gzip": 8772
+    },
+    {
+      "name": "academyPages-Crmwca0X.js",
+      "ext": ".js",
+      "raw": 32085,
+      "gzip": 5731
+    },
+    {
+      "name": "ui-BWmm567R.js",
+      "ext": ".js",
+      "raw": 24097,
+      "gzip": 6869
+    },
+    {
+      "name": "AdminImportPanel-CWcfGAG1.js",
+      "ext": ".js",
+      "raw": 16166,
+      "gzip": 4572
+    },
+    {
+      "name": "AdminSchoolActivitiesPanel-DyEr9AhG.js",
+      "ext": ".js",
+      "raw": 15727,
+      "gzip": 3717
+    },
+    {
+      "name": "AdminCramPanel-NSh5WdJr.js",
+      "ext": ".js",
+      "raw": 15696,
+      "gzip": 3641
+    },
+    {
+      "name": "MemberLinkPanel-DLf_xclH.js",
+      "ext": ".js",
+      "raw": 14369,
+      "gzip": 4179
+    }
+  ],
+  "topGzip": [
+    {
+      "name": "index-BHQdJOzu.js",
+      "ext": ".js",
+      "raw": 283948,
+      "gzip": 87088
+    },
+    {
+      "name": "AdminFinancePanel-CBFzox08.js",
+      "ext": ".js",
+      "raw": 242988,
+      "gzip": 46492
+    },
+    {
+      "name": "MemberRequestsPanel-B_3p3cHC.js",
+      "ext": ".js",
+      "raw": 64595,
+      "gzip": 12566
+    },
+    {
+      "name": "memberPages-Bv9EOZHm.js",
+      "ext": ".js",
+      "raw": 36015,
+      "gzip": 8772
+    },
+    {
+      "name": "committeePages-C70fMiuY.js",
+      "ext": ".js",
+      "raw": 42275,
+      "gzip": 7559
+    },
+    {
+      "name": "index-Df55nzQg.css",
+      "ext": ".css",
+      "raw": 39527,
+      "gzip": 7457
+    },
+    {
+      "name": "ui-BWmm567R.js",
+      "ext": ".js",
+      "raw": 24097,
+      "gzip": 6869
+    },
+    {
+      "name": "academyPages-Crmwca0X.js",
+      "ext": ".js",
+      "raw": 32085,
+      "gzip": 5731
+    },
+    {
+      "name": "AdminImportPanel-CWcfGAG1.js",
+      "ext": ".js",
+      "raw": 16166,
+      "gzip": 4572
+    },
+    {
+      "name": "MemberLinkPanel-DLf_xclH.js",
+      "ext": ".js",
+      "raw": 14369,
+      "gzip": 4179
+    },
+    {
+      "name": "AdminSchoolActivitiesPanel-DyEr9AhG.js",
+      "ext": ".js",
+      "raw": 15727,
+      "gzip": 3717
+    },
+    {
+      "name": "AdminCramPanel-NSh5WdJr.js",
+      "ext": ".js",
+      "raw": 15696,
+      "gzip": 3641
+    }
+  ]
+}

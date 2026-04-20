@@ -174,7 +174,7 @@ export function FinanceFiscalToolsPanel({
                 type="button"
                 disabled={loading}
                 onClick={onLoadFiscalYears}
-                className={`rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
+                className={`tap-target rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
               >
                 โหลดรายการ
               </button>
@@ -182,12 +182,12 @@ export function FinanceFiscalToolsPanel({
                 type="button"
                 disabled={loading}
                 onClick={onCreateFiscalYear}
-                className={`rounded bg-fuchsia-800 px-2 py-1 text-[11px] text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
+                className={`tap-target rounded bg-fuchsia-800 px-2 py-1 text-[11px] text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
               >
                 สร้างรอบใหม่
               </button>
             </div>
-            <p className="text-[10px] text-slate-500">ปิดปี: รหัสบัญชีกองทุนสะสม (equity)</p>
+            <p className="text-[10px] text-slate-400">ปิดปี: รหัสบัญชีกองทุนสะสม (equity)</p>
             <input
               type="text"
               value={fiscalCloseSurplusCode}
@@ -212,21 +212,21 @@ export function FinanceFiscalToolsPanel({
           </div>
           <div className="mt-2 max-h-40 overflow-y-auto rounded border border-slate-800">
             {fiscalYears.length === 0 ? (
-              <p className="p-2 text-[11px] text-slate-500">ยังไม่มีข้อมูล (กดโหลด)</p>
+              <p className="p-2 text-[11px] text-slate-400">ยังไม่มีข้อมูล (กดโหลด)</p>
             ) : (
               <ul className="divide-y divide-slate-800 text-[11px]">
                 {fiscalYears.map((fy) => (
                   <li key={fy.id} className="flex flex-wrap items-center justify-between gap-1 px-2 py-1">
                     <span>
                       {fy.fiscal_label} · {fy.period_from} → {fy.period_to}
-                      {fy.is_closed ? <span className="ml-1 text-emerald-400">(ปิดแล้ว)</span> : null}
+                      {fy.is_closed ? <span className="ml-1 text-fuchsia-400">(ปิดแล้ว)</span> : null}
                     </span>
                     {!fy.is_closed ? (
                       <button
                         type="button"
                         disabled={loading}
                         onClick={() => onCloseFiscalYear(fy.id, fy.fiscal_label)}
-                        className={`shrink-0 rounded bg-amber-800 px-1.5 py-0.5 text-[10px] text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
+                        className={`tap-target shrink-0 rounded bg-amber-800 px-1.5 py-0.5 text-[10px] text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
                       >
                         ปิดปี
                       </button>
@@ -319,7 +319,7 @@ export function FinanceFiscalToolsPanel({
               type="button"
               disabled={loading}
               onClick={onLoadFixedAssets}
-              className={`rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
             >
               โหลดทะเบียน
             </button>
@@ -327,19 +327,19 @@ export function FinanceFiscalToolsPanel({
               type="button"
               disabled={loading}
               onClick={onCreateFixedAsset}
-              className={`rounded bg-fuchsia-800 px-2 py-1 text-[11px] text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-fuchsia-800 px-2 py-1 text-[11px] text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
             >
               บันทึกสินทรัพย์
             </button>
           </div>
           <div className="mt-2 flex flex-wrap items-end gap-1 border-t border-slate-800 pt-2">
-            <label className="text-[10px] text-slate-500">รันค่าเสื่อมเดือน</label>
+            <label className="text-[10px] text-slate-400">รันค่าเสื่อมเดือน</label>
             <input type="month" value={depMonth} onChange={(e) => setDepMonth(e.target.value)} className={`rounded border border-slate-700 bg-slate-950 px-2 py-1 ${portalFocusRing}`} />
             <button
               type="button"
               disabled={loading}
               onClick={onRunFixedAssetDepreciation}
-              className={`rounded bg-amber-800 px-2 py-1 text-[11px] text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-amber-800 px-2 py-1 text-[11px] text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
             >
               รันค่าเสื่อม
             </button>
@@ -350,7 +350,7 @@ export function FinanceFiscalToolsPanel({
                 {a.asset_code} · {a.asset_name} · {formatThNumber(Number(a.cost ?? 0))} · {a.active ? 'active' : 'inactive'}
               </div>
             ))}
-            {fixedAssets.length > 8 ? <p className="py-1 text-slate-500">+ อีก {fixedAssets.length - 8} รายการ</p> : null}
+            {fixedAssets.length > 8 ? <p className="py-1 text-slate-400">+ อีก {fixedAssets.length - 8} รายการ</p> : null}
           </div>
         </div>
 
@@ -362,7 +362,7 @@ export function FinanceFiscalToolsPanel({
               type="button"
               disabled={loading}
               onClick={onLoadTaxMonthly}
-              className={`rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-slate-700 px-2 py-1 text-[11px] text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
             >
               โหลดคำขอจ่ายในเดือน
             </button>
@@ -374,7 +374,7 @@ export function FinanceFiscalToolsPanel({
             </p>
           ) : null}
           <div className="mt-2 border-t border-slate-800 pt-2">
-            <p className="mb-1 text-[10px] text-slate-500">คำนวณ VAT/WHT (ฐานก่อน VAT)</p>
+            <p className="mb-1 text-[10px] text-slate-400">คำนวณ VAT/WHT (ฐานก่อน VAT)</p>
             <div className="flex flex-wrap gap-1">
               <input
                 type="text"
@@ -398,7 +398,7 @@ export function FinanceFiscalToolsPanel({
                 type="button"
                 disabled={loading}
                 onClick={onCalculateTaxPreview}
-                className={`rounded bg-fuchsia-800 px-2 py-1 text-[11px] text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
+                className={`tap-target rounded bg-fuchsia-800 px-2 py-1 text-[11px] text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
               >
                 คำนวณ
               </button>

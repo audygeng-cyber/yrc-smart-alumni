@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { LINE_ENTRY_SOURCES, lineEntrySourceDescription, setLineEntrySource } from '../lib/lineEntrySource'
 import { portalFocusRing } from '../portal/portalLabels'
 
-const focus = `rounded-lg px-4 py-2 text-sm font-medium ${portalFocusRing}`
+const focus = `tap-target rounded-lg px-4 py-2 text-sm font-medium ${portalFocusRing}`
 
 /**
  * หน้าปลายทางของ QR — วาง URL นี้ใน QR ให้ผู้ที่ไม่ใช่ศิษย์เก่า (ครู ผู้ปกครอง นักเรียน ฯลฯ) สแกนแล้วเข้าสู่ระบบด้วย LINE
@@ -21,13 +21,13 @@ export function CramQrEntryPage() {
         ช่องทางนี้ใช้สำหรับผู้บริหาร ครู ผู้ปกครอง หรือนักเรียนที่ยังไม่ได้เป็นศิษย์เก่าในทะเบียน — ระบบจะบันทึกช่องทางเข้าเป็น
         <span className="text-violet-200/90"> {lineEntrySourceDescription(LINE_ENTRY_SOURCES.CRAM_QR)}</span>
       </p>
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-slate-400">
         ศิษย์เก่า (สมาชิก / คณะกรรมการ) หรือผู้บริหารกวดวิชาที่เป็นศิษย์เก่า แนะนำให้เข้าทาง URL หลักของสมาคม
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link
           to="/auth/link"
-          className={`bg-emerald-700 text-white hover:bg-emerald-600 ${focus}`}
+          className={`bg-fuchsia-700 text-white hover:bg-fuchsia-600 ${focus}`}
           aria-label="ไปหน้าล็อกอิน LINE"
         >
           ดำเนินการต่อ — ผูกบัญชี LINE

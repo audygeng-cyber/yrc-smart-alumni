@@ -207,7 +207,7 @@ export function FinancePeriodClosingPanel({
                         row.auditor_handoff_status === 'completed'
                           ? 'bg-cyan-900/40 text-cyan-200'
                           : row.auditor_handoff_status === 'sent'
-                            ? 'bg-emerald-900/40 text-emerald-200'
+                            ? 'bg-fuchsia-900/40 text-fuchsia-200'
                             : 'bg-amber-900/40 text-amber-200'
                       }`}
                     >
@@ -239,7 +239,7 @@ export function FinancePeriodClosingPanel({
                       disabled={loading || row.auditor_handoff_status !== 'pending'}
                       onClick={() => onMarkAuditorSent(row.id, `${row.period_from} ถึง ${row.period_to}`)}
                       aria-label={`ยืนยันส่งผู้ตรวจสอบงวด ${row.period_from} ถึง ${row.period_to}`}
-                      className={`rounded bg-emerald-700 px-2 py-1 text-[10px] text-white hover:bg-emerald-600 disabled:opacity-50 ${portalFocusRing}`}
+                      className={`rounded bg-fuchsia-700 px-2 py-1 text-[10px] text-white hover:bg-fuchsia-600 disabled:opacity-50 ${portalFocusRing}`}
                     >
                       Mark sent
                     </button>
@@ -317,7 +317,7 @@ export function FinancePeriodClosingPanel({
           <div className="mt-2 flex flex-wrap gap-2">
             <span
               className={`rounded px-2 py-0.5 ${
-                periodClosingDetail.integrity.isBalanced ? 'bg-emerald-900/40 text-emerald-200' : 'bg-rose-900/40 text-rose-200'
+                periodClosingDetail.integrity.isBalanced ? 'bg-fuchsia-900/40 text-fuchsia-200' : 'bg-rose-900/40 text-rose-200'
               }`}
             >
               {periodClosingDetail.integrity.isBalanced
@@ -326,7 +326,7 @@ export function FinancePeriodClosingPanel({
             </span>
             <span
               className={`rounded px-2 py-0.5 ${
-                periodClosingDetail.integrity.storedMatchesSnapshot ? 'bg-emerald-900/40 text-emerald-200' : 'bg-amber-900/40 text-amber-200'
+                periodClosingDetail.integrity.storedMatchesSnapshot ? 'bg-fuchsia-900/40 text-fuchsia-200' : 'bg-amber-900/40 text-amber-200'
               }`}
             >
               {periodClosingDetail.integrity.storedMatchesSnapshot ? 'ยอดรวมตรงกับ snapshot' : 'ยอดรวมไม่ตรงกับ snapshot'}

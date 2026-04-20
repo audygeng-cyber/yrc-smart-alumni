@@ -1,6 +1,6 @@
 /** วงโฟกัสคีย์บอร์ด — ต่อท้าย className ของลิงก์/ปุ่มในพอร์ทัล */
 export const portalFocusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950'
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950'
 
 /** path ต่อท้าย apiBase สำหรับ snapshot — ต้องตรงกับ backend `routes/portal` */
 export const portalSnapshotPath = {

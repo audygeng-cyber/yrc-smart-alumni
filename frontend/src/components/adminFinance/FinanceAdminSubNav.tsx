@@ -4,7 +4,7 @@ import { portalFocusRing } from '../../portal/portalLabels'
 const focus = `rounded-lg px-3 py-2 text-sm font-medium ${portalFocusRing}`
 
 function navClass({ isActive }: { isActive: boolean }) {
-  return `${focus} ${isActive ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`
+  return `${focus} ${isActive ? 'bg-fuchsia-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`
 }
 
 export type FinanceAdminTab = 'accounting' | 'meetings' | 'payments'

@@ -24,15 +24,15 @@ export function FinanceAdminReportsOverviewSection({ children }: { children: Rea
 export function FinanceAdminAccountingFinanceSection({ children }: { children: ReactNode }) {
   return (
     <section
-      className="mt-6 flex flex-col gap-3 rounded-xl border border-emerald-900/45 bg-emerald-950/15 p-4"
+      className="mt-6 flex flex-col gap-3 rounded-xl border border-fuchsia-900/45 bg-fuchsia-950/15 p-4"
       aria-labelledby="finance-accounting-finance-heading"
     >
-      <header className="border-b border-emerald-900/35 pb-3">
-        <h2 id="finance-accounting-finance-heading" className="text-sm font-semibold tracking-tight text-emerald-100">
+      <header className="border-b border-fuchsia-900/35 pb-3">
+        <h2 id="finance-accounting-finance-heading" className="text-sm font-semibold tracking-tight text-fuchsia-100">
           บัญชี-การเงิน
         </h2>
         <p className="mt-1 text-[11px] text-slate-500">
-          ส่วน <span className="text-emerald-200/90">สมุดรายรับ</span> ใช้บันทึกรายการรับรู้รายได้และเงินเข้า (ระบบ backend เป็นสมุดรายวันแบบคู่บัญชี) — คู่กับรายงาน GL และงบการเงินในคอลัมน์ถัดไป
+          ส่วน <span className="text-fuchsia-200/90">สมุดรายรับ</span> ใช้บันทึกรายการรับรู้รายได้และเงินเข้า (ระบบ backend เป็นสมุดรายวันแบบคู่บัญชี) — คู่กับรายงาน GL และงบการเงินในคอลัมน์ถัดไป
         </p>
       </header>
       {children}

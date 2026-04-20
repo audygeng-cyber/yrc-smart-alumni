@@ -80,7 +80,7 @@ type RoleView = 'all' | 'member' | 'committee' | 'academy'
 
 /** วงโฟกัสคีย์บอร์ด — ใช้ร่วมกับปุ่ม/ลิงก์ในแอปหลัก */
 const appFocusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950'
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950'
 
 function getInitialVerifiedMember(): Record<string, unknown> | null {
   const uid = readLineUid()
@@ -381,7 +381,7 @@ function AppChrome(props: AppChromeProps) {
     <div className="relative min-h-screen bg-slate-950 text-slate-100">
       <a
         href="#app-main"
-        className={`absolute left-4 top-0 z-[100] -translate-y-full rounded-b bg-emerald-800 px-4 py-2 text-sm font-medium text-white shadow transition focus-visible:translate-y-0 ${appFocusRing}`}
+        className={`absolute left-4 top-0 z-[100] -translate-y-full rounded-b bg-fuchsia-800 px-4 py-2 text-sm font-medium text-white shadow transition focus-visible:translate-y-0 ${appFocusRing}`}
       >
         ข้ามไปยังเนื้อหาหลัก
       </a>
@@ -438,7 +438,7 @@ function AppChrome(props: AppChromeProps) {
       <main
         id="app-main"
         tabIndex={-1}
-        className={`mx-auto px-6 py-10 outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/45 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${portalWidthClass}`}
+        className={`mx-auto px-6 py-10 outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-600/45 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${portalWidthClass}`}
       >
         <Routes>
           <Route
@@ -574,7 +574,7 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
       aria-label={`ไปหน้า ${label}`}
       aria-current={active ? 'page' : undefined}
       className={`rounded-lg px-3 py-1.5 text-sm font-medium ${appFocusRing} ${
-        active ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+        active ? 'bg-fuchsia-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
       }`}
     >
       {label}
@@ -585,22 +585,22 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
 function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-emerald-900/35 bg-emerald-950/20 p-6">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-emerald-200/90">เข้าสู่ระบบด้วย LINE</h2>
+      <section className="rounded-xl border border-fuchsia-900/35 bg-fuchsia-950/20 p-6">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-fuchsia-200/90">เข้าสู่ระบบด้วย LINE</h2>
         <p className="mt-2 text-sm text-slate-400">
           หลังล็อกอิน LINE ระบบจะได้รับ UID จาก LINE (ค่า <code className="text-slate-300">sub</code>) เก็บในเบราว์เซอร์
           และบันทึกแถวใน <code className="text-slate-300">app_users</code> ผ่าน API — จากนั้นจึงผูกกับทะเบียนสมาชิกได้ที่หน้าผูกบัญชี
         </p>
         <Link
           to="/auth/link"
-          className={`mt-4 inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 ${appFocusRing}`}
+          className={`mt-4 inline-flex rounded-lg bg-fuchsia-700 px-4 py-2 text-sm font-medium text-white hover:bg-fuchsia-600 ${appFocusRing}`}
         >
           ไปล็อกอิน LINE / ผูกบัญชี
         </Link>
       </section>
       <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">สถานะระบบ Backend (/health)</h2>
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-left text-sm text-emerald-300" role="status" aria-live="polite" aria-atomic="true">
+        <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-left text-sm text-fuchsia-300" role="status" aria-live="polite" aria-atomic="true">
           {health}
         </pre>
         <p className="mt-4 text-sm text-slate-500">
@@ -696,7 +696,7 @@ function LinkPage(props: {
         <section
           className={`mb-4 rounded-xl border p-4 text-sm ${
             props.lineIdentitySyncMessage.kind === 'ok'
-              ? 'border-emerald-800/60 bg-emerald-950/30 text-emerald-100/95'
+              ? 'border-fuchsia-800/60 bg-fuchsia-950/30 text-fuchsia-100/95'
               : 'border-rose-800/60 bg-rose-950/30 text-rose-100/95'
           }`}
           role="status"
@@ -719,9 +719,9 @@ function LinkPage(props: {
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">สถานะการเชื่อมสมาชิก</p>
             {props.restoringMemberSession ? (
-              <p className="mt-1 text-emerald-200">กำลังกู้เซสชันสมาชิกจาก LINE UID...</p>
+              <p className="mt-1 text-fuchsia-200">กำลังกู้เซสชันสมาชิกจาก LINE UID...</p>
             ) : hasMember ? (
-              <p className="mt-1 text-emerald-200">
+              <p className="mt-1 text-fuchsia-200">
                 ผูกสมาชิกแล้ว: {props.verifiedMemberName || 'สมาชิกที่ผูกไว้'}{' '}
                 {readLineName() ? `· LINE ${readLineName()}` : ''}
               </p>
@@ -735,7 +735,7 @@ function LinkPage(props: {
             <Link
               to="/member/dashboard"
               aria-label="ไปยังหน้าแดชบอร์ดสมาชิก"
-              className={`rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${appFocusRing}`}
+              className={`rounded-lg bg-fuchsia-800 px-4 py-2 text-sm text-white hover:bg-fuchsia-700 ${appFocusRing}`}
             >
               ไปหน้าสมาชิก
             </Link>
@@ -748,7 +748,7 @@ function LinkPage(props: {
         ) : null}
       </section>
       {props.restoringMemberSession ? (
-        <section className="mb-4 rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-4 text-sm text-emerald-100/90" role="status" aria-live="polite" aria-atomic="true" aria-busy="true">
+        <section className="mb-4 rounded-xl border border-fuchsia-900/40 bg-fuchsia-950/20 p-4 text-sm text-fuchsia-100/90" role="status" aria-live="polite" aria-atomic="true" aria-busy="true">
           กำลังกู้เซสชันสมาชิกจาก LINE UID...
         </section>
       ) : null}
@@ -773,7 +773,7 @@ function MissingMemberSession() {
       <Link
         to="/auth/link"
         aria-label="ไปหน้าผูกบัญชีเพื่อผูกสมาชิก"
-        className={`mt-4 inline-flex rounded-lg bg-emerald-800 px-4 py-2 text-sm text-white hover:bg-emerald-700 ${appFocusRing}`}
+        className={`mt-4 inline-flex rounded-lg bg-fuchsia-800 px-4 py-2 text-sm text-white hover:bg-fuchsia-700 ${appFocusRing}`}
       >
         ไปหน้าผูกบัญชี
       </Link>

@@ -359,7 +359,7 @@ export function AdminCramPanel({ apiBase }: Props) {
               disabled={loading}
               onClick={() => void addClassroom()}
               aria-label="เพิ่มห้องเรียนใหม่"
-              className={`rounded bg-emerald-800 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-50 ${portalFocusRing}`}
+              className={`rounded bg-fuchsia-800 px-3 py-1.5 text-sm text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
             >
               เพิ่มห้อง
             </button>
@@ -385,7 +385,7 @@ export function AdminCramPanel({ apiBase }: Props) {
                       <span className="text-slate-500">({c.room_code})</span>
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className={c.active ? 'text-emerald-400' : 'text-slate-500'}>{c.active ? 'เปิดใช้งาน' : 'ปิด'}</span>
+                      <span className={c.active ? 'text-fuchsia-400' : 'text-slate-500'}>{c.active ? 'เปิดใช้งาน' : 'ปิด'}</span>
                       <button
                         type="button"
                         className={`rounded-sm text-xs text-violet-300 hover:underline ${portalFocusRing}`}
@@ -496,7 +496,7 @@ export function AdminCramPanel({ apiBase }: Props) {
                         <div className="flex flex-wrap gap-2" role="group" aria-label="คำสั่งแก้ไขหรือลบนักเรียน">
                           <button
                             type="button"
-                            className={`rounded-sm text-xs text-emerald-400 hover:underline ${portalFocusRing}`}
+                            className={`rounded-sm text-xs text-fuchsia-400 hover:underline ${portalFocusRing}`}
                             onClick={() => void saveStudentEdit(s.id)}
                             aria-label={`บันทึกการแก้ไขนักเรียน ${s.display_name}`}
                           >

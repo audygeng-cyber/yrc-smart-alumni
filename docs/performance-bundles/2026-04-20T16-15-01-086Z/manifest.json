@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-04-20T16:15:01.094Z",
+  "bundleDir": "docs\\performance-bundles\\2026-04-20T16-15-01-086Z",
+  "copiedFiles": [
+    "PERFORMANCE_BASELINE.md",
+    "PERFORMANCE_BASELINE.json",
+    "PERFORMANCE_COMPARE.md",
+    "PERFORMANCE_TREND.md",
+    "PERFORMANCE_DASHBOARD.md",
+    "PERFORMANCE_PR_COMMENT.md",
+    "PERFORMANCE_STATUS.json",
+    "PERFORMANCE_LATEST.json",
+    "PERFORMANCE_RELEASE_NOTE.md"
+  ]
+}

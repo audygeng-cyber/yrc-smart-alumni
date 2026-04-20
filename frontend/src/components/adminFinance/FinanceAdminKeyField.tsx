@@ -21,7 +21,7 @@ export function FinanceAdminKeyField({ adminKey, setAdminKey }: Props) {
           sessionStorage.setItem(ADMIN_UPLOAD_STORAGE_KEY, v)
         }}
         aria-label="Admin key สำหรับ API การเงิน"
-        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-emerald-600 ${portalFocusRing}`}
+        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-fuchsia-600 ${portalFocusRing}`}
         placeholder="ค่าเดียวกับ ADMIN_UPLOAD_KEY ใน backend/.env"
       />
     </label>

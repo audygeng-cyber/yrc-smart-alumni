@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-04-20T16:28:41.917Z",
+  "bundles": [
+    {
+      "bundleDir": "docs\\performance-bundles\\2026-04-20T16-28-41-550Z",
+      "generatedAt": "2026-04-20T16:28:41.564Z",
+      "snapshotGeneratedAt": "2026-04-20T16:28:34.427Z",
+      "gateOk": true,
+      "mainJsGzipBytes": 87088,
+      "totalJsGzipBytes": 195507,
+      "totalAssetsGzipBytes": 202964,
+      "handoffOwner": "engineering",
+      "handoffChannel": "#performance",
+      "handoffEnvironment": "preview",
+      "handoffCheckpoint": "pre-merge",
+      "fileCount": 16
+    },
+    {
+      "bundleDir": "docs\\performance-bundles\\2026-04-20T16-23-05-817Z",
+      "generatedAt": "2026-04-20T16:23:05.831Z",
+      "snapshotGeneratedAt": "2026-04-20T16:22:59.382Z",
+      "gateOk": true,
+      "mainJsGzipBytes": 87088,
+      "totalJsGzipBytes": 195507,
+      "totalAssetsGzipBytes": 202964,
+      "handoffOwner": "engineering",
+      "handoffChannel": "#performance",
+      "handoffEnvironment": "preview",
+      "handoffCheckpoint": "pre-merge",
+      "fileCount": 15
+    },
+    {
+      "bundleDir": "docs\\performance-bundles\\2026-04-20T16-18-41-614Z",
+      "generatedAt": "2026-04-20T16:18:41.623Z",
+      "snapshotGeneratedAt": "2026-04-20T16:18:35.283Z",
+      "gateOk": true,
+      "mainJsGzipBytes": 87088,
+      "totalJsGzipBytes": 195507,
+      "totalAssetsGzipBytes": 202964,
+      "handoffOwner": null,
+      "handoffChannel": null,
+      "handoffEnvironment": null,
+      "handoffCheckpoint": null,
+      "fileCount": 9
+    },
+    {
+      "bundleDir": "docs\\performance-bundles\\2026-04-20T16-15-01-086Z",
+      "generatedAt": "2026-04-20T16:15:01.094Z",
+      "snapshotGeneratedAt": "2026-04-20T16:14:55.651Z",
+      "gateOk": true,
+      "mainJsGzipBytes": 87088,
+      "totalJsGzipBytes": 195507,
+      "totalAssetsGzipBytes": 202964,
+      "handoffOwner": null,
+      "handoffChannel": null,
+      "handoffEnvironment": null,
+      "handoffCheckpoint": null,
+      "fileCount": 9
+    },
+    {
+      "bundleDir": "docs\\performance-bundles\\2026-04-20T16-11-08-546Z",
+      "generatedAt": "2026-04-20T16:11:08.555Z",
+      "snapshotGeneratedAt": "2026-04-20T16:11:03.521Z",
+      "gateOk": true,
+      "mainJsGzipBytes": 87088,
+      "totalJsGzipBytes": 195507,
+      "totalAssetsGzipBytes": 202964,
+      "handoffOwner": null,
+      "handoffChannel": null,
+      "handoffEnvironment": null,
+      "handoffCheckpoint": null,
+      "fileCount": 9
+    },
+    {
+      "bundleDir": "docs\\performance-bundles\\2026-04-20T16-06-41-276Z",
+      "generatedAt": "2026-04-20T16:06:41.285Z",
+      "snapshotGeneratedAt": "2026-04-20T16:06:36.602Z",
+      "gateOk": true,
+      "mainJsGzipBytes": 87088,
+      "totalJsGzipBytes": 195507,
+      "totalAssetsGzipBytes": 202964,
+      "handoffOwner": null,
+      "handoffChannel": null,
+      "handoffEnvironment": null,
+      "handoffCheckpoint": null,
+      "fileCount": 9
+    }
+  ]
+}
