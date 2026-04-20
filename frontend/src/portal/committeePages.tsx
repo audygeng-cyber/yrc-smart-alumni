@@ -98,7 +98,7 @@ function CommitteePlBlock(props: { title: string; entityHint: string; pl: Commit
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">รายรับ</dt>
-            <dd className="text-emerald-300">{fmtThbAmount(props.pl.revenue)}</dd>
+            <dd className="text-fuchsia-300">{fmtThbAmount(props.pl.revenue)}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">รายจ่าย</dt>
@@ -240,7 +240,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
                 <span
                   className={`rounded px-2 py-0.5 text-xs ${
                     m.status === 'ready'
-                      ? 'bg-emerald-900/40 text-emerald-200'
+                      ? 'bg-fuchsia-900/40 text-fuchsia-200'
                       : m.status === 'pending_vote'
                         ? 'bg-amber-900/40 text-amber-200'
                         : 'bg-sky-900/40 text-sky-200'
@@ -284,7 +284,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
                         href={doc.documentUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className={`rounded border border-slate-700 px-2 py-0.5 text-[11px] text-emerald-300 hover:bg-slate-800 ${portalFocusRing}`}
+                        className={`rounded border border-slate-700 px-2 py-0.5 text-[11px] text-fuchsia-300 hover:bg-slate-800 ${portalFocusRing}`}
                         aria-label={`เปิดลิงก์เอกสาร ${doc.title}`}
                       >
                         เปิดลิงก์
@@ -343,7 +343,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
                     <span className="font-medium text-slate-200">{row.title}</span>
                     <span
                       className={`rounded px-2 py-0.5 ${
-                        row.approvedByVote ? 'bg-emerald-900/40 text-emerald-200' : 'bg-rose-900/40 text-rose-200'
+                        row.approvedByVote ? 'bg-fuchsia-900/40 text-fuchsia-200' : 'bg-rose-900/40 text-rose-200'
                       }`}
                     >
                       {row.resultLabel}
@@ -418,7 +418,7 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
             ) : (
               <div className="mt-4">
                 <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">สัดส่วนตามรุ่น (สูงสุด 8 รุ่น)</h4>
-                <TrendBars items={data.memberBatchDistribution} color="emerald" />
+                <TrendBars items={data.memberBatchDistribution} color="fuchsia" />
               </div>
             )}
             <div className="mt-6">
@@ -556,7 +556,7 @@ function CommitteeAttendancePage(props: {
                 {session.rsvpNo.toLocaleString('th-TH')} · ไม่แน่ใจ {session.rsvpMaybe.toLocaleString('th-TH')}
               </p>
               <p className="mt-2 text-slate-200">
-                ลงชื่อเข้าประชุมแล้ว <span className="font-semibold text-emerald-300">{session.signedCount.toLocaleString('th-TH')}</span>{' '}
+                ลงชื่อเข้าประชุมแล้ว <span className="font-semibold text-fuchsia-300">{session.signedCount.toLocaleString('th-TH')}</span>{' '}
                 คน
                 <span className="ml-2 rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
                   {session.status === 'open' ? 'กำลังเปิดรับ' : 'ปิดรอบ'}
@@ -752,7 +752,7 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
                       onClick={() => void submitVote(a.id)}
                       disabled={submittingAgendaId === a.id}
                       aria-label={`ลงมติในวาระ ${a.title}`}
-                      className={`rounded bg-emerald-800 px-2 py-1 text-xs text-white hover:bg-emerald-700 disabled:opacity-60 ${portalFocusRing}`}
+                      className={`rounded bg-fuchsia-800 px-2 py-1 text-xs text-white hover:bg-fuchsia-700 disabled:opacity-60 ${portalFocusRing}`}
                     >
                       {submittingAgendaId === a.id ? 'กำลังบันทึก…' : 'ลงมติ'}
                     </button>
@@ -904,7 +904,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
             <li className="rounded border border-sky-900/40 bg-sky-950/20 px-3 py-2 text-sky-100" role="listitem">
               คำขอจ่ายรอดำเนินการ {payPending.toLocaleString('th-TH')} รายการ (สถานะ pending)
             </li>
-            <li className="rounded border border-emerald-900/40 bg-emerald-950/20 px-3 py-2 text-emerald-100" role="listitem">
+            <li className="rounded border border-fuchsia-900/40 bg-fuchsia-950/20 px-3 py-2 text-fuchsia-100" role="listitem">
               เอกสารประชุมเผยแพร่ {publishedDocumentCount.toLocaleString('th-TH')} รายการ
             </li>
             {latestMinutes ? (
@@ -917,7 +917,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
               <li
                 className={`rounded px-3 py-2 ${
                   latestClosedAgenda.approvedByVote
-                    ? 'border border-emerald-900/40 bg-emerald-950/20 text-emerald-100'
+                    ? 'border border-fuchsia-900/40 bg-fuchsia-950/20 text-fuchsia-100'
                     : 'border border-rose-900/40 bg-rose-950/20 text-rose-100'
                 }`}
                 role="listitem"
@@ -928,7 +928,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
             ) : null}
           </ul>
           <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="ลิงก์งานด่วนสำหรับคณะกรรมการ">
-            <Link to="/committee/voting" aria-label="ไปหน้าลงมติคณะกรรมการทันที" className={`rounded bg-emerald-800 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 ${portalFocusRing}`}>
+            <Link to="/committee/voting" aria-label="ไปหน้าลงมติคณะกรรมการทันที" className={`rounded bg-fuchsia-800 px-3 py-1.5 text-xs text-white hover:bg-fuchsia-700 ${portalFocusRing}`}>
               เปิดหน้าลงมติ
             </Link>
             <Link to="/committee/attendance" aria-label="ไปหน้าเช็กชื่อประชุม" className={`rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
@@ -954,7 +954,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
                 <span
                   className={`rounded px-2 py-0.5 text-xs ${
                     meeting.status === 'ready'
-                      ? 'bg-emerald-900/40 text-emerald-200'
+                      ? 'bg-fuchsia-900/40 text-fuchsia-200'
                       : meeting.status === 'pending_vote'
                         ? 'bg-amber-900/40 text-amber-200'
                         : 'bg-sky-900/40 text-sky-200'
