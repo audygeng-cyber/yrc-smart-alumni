@@ -1,6 +1,13 @@
-/** วงโฟกัสคีย์บอร์ด — ต่อท้าย className ของลิงก์/ปุ่มในพอร์ทัล */
-export const portalFocusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950'
+import { themeAccent } from '../lib/themeTokens'
+
+/** วงโฟกัสคีย์บอร์ด — ต่อท้าย className ของลิงก์/ปุ่มในพอร์ทัล (เดียวกับ `themeAccent.focusRing`) */
+export const portalFocusRing = themeAccent.focusRing
+
+/** สีหลักบานเย็น — ปุ่มและเมนู active (อ้างอิงจาก `themeAccent`) */
+export const portalAccent = {
+  button: themeAccent.navItemActive,
+  buttonStrong: themeAccent.buttonPrimaryStrong,
+} as const
 
 /** path ต่อท้าย apiBase สำหรับ snapshot — ต้องตรงกับ backend `routes/portal` */
 export const portalSnapshotPath = {

@@ -2,8 +2,12 @@ export const themeAccent = {
   colorName: 'fuchsia',
   focusRing:
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950',
+  /** ปุ่มหลัก — มี hover */
   buttonPrimary: 'bg-fuchsia-800 text-white hover:bg-fuchsia-700',
+  /** ปุ่มเน้น — โทนสว่างกว่าเล็กน้อย */
   buttonPrimaryStrong: 'bg-fuchsia-700 text-white hover:bg-fuchsia-600',
+  /** เมนูพอร์ทัล — รายการที่ active (ไม่ต้อง hover แยก) */
+  navItemActive: 'bg-fuchsia-800 text-white',
   panel: 'border-fuchsia-900/40 bg-fuchsia-950/20',
   panelSoft: 'border-fuchsia-900/35 bg-fuchsia-950/15',
   text: 'text-fuchsia-200',
