@@ -44,7 +44,7 @@ export function AcademyArea(props: { apiBase: string }) {
     >
       <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
+          <span className="text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as AcademyRoleView)}
@@ -57,8 +57,8 @@ export function AcademyArea(props: { apiBase: string }) {
             <option value="student">นักเรียน</option>
             <option value="parent">ผู้ปกครอง</option>
           </select>
-          <span className="text-xs text-slate-500">จำลองสิทธิ์การเข้าถึงเมนูภายในพอร์ทัลโรงเรียนกวดวิชา (Academy)</span>
-          <span id={roleViewSummaryId} className="text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <span className="text-xs text-slate-400">จำลองสิทธิ์การเข้าถึงเมนูภายในพอร์ทัลโรงเรียนกวดวิชา (Academy)</span>
+          <span id={roleViewSummaryId} className="text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
           </span>
           <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
@@ -149,22 +149,22 @@ function AcademyStudentsPage(props: { roleView: AcademyRoleView; portalState: Po
               aria-label="สรุปภาพรวมจำนวนนักเรียนและคะแนน"
             >
               <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">จำนวนห้อง</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400">จำนวนห้อง</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-100">{classes.length.toLocaleString('th-TH')}</p>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">นักเรียนทั้งหมด</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400">นักเรียนทั้งหมด</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-100">{totalStudents.toLocaleString('th-TH')}</p>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">คะแนนเฉลี่ยรวม (ถ่วงน้ำหนัก)</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400">คะแนนเฉลี่ยรวม (ถ่วงน้ำหนัก)</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-100">{weightedAvg != null ? weightedAvg : '—'}</p>
               </div>
             </div>
             <div className="mt-6 overflow-x-auto">
               <table className="w-full min-w-[420px] text-left text-sm" aria-label="ตารางสรุปห้องเรียนและคะแนนเฉลี่ย">
                 <thead>
-                  <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
+                  <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-400">
                     <th scope="col" className="py-2 pr-3">ห้อง</th>
                     <th scope="col" className="py-2 pr-3">จำนวนนักเรียน</th>
                     <th scope="col" className="py-2">คะแนนเฉลี่ยห้อง</th>
@@ -199,7 +199,7 @@ function AcademyStudentsPage(props: { roleView: AcademyRoleView; portalState: Po
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span>{row.room}</span>
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-slate-400">
                             {roster.length.toLocaleString('th-TH')} คน · คลิกเพื่อขยาย
                           </span>
                         </span>
@@ -223,7 +223,7 @@ function AcademyStudentsPage(props: { roleView: AcademyRoleView; portalState: Po
                 })}
               </div>
             ) : (
-              <p className="mt-4 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              <p className="mt-4 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                 ยังไม่มีรายชื่อนักเรียนในสแนปช็อต — เพิ่มนักเรียนได้ที่{' '}
                 <Link to="/admin" aria-label="ไปหน้าแผงผู้ดูแลระบบ" className={`rounded-sm text-fuchsia-400/90 underline hover:text-fuchsia-300 ${portalFocusRing}`}>
                   ผู้ดูแล (Admin)
@@ -249,7 +249,7 @@ function AcademyCoursesPage(props: { portalState: PortalDataState<AcademyPortalD
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">คอร์สเรียน / กิจกรรม</h3>
             <p className="mt-2 text-sm text-slate-400">
-              รายการจาก <code className="text-slate-500">school_activities</code> ที่เปิดใช้งาน — อัปเดตเมื่อโหลดพอร์ทัล
+              รายการจาก <code className="text-slate-400">school_activities</code> ที่เปิดใช้งาน — อัปเดตเมื่อโหลดพอร์ทัล
             </p>
           </div>
         </PortalSectionHeader>
@@ -263,7 +263,7 @@ function AcademyCoursesPage(props: { portalState: PortalDataState<AcademyPortalD
             aria-atomic="true"
           >
             <p>ยังไม่มีรายการคอร์สในฐานข้อมูล (หรือใช้ข้อมูลจำลองที่ไม่มีรายการ)</p>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-400">
               เพิ่มผ่าน{' '}
               <Link to="/admin" aria-label="ไปหน้าแผงผู้ดูแลระบบส่วนคอร์สและกิจกรรม" className={`rounded-sm text-amber-400/90 underline hover:text-amber-300 ${portalFocusRing}`}>
                 ผู้ดูแล (Admin) → คอร์ส/กิจกรรม
@@ -275,7 +275,7 @@ function AcademyCoursesPage(props: { portalState: PortalDataState<AcademyPortalD
           <div className="mt-6 overflow-x-auto">
             <table className="w-full min-w-[480px] text-left text-sm" aria-label="ตารางคอร์สและกิจกรรมที่เปิดใช้งาน">
               <thead>
-                <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
+                <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-400">
                   <th scope="col" className="py-2 pr-3">หมวด</th>
                   <th scope="col" className="py-2 pr-3">ชื่อคอร์ส</th>
                   <th scope="col" className="py-2">รายละเอียด</th>
@@ -330,7 +330,7 @@ function AcademyEnrollmentPage(props: { portalState: PortalDataState<AcademyPort
             <p className="mt-4 text-sm text-slate-400">
               อัตราแปลงโดยประมาณจากขั้นแรกถึงขั้นสุดในขั้นตอนฟันเนล (Funnel):{' '}
               <span className="font-medium text-violet-200">{conversionPct}%</span>
-              <span className="text-slate-500"> ({last.toLocaleString('th-TH')} / {first.toLocaleString('th-TH')})</span>
+              <span className="text-slate-400"> ({last.toLocaleString('th-TH')} / {first.toLocaleString('th-TH')})</span>
             </p>
             <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้ารายงานโรงเรียนกวดวิชา">
               <Link
@@ -407,11 +407,11 @@ function AcademyResultsPage(props: { roleView: AcademyRoleView; portalState: Por
               aria-label="สรุปผลการเรียนรวมในสแนปช็อต"
             >
               <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">นักเรียน (รวมจากตารางห้อง)</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400">นักเรียน (รวมจากตารางห้อง)</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-100">{total.toLocaleString('th-TH')}</p>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">คะแนนเฉลี่ยรวม (ถ่วงน้ำหนัก)</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400">คะแนนเฉลี่ยรวม (ถ่วงน้ำหนัก)</p>
                 <p className="mt-1 text-2xl font-semibold text-cyan-200">{weighted != null ? weighted : '—'}</p>
               </div>
             </div>
@@ -474,7 +474,7 @@ function AcademyReportsPage(props: { roleView: AcademyRoleView; portalState: Por
         ) : (
           <>
             <div className="mt-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">ตัวชี้วัดหลัก</p>
+              <p className="text-xs uppercase tracking-wide text-slate-400">ตัวชี้วัดหลัก</p>
               <div className="mt-2">
                 <MetricCards items={data.metricCards} />
               </div>
@@ -572,7 +572,7 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ผลคะแนนเฉลี่ยตามห้อง</h3>
           <p className="mt-2 text-sm text-slate-400">ดูคุณภาพการเรียนรายห้องเพื่อวางแผนเสริมจุดอ่อน</p>
           {data.classes.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            <p className="mt-4 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
               ยังไม่มีข้อมูลห้องเรียนจากสแนปช็อต (เช่น ยังไม่มีข้อมูลห้องที่เปิดใช้งานใน `cram_classrooms`)
             </p>
           ) : (

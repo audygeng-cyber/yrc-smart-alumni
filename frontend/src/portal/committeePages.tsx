@@ -46,7 +46,7 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
     >
       <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
+          <span className="text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as CommitteeRoleView)}
@@ -57,8 +57,8 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
             <option value="chair">ประธานคณะกรรมการ</option>
             <option value="member">กรรมการ</option>
           </select>
-          <span className="text-xs text-slate-500">จำลองสิทธิ์เมนูภายในพอร์ทัลคณะกรรมการ</span>
-          <span id={roleViewSummaryId} className="text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <span className="text-xs text-slate-400">จำลองสิทธิ์เมนูภายในพอร์ทัลคณะกรรมการ</span>
+          <span id={roleViewSummaryId} className="text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
           </span>
           <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
@@ -88,20 +88,20 @@ function fmtThbAmount(n: number) {
 function CommitteePlBlock(props: { title: string; entityHint: string; pl: CommitteeMonthlyPl | null }) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{props.entityHint}</p>
+      <p className="text-xs uppercase tracking-wide text-slate-400">{props.entityHint}</p>
       <h4 className="mt-1 text-base font-medium text-slate-100">{props.title}</h4>
       {!props.pl ? (
-        <p className="mt-3 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-3 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           ไม่มีข้อมูลสมุดรายวัน (journal) ในช่วงเดือนนี้
         </p>
       ) : (
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">รายรับ</dt>
+            <dt className="text-slate-400">รายรับ</dt>
             <dd className="text-fuchsia-300">{fmtThbAmount(props.pl.revenue)}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">รายจ่าย</dt>
+            <dt className="text-slate-400">รายจ่าย</dt>
             <dd className="text-amber-200">{fmtThbAmount(props.pl.expense)}</dd>
           </div>
           <div className="flex justify-between gap-4 border-t border-slate-800 pt-2">
@@ -138,13 +138,13 @@ function CommitteeFinancePage(props: {
           ) : (
             <ul className="mt-4 space-y-3 text-sm" role="list" aria-label="สรุปกำไรสุทธิแยกตามนิติบุคคล">
               <li className="rounded border border-slate-800 px-3 py-2" role="listitem">
-                <span className="text-slate-500">นิติบุคคลสมาคม · กำไรสุทธิ</span>
+                <span className="text-slate-400">นิติบุคคลสมาคม · กำไรสุทธิ</span>
                 <p className="mt-1 font-medium text-slate-100">
                   {data.associationMonthlyPl ? fmtThbAmount(data.associationMonthlyPl.netIncome) : '— ไม่มีข้อมูล —'}
                 </p>
               </li>
               <li className="rounded border border-slate-800 px-3 py-2" role="listitem">
-                <span className="text-slate-500">โรงเรียนกวดวิชา · กำไรสุทธิ</span>
+                <span className="text-slate-400">โรงเรียนกวดวิชา · กำไรสุทธิ</span>
                 <p className="mt-1 font-medium text-slate-100">
                   {data.cramSchoolMonthlyPl ? fmtThbAmount(data.cramSchoolMonthlyPl.netIncome) : '— ไม่มีข้อมูล —'}
                 </p>
@@ -215,7 +215,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">วาระและรอบประชุม</h3>
             <p className="mt-2 text-sm text-slate-400">
-              รายการจากสแนปช็อต (<code className="text-slate-500">meeting_sessions</code> ล่าสุด) — อัปเดตเมื่อโหลดพอร์ทัล
+              รายการจากสแนปช็อต (<code className="text-slate-400">meeting_sessions</code> ล่าสุด) — อัปเดตเมื่อโหลดพอร์ทัล
             </p>
           </div>
         </PortalSectionHeader>
@@ -235,7 +235,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
               >
                 <div>
                   <p className="font-medium text-slate-100">{m.topic}</p>
-                  <p className="text-xs text-slate-500">เวลา {m.time}</p>
+                  <p className="text-xs text-slate-400">เวลา {m.time}</p>
                 </div>
                 <span
                   className={`rounded px-2 py-0.5 text-xs ${
@@ -255,7 +255,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
         <div className="mt-6 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="เอกสารประชุมล่าสุด">
           <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">เอกสารประชุมล่าสุด</h4>
           {loading ? null : documents.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
               ยังไม่มีเอกสารประชุมที่เผยแพร่
             </p>
           ) : (
@@ -264,7 +264,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
                 <li key={doc.id} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium text-slate-200">{doc.title}</span>
-                    <span className="text-slate-500">{doc.scope}</span>
+                    <span className="text-slate-400">{doc.scope}</span>
                   </div>
                   <p className="mt-1 text-[11px] text-slate-600">
                     อัปเดต {new Date(doc.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
@@ -299,7 +299,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
         <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="รายงานการประชุมล่าสุด">
           <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายงานการประชุมล่าสุด</h4>
           {loading ? null : recentMinutes.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
               ยังไม่มีรายงานการประชุมที่เผยแพร่
             </p>
           ) : (
@@ -308,7 +308,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
                 <li key={m.meetingSessionId} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium text-slate-200">{m.title}</span>
-                    <span className="text-slate-500">
+                    <span className="text-slate-400">
                       อัปเดต {new Date(m.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
                     </span>
                   </div>
@@ -332,7 +332,7 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
         <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="ผลมติวาระที่ปิดแล้วล่าสุด">
           <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">ผลมติวาระที่ปิดแล้วล่าสุด</h4>
           {loading ? null : closedAgendaResults.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
               ยังไม่มีวาระที่ปิดพร้อมผลมติ
             </p>
           ) : (
@@ -349,11 +349,11 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
                       {row.resultLabel}
                     </span>
                   </div>
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-[11px] text-slate-400">
                     {agendaScopeLabel(row.scope)} · ปิดเมื่อ{' '}
                     {new Date(row.closedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-[11px] text-slate-400">
                     เห็นชอบ {row.approve.toLocaleString('th-TH')} · ไม่เห็นชอบ {row.reject.toLocaleString('th-TH')} · งดออกเสียง{' '}
                     {row.abstain.toLocaleString('th-TH')} · รวม {row.totalVotes.toLocaleString('th-TH')} เสียง
                   </p>
@@ -412,17 +412,17 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
         ) : (
           <>
             {data.memberBatchDistribution.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              <p className="mt-4 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                 ยังไม่มีข้อมูลรุ่นสำหรับแสดงกราฟ
               </p>
             ) : (
               <div className="mt-4">
-                <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">สัดส่วนตามรุ่น (สูงสุด 8 รุ่น)</h4>
+                <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">สัดส่วนตามรุ่น (สูงสุด 8 รุ่น)</h4>
                 <TrendBars items={data.memberBatchDistribution} color="fuchsia" />
               </div>
             )}
             <div className="mt-6">
-              <label className="block text-xs font-medium uppercase tracking-wide text-slate-500">ค้นหาในรายการตัวอย่าง</label>
+              <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">ค้นหาในรายการตัวอย่าง</label>
               <input
                 type="search"
                 value={query}
@@ -433,17 +433,17 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
               />
             </div>
             {data.memberDirectoryPreview.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              <p className="mt-4 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                 ยังไม่มีรายชื่อในสแนปช็อต
               </p>
             ) : filtered.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              <p className="mt-4 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                 ไม่พบรายการที่ตรงกับคำค้น
               </p>
             ) : (
               <div className="mt-4 overflow-x-auto rounded border border-slate-800">
                 <table className="min-w-full text-left text-sm text-slate-300" aria-label="ตารางรายชื่อสมาชิกตัวอย่าง">
-                  <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
                     <tr>
                       <th scope="col" className="px-3 py-2">ชื่อ-นามสกุล</th>
                       <th scope="col" className="px-3 py-2">รุ่น</th>
@@ -524,8 +524,8 @@ function CommitteeAttendancePage(props: {
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ลงทะเบียนและลงชื่อประชุม</h3>
             <p className="mt-2 text-sm text-slate-400">
-              ข้อมูลจากรอบประชุมล่าสุด (<code className="text-slate-500">meeting_sessions</code> /{' '}
-              <code className="text-slate-500">meeting_attendance</code>)
+              ข้อมูลจากรอบประชุมล่าสุด (<code className="text-slate-400">meeting_sessions</code> /{' '}
+              <code className="text-slate-400">meeting_attendance</code>)
             </p>
           </div>
         </PortalSectionHeader>
@@ -540,7 +540,7 @@ function CommitteeAttendancePage(props: {
           <div className="mt-4 space-y-4">
             <div className="rounded border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm">
               <p className="font-medium text-slate-100">{session.title}</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-400">
                 กำหนดการ{' '}
                 {session.scheduledAt
                   ? new Date(session.scheduledAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
@@ -563,7 +563,7 @@ function CommitteeAttendancePage(props: {
                 </span>
               </p>
               <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-800/80 pt-3">
-                <label className="text-xs text-slate-500" htmlFor="committee-rsvp-status">
+                <label className="text-xs text-slate-400" htmlFor="committee-rsvp-status">
                   แจ้งความประสงค์เข้าประชุม (กรรมการ)
                 </label>
                 <select
@@ -598,13 +598,13 @@ function CommitteeAttendancePage(props: {
             </div>
 
             {rows.length === 0 ? (
-              <p className="text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              <p className="text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                 ยังไม่มีรายการลงชื่อในรอบนี้
               </p>
             ) : (
               <div className="overflow-x-auto rounded border border-slate-800">
                 <table className="min-w-full text-left text-sm text-slate-300" aria-label="ตารางผู้เข้าร่วมที่ลงชื่อประชุม">
-                  <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
                     <tr>
                       <th scope="col" className="px-3 py-2">ชื่อผู้เข้าร่วม</th>
                       <th scope="col" className="px-3 py-2">บทบาท</th>
@@ -618,7 +618,7 @@ function CommitteeAttendancePage(props: {
                         <td className="px-3 py-2 text-slate-100">{r.attendeeName}</td>
                         <td className="px-3 py-2 text-slate-400">{r.attendeeRoleCode}</td>
                         <td className="px-3 py-2 text-slate-400">{signedViaLabel(r.signedVia)}</td>
-                        <td className="px-3 py-2 text-slate-500">{formatThaiSignedAt(r.signedAt)}</td>
+                        <td className="px-3 py-2 text-slate-400">{formatThaiSignedAt(r.signedAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -724,7 +724,7 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การลงมติ</h3>
             <p className="mt-2 text-sm text-slate-400">
-              วาระที่เปิดรับการลงมติ (<code className="text-slate-500">meeting_agendas</code> สถานะ = open)
+              วาระที่เปิดรับการลงมติ (<code className="text-slate-400">meeting_agendas</code> สถานะ = open)
             </p>
           </div>
         </PortalSectionHeader>
@@ -820,7 +820,7 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
         </div>
 
         <p className="mt-4 text-xs text-slate-600">
-          เมื่อกดปุ่มลงมติ ระบบจะบันทึกลง <code className="text-slate-500">meeting_votes</code> และรีเฟรชรายการวาระอัตโนมัติ
+          เมื่อกดปุ่มลงมติ ระบบจะบันทึกลง <code className="text-slate-400">meeting_votes</code> และรีเฟรชรายการวาระอัตโนมัติ
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าการลงมติ">
@@ -871,7 +871,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4" aria-busy={loading}>
         <PortalSnapshotStatusRow loading={loading} source={source}>
-          <p className="text-xs uppercase tracking-wide text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p className="text-xs uppercase tracking-wide text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             สรุปสแนปช็อตแดชบอร์ด
           </p>
         </PortalSnapshotStatusRow>
@@ -882,7 +882,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">แนวโน้มคำร้อง 7 วัน</h3>
           <p className="mt-2 text-sm text-slate-400">
-            จำนวนคำร้องใหม่ต่อวัน (UTC) จาก <code className="text-slate-500">member_update_requests</code> — ใช้ติดตามงานค้าง
+            จำนวนคำร้องใหม่ต่อวัน (UTC) จาก <code className="text-slate-400">member_update_requests</code> — ใช้ติดตามงานค้าง
           </p>
           <TrendBars items={data.requestTrend} />
         </section>
@@ -940,7 +940,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สถานะประชุมวันนี้</h3>
         {data.meetings.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p className="mt-3 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             ยังไม่มีรายการประชุมในสแนปช็อต
           </p>
         ) : (

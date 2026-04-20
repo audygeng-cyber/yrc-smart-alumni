@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { portalAccent, portalFocusRing } from './portalLabels'
+import { portalFocusRing } from './portalLabels'
 
 export function PortalShell(props: {
   title: string
@@ -31,8 +31,8 @@ export function PortalShell(props: {
                     to={item.to}
                     aria-label={`ไปหน้า ${item.label}`}
                     className={({ isActive }) =>
-                      `tap-target block rounded px-3 py-2 text-sm ${portalFocusRing} ${
-                        isActive ? portalAccent.button : 'text-slate-300 hover:bg-slate-800'
+                      `block rounded px-3 py-2 text-sm ${portalFocusRing} ${
+                        isActive ? 'bg-emerald-800 text-white' : 'text-slate-300 hover:bg-slate-800'
                       }`
                     }
                   >
@@ -77,7 +77,7 @@ export function PortalSnapshotRefreshButton(props: {
       aria-busy={props.loading}
       aria-label="โหลดสแนปช็อตพอร์ทัลจากเซิร์ฟเวอร์ใหม่"
       onClick={() => void props.onRefresh()}
-      className={`tap-target rounded border border-slate-600 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${portalFocusRing}`}
+      className={`rounded border border-slate-600 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${portalFocusRing}`}
     >
       รีเฟรชสแนปช็อต
     </button>
@@ -93,7 +93,7 @@ export function PortalDataSourceBadge(props: { loading: boolean; source: 'api' |
       aria-live="polite"
       aria-busy={props.loading}
       aria-atomic="true"
-      className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300"
+      className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-400"
       title="แหล่งข้อมูลของสแนปช็อตพอร์ทัล (API = จากเซิร์ฟเวอร์, จำลอง = ข้อมูลสำรองเมื่อโหลดไม่สำเร็จ)"
     >
       data: {dataLabel}
@@ -191,11 +191,11 @@ export function SectionPlaceholder(props: { title: string; description: string }
   )
 }
 
-export function TrendBars(props: { items: Array<{ label: string; value: number }>; color?: 'fuchsia' | 'violet' | 'cyan' }) {
+export function TrendBars(props: { items: Array<{ label: string; value: number }>; color?: 'emerald' | 'violet' | 'cyan' }) {
   const max = Math.max(...props.items.map((item) => item.value), 1)
   const tone =
-    props.color === 'violet' ? 'bg-violet-500/80' : props.color === 'cyan' ? 'bg-cyan-500/80' : 'bg-fuchsia-500/80'
-  const toneLabel = props.color === 'violet' ? 'ม่วง' : props.color === 'cyan' ? 'ฟ้า' : 'บานเย็น'
+    props.color === 'violet' ? 'bg-violet-500/80' : props.color === 'cyan' ? 'bg-cyan-500/80' : 'bg-emerald-500/80'
+  const toneLabel = props.color === 'violet' ? 'ม่วง' : props.color === 'cyan' ? 'ฟ้า' : 'เขียว'
   return (
     <div
       className="mt-4 space-y-2"
@@ -234,9 +234,9 @@ export function DonationCampaignCard(props: { title: string; progress: number; t
         aria-valuenow={progress}
         aria-valuetext={`${progress}%`}
       >
-        <div className="h-full rounded bg-fuchsia-500/80" style={{ width: `${progress}%` }} />
+        <div className="h-full rounded bg-emerald-500/80" style={{ width: `${progress}%` }} />
       </div>
-      <p className="mt-2 text-xs text-fuchsia-200">คืบหน้า {progress}%</p>
+      <p className="mt-2 text-xs text-emerald-200">คืบหน้า {progress}%</p>
     </div>
   )
 }
