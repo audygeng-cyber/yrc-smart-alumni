@@ -15,15 +15,66 @@ import { membersRouter } from './routes/members.js'
 import { portalRouter } from './routes/portal.js'
 import { pushRouter } from './routes/push.js'
 
-function parseCorsOrigins(): string[] {
+/** ลบ slash ท้าย + lowercase — เปรียบเทียบ Origin จากเบราว์เซอร์กับ FRONTEND_ORIGINS */
+function normalizeCorsOrigin(origin: string): string {
+  return origin.trim().replace(/\/+$/, '').toLowerCase()
+}
+
+function parseCorsOriginsNormalized(): string[] {
   const raw = process.env.FRONTEND_ORIGINS?.trim()
   if (!raw) {
-    return ['http://localhost:5173', 'http://127.0.0.1:5173']
+    return ['http://localhost:5173', 'http://127.0.0.1:5173'].map(normalizeCorsOrigin)
   }
   return raw
     .split(',')
-    .map((s) => s.trim())
+    .map((s) => normalizeCorsOrigin(s.trim()))
     .filter(Boolean)
+}
+
+/**
+ * อนุญาต https://*.vercel.app ทุกตัว (preview / branch deploy คนละ subdomain กับ production)
+ * - เปิดอัตโนมัติถ้า FRONTEND_ORIGINS มี origin ที่เป็น .vercel.app อยู่แล้ว
+ * - บังคับปิด: FRONTEND_CORS_ALLOW_VERCEL=0 | false | no
+ * - บังคับเปิดแม้ไม่มี vercel ใน list: FRONTEND_CORS_ALLOW_VERCEL=1
+ */
+function corsAllowsAnyVercelHttps(): boolean {
+  const v = process.env.FRONTEND_CORS_ALLOW_VERCEL?.trim().toLowerCase()
+  if (v === '0' || v === 'false' || v === 'no') return false
+  if (v === '1' || v === 'true' || v === 'yes') return true
+  return parseCorsOriginsNormalized().some((o) => o.includes('.vercel.app'))
+}
+
+function isHttpsVercelAppOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin)
+    return u.protocol === 'https:' && u.hostname.toLowerCase().endsWith('.vercel.app')
+  } catch {
+    return false
+  }
+}
+
+function createCorsOriginDelegate(): (
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean | string) => void,
+) => void {
+  const allowed = new Set(parseCorsOriginsNormalized())
+  const relaxVercel = corsAllowsAnyVercelHttps()
+  return (requestOrigin, callback) => {
+    if (!requestOrigin) {
+      callback(null, true)
+      return
+    }
+    const key = normalizeCorsOrigin(requestOrigin)
+    if (allowed.has(key)) {
+      callback(null, requestOrigin)
+      return
+    }
+    if (relaxVercel && isHttpsVercelAppOrigin(requestOrigin)) {
+      callback(null, requestOrigin)
+      return
+    }
+    callback(null, false)
+  }
 }
 
 /** Express app (ไม่ listen) — ใช้ในเทสและ production */
@@ -40,7 +91,7 @@ export function createApp(): express.Express {
 
   app.use(
     cors({
-      origin: parseCorsOrigins(),
+      origin: createCorsOriginDelegate(),
       credentials: true,
     }),
   )
@@ -101,7 +152,7 @@ export function createApp(): express.Express {
 
   const lineOAuthLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 40,
+    max: 120,
     standardHeaders: true,
     legacyHeaders: false,
   })

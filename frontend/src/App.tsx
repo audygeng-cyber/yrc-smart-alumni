@@ -263,7 +263,7 @@ export default function App() {
     if (!lineChannelId || !redirectUri) return
     try {
       const url = `${apiBase.replace(/\/$/, '')}/api/auth/line/oauth-state`
-      const sr = await fetch(url, { method: 'GET', cache: 'no-store' })
+      const sr = await fetch(url, { method: 'GET', cache: 'no-store', mode: 'cors' })
       const raw = await sr.text()
       let sj: { state?: string; error?: string } = {}
       try {

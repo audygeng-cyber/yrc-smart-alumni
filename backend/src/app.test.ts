@@ -6,11 +6,13 @@ describe.sequential('createApp', () => {
   beforeEach(() => {
     vi.unstubAllEnvs()
     delete process.env.FRONTEND_ORIGINS
+    delete process.env.FRONTEND_CORS_ALLOW_VERCEL
   })
 
   afterEach(() => {
     vi.unstubAllEnvs()
     delete process.env.FRONTEND_ORIGINS
+    delete process.env.FRONTEND_CORS_ALLOW_VERCEL
   })
 
   it('GET /health returns ok', async () => {
@@ -46,6 +48,36 @@ describe.sequential('createApp', () => {
     expect(typeof res.body.state).toBe('string')
     expect(String(res.body.state).length).toBeGreaterThan(16)
     expect(String(res.headers['cache-control'] ?? '')).toMatch(/no-store/i)
+  })
+
+  it('CORS reflects Origin for oauth-state when FRONTEND_ORIGINS matches (normalized)', async () => {
+    vi.stubEnv('FRONTEND_ORIGINS', 'http://localhost:5173/')
+    vi.stubEnv('LINE_CHANNEL_SECRET', 'x')
+    const app = createApp()
+    const res = await request(app).get('/api/auth/line/oauth-state').set('Origin', 'http://localhost:5173')
+    expect(res.status).toBe(200)
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173')
+  })
+
+  it('CORS auto-allows other https *.vercel.app when FRONTEND_ORIGINS lists a vercel.app host', async () => {
+    vi.stubEnv('FRONTEND_ORIGINS', 'https://yrc-smart-alumni-frontend.vercel.app')
+    vi.stubEnv('LINE_CHANNEL_SECRET', 'x')
+    const app = createApp()
+    const res = await request(app)
+      .get('/api/auth/line/oauth-state')
+      .set('Origin', 'https://yrc-smart-alumni-git-main-audygeng-cyber.vercel.app')
+    expect(res.status).toBe(200)
+    expect(res.headers['access-control-allow-origin']).toBe('https://yrc-smart-alumni-git-main-audygeng-cyber.vercel.app')
+  })
+
+  it('CORS does not echo unrelated Vercel origin when FRONTEND_CORS_ALLOW_VERCEL=0 and no vercel in FRONTEND_ORIGINS', async () => {
+    vi.stubEnv('FRONTEND_ORIGINS', 'https://custom.example.com')
+    vi.stubEnv('FRONTEND_CORS_ALLOW_VERCEL', '0')
+    vi.stubEnv('LINE_CHANNEL_SECRET', 'x')
+    const app = createApp()
+    const res = await request(app).get('/api/auth/line/oauth-state').set('Origin', 'https://other.vercel.app')
+    expect(res.status).toBe(200)
+    expect(res.headers['access-control-allow-origin']).not.toBe('https://other.vercel.app')
   })
 
   it('POST /api/members/donations/history returns 400 without line_uid', async () => {
