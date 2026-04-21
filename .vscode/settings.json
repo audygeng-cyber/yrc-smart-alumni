@@ -1,4 +1,3 @@
 {
-  "terminal.integrated.sendKeybindingsToShell": true,
-  "css.lint.unknownAtRules": "ignore"
+  "terminal.integrated.sendKeybindingsToShell": true
 }
