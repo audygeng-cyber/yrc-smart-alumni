@@ -53,7 +53,7 @@ export function createApp(): express.Express {
       message: 'Backend API — ไม่มีหน้าเว็บที่ / ใช้ path ด้านล่าง',
       paths: {
         health: '/health',
-        lineOAuthState: 'POST /api/auth/line/oauth-state',
+        lineOAuthState: 'GET|POST /api/auth/line/oauth-state',
         lineToken: 'POST /api/auth/line/token',
         membersVerify:
           'POST /api/members/verify-link — ผูก LINE กับสมาชิก + sync app_users (member_id, approved)',

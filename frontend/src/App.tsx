@@ -262,12 +262,28 @@ export default function App() {
     const redirectUri = getLineRedirectUri()
     if (!lineChannelId || !redirectUri) return
     try {
-      const sr = await fetch(`${apiBase}/api/auth/line/oauth-state`, { method: 'POST' })
-      const sj = (await sr.json().catch(() => ({}))) as { state?: string; error?: string }
+      const url = `${apiBase.replace(/\/$/, '')}/api/auth/line/oauth-state`
+      const sr = await fetch(url, { method: 'GET', cache: 'no-store' })
+      const raw = await sr.text()
+      let sj: { state?: string; error?: string } = {}
+      try {
+        sj = JSON.parse(raw) as { state?: string; error?: string }
+      } catch {
+        /* บาง reverse proxy คืน HTML เมื่อ 404/502 */
+      }
+      const detail =
+        (typeof sj.error === 'string' && sj.error.trim()) ||
+        (raw.trim().slice(0, 160) || sr.statusText || 'ไม่ทราบสาเหตุ')
       if (!sr.ok || !sj.state?.trim()) {
+        const deployHint =
+          sr.status === 404
+            ? ' (น่าจะยังไม่ได้ deploy API เวอร์ชันใหม่ที่มี /api/auth/line/oauth-state บน Cloud Run)'
+            : sr.status === 500 && detail.includes('LINE_CHANNEL_SECRET')
+              ? ' (ตรวจ env LINE_CHANNEL_SECRET บน Cloud Run)'
+              : ''
         setLineIdentitySyncMessage({
           kind: 'err',
-          text: `ไม่สามารถเริ่มล็อกอิน LINE: ${sj.error || sr.statusText || 'oauth-state failed'}`,
+          text: `ไม่สามารถเริ่มล็อกอิน LINE — HTTP ${sr.status}: ${detail}${deployHint}`,
         })
         return
       }

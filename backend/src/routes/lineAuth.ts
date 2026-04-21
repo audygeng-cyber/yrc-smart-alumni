@@ -1,3 +1,4 @@
+import type { Response } from 'express'
 import { Router } from 'express'
 import { createSignedLineOAuthState, verifySignedLineOAuthState } from '../util/lineOAuthState.js'
 
@@ -22,11 +23,8 @@ function allowedRedirectUris(): string[] {
 
 export const lineAuthRouter = Router()
 
-/**
- * ออก state สำหรับ LINE OAuth (ลงนาม HMAC บนเซิร์ฟเวอร์) — ไม่พึ่ง sessionStorage ในเบราว์เซอร์
- * เพื่อให้ล็อกอินบนมือถือได้แม้ LINE ส่งกลับมาใน Safari คนละตัวกับ WebView ที่เริ่ม flow
- */
-lineAuthRouter.post('/oauth-state', (_req, res) => {
+function sendOauthStateJson(res: Response) {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private')
   const state = createSignedLineOAuthState()
   if (!state) {
     res.status(500).json({
@@ -36,6 +34,18 @@ lineAuthRouter.post('/oauth-state', (_req, res) => {
     return
   }
   res.json({ state })
+}
+
+/**
+ * ออก state สำหรับ LINE OAuth (ลงนาม HMAC บนเซิร์ฟเวอร์) — ไม่พึ่ง sessionStorage ในเบราว์เซอร์
+ * GET เป็นค่าเริ่มต้นจากเว็บ — simple request ลดปัญหา CORS preflight บนมือถือ; POST ยังรองรับเพื่อความเข้ากันได้
+ */
+lineAuthRouter.get('/oauth-state', (_req, res) => {
+  sendOauthStateJson(res)
+})
+
+lineAuthRouter.post('/oauth-state', (_req, res) => {
+  sendOauthStateJson(res)
 })
 
 /**

@@ -31,6 +31,23 @@ describe.sequential('createApp', () => {
     expect(String(res.body.paths?.portal ?? '')).toContain('rsvp-summary')
   })
 
+  it('GET /api/auth/line/oauth-state returns 500 without LINE_CHANNEL_SECRET', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/auth/line/oauth-state')
+    expect(res.status).toBe(500)
+    expect(String(res.body.error ?? '')).toContain('LINE_CHANNEL_SECRET')
+  })
+
+  it('GET /api/auth/line/oauth-state returns JSON state when secret set', async () => {
+    vi.stubEnv('LINE_CHANNEL_SECRET', 'test-secret-for-oauth-state-route')
+    const app = createApp()
+    const res = await request(app).get('/api/auth/line/oauth-state')
+    expect(res.status).toBe(200)
+    expect(typeof res.body.state).toBe('string')
+    expect(String(res.body.state).length).toBeGreaterThan(16)
+    expect(String(res.headers['cache-control'] ?? '')).toMatch(/no-store/i)
+  })
+
   it('POST /api/members/donations/history returns 400 without line_uid', async () => {
     const app = createApp()
     const res = await request(app).post('/api/members/donations/history').send({})
