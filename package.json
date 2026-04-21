@@ -34,6 +34,7 @@
     "verify:vercel-line-cors": "node scripts/verify-vercel-line-cors.mjs",
     "migrations:list": "node scripts/list-supabase-migrations.mjs",
     "line:show-env": "node scripts/show-cloud-run-line-env.mjs",
+    "cursor:terminal-fix": "node scripts/apply-cursor-terminal-fix.mjs",
     "perf:baseline": "node scripts/measure-frontend-bundle.mjs",
     "perf:baseline:fast": "node scripts/measure-frontend-bundle.mjs --skip-build",
     "perf:budget": "node scripts/check-performance-budget.mjs",
