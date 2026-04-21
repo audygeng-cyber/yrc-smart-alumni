@@ -9,7 +9,6 @@ import {
   PortalSectionHeader,
   PortalShell,
   PortalSnapshotStatusRow,
-  PortalSnapshotToolbar,
   TrendBars,
 } from './ui'
 import {
@@ -86,9 +85,6 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
               บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
             </span>
           </span>
-          <div className="shrink-0 sm:ml-auto">
-            <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
-          </div>
         </div>
       </section>
       <Routes>

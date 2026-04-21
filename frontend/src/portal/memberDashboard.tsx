@@ -17,7 +17,7 @@ export function MemberDashboardPage(props: {
   return (
     <div className="min-w-0 space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm" aria-busy={loading}>
-        <PortalSnapshotStatusRow loading={loading} source={source} showBadge={false}>
+        <PortalSnapshotStatusRow loading={loading} source={source}>
           <p className="text-xs leading-snug text-slate-400 line-clamp-3 sm:line-clamp-none">
             ภาพรวมสมาคมและการสนับสนุนกองโรงเรียนยุพราช — ข้อมูลจากสแนปช็อตพอร์ทัล
           </p>

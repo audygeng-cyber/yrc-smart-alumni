@@ -10,7 +10,6 @@ import {
   PortalNotFound,
   PortalSectionHeader,
   PortalShell,
-  PortalSnapshotToolbar,
 } from './ui'
 import {
   type MemberPortalData,
@@ -88,11 +87,6 @@ export function MemberArea(props: {
       subtitle="แดชบอร์ด บัตร แก้ข้อมูล สนับสนุนยุพราช สมาคม กวดวิชา — เลือกจากเมนูด้านบนหรือแถบด้านข้างบนจอใหญ่"
       navItems={visibleNavItems}
     >
-      <section className="mb-3 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-2.5 text-sm sm:mb-4 sm:p-3" aria-busy={portalData.loading}>
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-          <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
-        </div>
-      </section>
       <Routes>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route

@@ -445,6 +445,19 @@ async function loadPortalData<TData>(params: {
   }
 }
 
+const DEFAULT_PORTAL_SNAPSHOT_POLL_MS = 120_000
+const MIN_PORTAL_SNAPSHOT_POLL_MS = 10_000
+
+/** ช่วงเวลาโหลดสแนปช็อตพอร์ทัลซ้ำ (ms) — ตั้ง `VITE_PORTAL_SNAPSHOT_POLL_MS=0` เพื่อปิด polling */
+function readPortalSnapshotPollMs(): number {
+  const raw = import.meta.env.VITE_PORTAL_SNAPSHOT_POLL_MS
+  if (raw === undefined || raw === '') return DEFAULT_PORTAL_SNAPSHOT_POLL_MS
+  const n = Number(String(raw).trim())
+  if (!Number.isFinite(n)) return DEFAULT_PORTAL_SNAPSHOT_POLL_MS
+  if (n === 0) return 0
+  return Math.max(MIN_PORTAL_SNAPSHOT_POLL_MS, n)
+}
+
 function usePortalData<TData>(
   apiBase: string,
   endpoint: string,
@@ -505,6 +518,21 @@ function usePortalData<TData>(
       throw e
     }
   }, [runLoad])
+
+  const refetchRef = useRef(refetch)
+  useEffect(() => {
+    refetchRef.current = refetch
+  }, [refetch])
+
+  useEffect(() => {
+    const pollMs = readPortalSnapshotPollMs()
+    if (pollMs <= 0) return
+    const id = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      void refetchRef.current()
+    }, pollMs)
+    return () => window.clearInterval(id)
+  }, [])
 
   return { ...state, refetch }
 }

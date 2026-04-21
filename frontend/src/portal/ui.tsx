@@ -107,26 +107,7 @@ export function MetricCards(props: { items: Array<{ label: string; value: string
   )
 }
 
-/** ปุ่มโหลดสแนปช็อตพอร์ทัลจาก API ใหม่ — ใช้คู่กับ PortalDataSourceBadge */
-export function PortalSnapshotRefreshButton(props: {
-  loading: boolean
-  onRefresh: () => void | Promise<void>
-}) {
-  return (
-    <button
-      type="button"
-      disabled={props.loading}
-      aria-busy={props.loading}
-      aria-label="โหลดสแนปช็อตพอร์ทัลจากเซิร์ฟเวอร์ใหม่"
-      onClick={() => void props.onRefresh()}
-      className={`${themeTapTarget} rounded border border-slate-600 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${portalFocusRing}`}
-    >
-      รีเฟรชสแนปช็อต
-    </button>
-  )
-}
-
-/** แสดงว่าสแนปช็อตมาจาก API หรือข้อมูลจำลอง (ตอนโหลดไม่สำเร็จ) */
+/** แสดงว่าสแนปช็อตมาจาก API หรือข้อมูลจำลอง (ตอนโหลดไม่สำเร็จ) — ใช้เฉพาะเมื่อ `PortalSnapshotStatusRow` เปิด `showBadge` */
 export function PortalDataSourceBadge(props: { loading: boolean; source: 'api' | 'mock' }) {
   const dataLabel = props.loading ? 'กำลังโหลด…' : props.source === 'api' ? 'API' : 'จำลอง'
   return (
@@ -143,33 +124,20 @@ export function PortalDataSourceBadge(props: { loading: boolean; source: 'api' |
   )
 }
 
-/** ปุ่มรีเฟรช + badge แหล่งข้อมูล — ใช้ในแถบ Role view ของแต่ละพอร์ทัล */
-export function PortalSnapshotToolbar(props: {
-  loading: boolean
-  source: 'api' | 'mock'
-  onRefresh: () => void | Promise<void>
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="เครื่องมือสแนปช็อตพอร์ทัล">
-      <PortalSnapshotRefreshButton loading={props.loading} onRefresh={props.onRefresh} />
-      <PortalDataSourceBadge loading={props.loading} source={props.source} />
-    </div>
-  )
-}
-
-/** หัวข้อ/คำอธิบาย (children) + badge แหล่งสแนปช็อต — ใช้ในหน้าย่อยของพอร์ทัล */
+/** หัวข้อ/คำอธิบาย (children) — ใช้ในหน้าย่อยของพอร์ทัล (แหล่งข้อมูลอัปเดตตามช่วงเวลา polling ใน `usePortalData`) */
 export function PortalSectionHeader(props: {
   loading: boolean
+  /** คงพารามิเตอร์ไว้ให้ call site เดิม — ไม่แสดง badge แล้ว */
   source: 'api' | 'mock'
   children: ReactNode
   /** แทนที่คลาสของแถว (ค่าเริ่มต้น: flex flex-wrap items-start justify-between gap-3) */
   className?: string
 }) {
+  void props.source
   const rowClass = props.className ?? 'flex flex-wrap items-start justify-between gap-3'
   return (
     <div className={rowClass} aria-busy={props.loading}>
       {props.children}
-      <PortalDataSourceBadge loading={props.loading} source={props.source} />
     </div>
   )
 }
@@ -184,7 +152,7 @@ export function PortalSnapshotStatusRow(props: {
   /** ปุ่มหรือลิงก์เพิ่มทางขวา — ต่อท้ายข้อความโหลด / badge */
   endExtra?: ReactNode
 }) {
-  const showBadge = props.showBadge !== false
+  const showBadge = props.showBadge === true
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       {props.children}
