@@ -3,7 +3,6 @@ import { clearLineEntrySource } from './lib/lineEntrySource'
 export const SS_LINE_UID = 'yrc_line_uid'
 export const SS_LINE_NAME = 'yrc_line_name'
 export const SS_LINE_FROM_OAUTH = 'yrc_line_uid_from_oauth'
-export const SS_OAUTH_STATE = 'yrc_line_oauth_state'
 /** แถวสมาชิกหลัง verify-link สำเร็จ — ใช้เปิดหน้าสมาชิกเมื่อรีเฟรช */
 export const SS_MEMBER_SNAPSHOT = 'yrc_member_snapshot'
 

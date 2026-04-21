@@ -44,7 +44,6 @@ import {
   setLineSessionFromOAuth,
   setManualLineUid,
   setMemberSnapshot,
-  SS_OAUTH_STATE,
 } from './lineSession'
 import { normalizeApiBase } from './lib/adminApi'
 import { themeAccent, themeTapTarget } from './lib/themeTokens'
@@ -196,14 +195,6 @@ export default function App() {
     const redirectUri = getLineRedirectUri()
     if (!code || !state || !redirectUri) return
 
-    const saved = sessionStorage.getItem(SS_OAUTH_STATE)
-    if (!saved || saved !== state) {
-      window.history.replaceState({}, '', window.location.pathname + window.location.hash)
-      return
-    }
-
-    sessionStorage.removeItem(SS_OAUTH_STATE)
-
     ;(async () => {
       try {
         const r = await fetch(`${apiBase}/api/auth/line/token`, {
@@ -212,6 +203,7 @@ export default function App() {
           body: JSON.stringify({
             code,
             redirect_uri: redirectUri,
+            state,
           }),
         })
         const j = (await r.json().catch(() => ({}))) as {
@@ -221,6 +213,13 @@ export default function App() {
         }
         if (!r.ok || !j.line_uid) {
           console.error('LINE token exchange failed', j)
+          setLineIdentitySyncMessage({
+            kind: 'err',
+            text:
+              typeof j.error === 'string' && j.error
+                ? `ล็อกอิน LINE ไม่สำเร็จ: ${j.error}`
+                : 'ล็อกอิน LINE ไม่สำเร็จ — ตรวจ redirect_uri / LINE_REDIRECT_URIS และ Callback URL ใน LINE Console',
+          })
           return
         }
         const persisted = await syncLineAppUser(apiBase, j.line_uid)
@@ -249,24 +248,42 @@ export default function App() {
         }
       } catch (e) {
         console.error(e)
+        setLineIdentitySyncMessage({
+          kind: 'err',
+          text: `แลก LINE token ผิดพลาด — ${e instanceof Error ? e.message : 'unknown'}`,
+        })
       } finally {
         window.history.replaceState({}, '', window.location.pathname + window.location.hash)
       }
     })()
   }, [navigate])
 
-  function startLineLogin() {
+  async function startLineLogin() {
     const redirectUri = getLineRedirectUri()
     if (!lineChannelId || !redirectUri) return
-    const st = crypto.randomUUID()
-    sessionStorage.setItem(SS_OAUTH_STATE, st)
-    const u = new URL('https://access.line.me/oauth2/v2.1/authorize')
-    u.searchParams.set('response_type', 'code')
-    u.searchParams.set('client_id', lineChannelId)
-    u.searchParams.set('redirect_uri', redirectUri)
-    u.searchParams.set('state', st)
-    u.searchParams.set('scope', 'openid profile')
-    window.location.href = u.toString()
+    try {
+      const sr = await fetch(`${apiBase}/api/auth/line/oauth-state`, { method: 'POST' })
+      const sj = (await sr.json().catch(() => ({}))) as { state?: string; error?: string }
+      if (!sr.ok || !sj.state?.trim()) {
+        setLineIdentitySyncMessage({
+          kind: 'err',
+          text: `ไม่สามารถเริ่มล็อกอิน LINE: ${sj.error || sr.statusText || 'oauth-state failed'}`,
+        })
+        return
+      }
+      const u = new URL('https://access.line.me/oauth2/v2.1/authorize')
+      u.searchParams.set('response_type', 'code')
+      u.searchParams.set('client_id', lineChannelId)
+      u.searchParams.set('redirect_uri', redirectUri)
+      u.searchParams.set('state', sj.state.trim())
+      u.searchParams.set('scope', 'openid profile')
+      window.location.href = u.toString()
+    } catch (e) {
+      setLineIdentitySyncMessage({
+        kind: 'err',
+        text: `เรียก API ก่อนไป LINE ไม่สำเร็จ — ตรวจเครือข่าย/CORS (${e instanceof Error ? e.message : 'unknown'})`,
+      })
+    }
   }
 
   function handleClearLineSession() {

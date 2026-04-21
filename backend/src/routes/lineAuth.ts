@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { createSignedLineOAuthState, verifySignedLineOAuthState } from '../util/lineOAuthState.js'
 
 const LINE_TOKEN = 'https://api.line.me/oauth2/v2.1/token'
 const LINE_VERIFY = 'https://api.line.me/oauth2/v2.1/verify'
@@ -22,6 +23,22 @@ function allowedRedirectUris(): string[] {
 export const lineAuthRouter = Router()
 
 /**
+ * ออก state สำหรับ LINE OAuth (ลงนาม HMAC บนเซิร์ฟเวอร์) — ไม่พึ่ง sessionStorage ในเบราว์เซอร์
+ * เพื่อให้ล็อกอินบนมือถือได้แม้ LINE ส่งกลับมาใน Safari คนละตัวกับ WebView ที่เริ่ม flow
+ */
+lineAuthRouter.post('/oauth-state', (_req, res) => {
+  const state = createSignedLineOAuthState()
+  if (!state) {
+    res.status(500).json({
+      error:
+        'ยังไม่ได้ตั้งค่า LINE_CHANNEL_SECRET (หรือ LINE_OAUTH_STATE_SECRET) สำหรับลงนาม OAuth state',
+    })
+    return
+  }
+  res.json({ state })
+})
+
+/**
  * แลก authorization code → ตรวจ id_token กับ LINE → คืน line_uid (sub)
  * redirect_uri ต้องตรงกับที่ลงทะเบียนใน LINE Developers และตรงกับที่ใช้ตอนขอ authorize
  */
@@ -29,9 +46,15 @@ lineAuthRouter.post('/token', async (req, res) => {
   try {
     const code = typeof req.body?.code === 'string' ? req.body.code.trim() : ''
     const redirect_uri = typeof req.body?.redirect_uri === 'string' ? req.body.redirect_uri.trim() : ''
+    const state = typeof req.body?.state === 'string' ? req.body.state.trim() : ''
 
-    if (!code || !redirect_uri) {
-      res.status(400).json({ error: 'ต้องระบุ code และ redirect_uri' })
+    if (!code || !redirect_uri || !state) {
+      res.status(400).json({ error: 'ต้องระบุ code, redirect_uri และ state' })
+      return
+    }
+
+    if (!verifySignedLineOAuthState(state)) {
+      res.status(400).json({ error: 'state ไม่ถูกต้องหรือหมดอายุ — ลองกดเข้าสู่ระบบ LINE ใหม่' })
       return
     }
 
