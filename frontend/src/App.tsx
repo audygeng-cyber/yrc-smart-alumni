@@ -389,8 +389,10 @@ function AppChrome(props: AppChromeProps) {
         ข้ามไปยังเนื้อหาหลัก
       </a>
       <header className="border-b border-slate-800 bg-slate-900/80 pb-3 backdrop-blur sm:pb-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pt-[max(1rem,env(safe-area-inset-top,0px))]">
-        <h1 className="text-xl font-semibold tracking-tight">YRC Smart Alumni</h1>
-        <p className="mt-1 text-sm text-slate-400">พอร์ทัลสมาชิก · คณะกรรมการ · โรงเรียนกวดวิชา (Academy)</p>
+        <h1 className="text-lg font-semibold tracking-tight sm:text-xl">YRC Smart Alumni</h1>
+        <p className="mt-1 line-clamp-2 text-sm text-slate-400 sm:line-clamp-none">
+          พอร์ทัลสมาชิก · คณะกรรมการ · Academy
+        </p>
         <div
           className="mt-3 min-w-0 rounded-lg border border-slate-800/80 bg-slate-950/40 p-2 sm:border-0 sm:bg-transparent sm:p-0"
           aria-label="มุมมองบทบาทและเมนูพอร์ทัล"
@@ -402,17 +404,22 @@ function AppChrome(props: AppChromeProps) {
               onChange={(e) => props.setRoleView(e.target.value as RoleView)}
               aria-label="เลือกมุมมองบทบาทของพอร์ทัล"
               aria-describedby={roleViewSummaryId}
-              className={`${themeTapTarget} min-w-0 w-full max-w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 sm:w-auto sm:max-w-md sm:py-1.5 sm:text-xs ${themeAccent.focusRing}`}
+              className={`${themeTapTarget} min-w-0 w-full max-w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 sm:w-auto sm:max-w-md sm:py-1.5 sm:text-xs ${themeAccent.focusRing}`}
             >
               <option value="all">ทุกพอร์ทัล</option>
               <option value="member">เฉพาะสมาชิก</option>
               <option value="committee">เฉพาะคณะกรรมการ</option>
               <option value="academy">เฉพาะโรงเรียนกวดวิชา (Academy)</option>
             </select>
-            <span className="text-xs text-slate-400 sm:shrink-0">จำลองการมองเห็นเมนูตามสิทธิ์</span>
+            <span className="hidden text-xs text-slate-500 sm:inline">จำลองการมองเห็นเมนูตามสิทธิ์</span>
           </div>
-          <p id={roleViewSummaryId} className="mt-2 min-w-0 break-words text-xs text-slate-400 sm:mt-0" role="status" aria-live="polite" aria-atomic="true">
-            มุมมองปัจจุบัน: {roleViewLabel} · พอร์ทัลที่แสดง {visiblePortalCount.toLocaleString('th-TH')} หมวด
+          <p id={roleViewSummaryId} className="mt-2 min-w-0 text-xs leading-snug text-slate-400 sm:mt-1" role="status" aria-live="polite" aria-atomic="true">
+            <span className="sm:hidden">
+              {roleViewLabel} · {visiblePortalCount.toLocaleString('th-TH')} หมวด
+            </span>
+            <span className="hidden sm:inline">
+              มุมมองปัจจุบัน: {roleViewLabel} · พอร์ทัลที่แสดง {visiblePortalCount.toLocaleString('th-TH')} หมวด
+            </span>
           </p>
         </div>
         {import.meta.env.DEV && !rbac.enforced ? (
@@ -444,10 +451,17 @@ function AppChrome(props: AppChromeProps) {
               <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} />
             ) : null}
             {showAcademyNav ? (
-              <NavPill to="/academy/dashboard" label="โรงเรียนกวดวิชา" active={location.pathname.startsWith('/academy')} />
+              <NavPill
+                to="/academy/dashboard"
+                label="โรงเรียนกวดวิชา"
+                shortLabel="Academy"
+                active={location.pathname.startsWith('/academy')}
+              />
             ) : null}
             {canRequests ? <NavPill to="/requests" label="คำร้อง" active={location.pathname.startsWith('/requests')} /> : null}
-            {canAdmin ? <NavPill to="/admin" label="ผู้ดูแล (Admin)" active={location.pathname.startsWith('/admin')} /> : null}
+            {canAdmin ? (
+              <NavPill to="/admin" label="ผู้ดูแล (Admin)" shortLabel="Admin" active={location.pathname.startsWith('/admin')} />
+            ) : null}
           </div>
         </nav>
       </header>
@@ -586,7 +600,8 @@ function AppChrome(props: AppChromeProps) {
   )
 }
 
-function NavPill({ to, label, active }: { to: string; label: string; active: boolean }) {
+function NavPill(props: { to: string; label: string; shortLabel?: string; active: boolean }) {
+  const { to, label, shortLabel, active } = props
   return (
     <Link
       to={to}
@@ -596,7 +611,8 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
         active ? themeAccent.navItemActive : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
       }`}
     >
-      {label}
+      <span className="sm:hidden">{shortLabel ?? label}</span>
+      <span className="hidden sm:inline">{label}</span>
     </Link>
   )
 }

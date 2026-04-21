@@ -49,46 +49,77 @@ export function MemberArea(props: {
     [parentOnMemberUpdated],
   )
   const memberNav = [
-    { to: '/member/dashboard', label: 'แดชบอร์ด', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/card', label: 'บัตรสมาชิก', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/profile-edit', label: 'เปลี่ยนแปลงข้อมูลสมาชิก', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/last-update', label: 'ข้อมูลอัปเดตล่าสุด', roles: ['member', 'staff'] as MemberRoleView[] },
+    { to: '/member/dashboard', label: 'แดชบอร์ด', shortLabel: 'แดชบอร์ด', roles: ['member', 'staff'] as MemberRoleView[] },
+    { to: '/member/card', label: 'บัตรสมาชิก', shortLabel: 'บัตร', roles: ['member', 'staff'] as MemberRoleView[] },
+    {
+      to: '/member/profile-edit',
+      label: 'เปลี่ยนแปลงข้อมูลสมาชิก',
+      shortLabel: 'แก้ข้อมูล',
+      roles: ['member', 'staff'] as MemberRoleView[],
+    },
+    {
+      to: '/member/last-update',
+      label: 'ข้อมูลอัปเดตล่าสุด',
+      shortLabel: 'อัปเดตล่าสุด',
+      roles: ['member', 'staff'] as MemberRoleView[],
+    },
     {
       to: '/member/donations',
       label: 'สนับสนุนกิจกรรมยุพราช',
+      shortLabel: 'สนับสนุนยุพราช',
       roles: ['member', 'staff'] as MemberRoleView[],
     },
-    { to: '/member/association', label: 'สมาคมศิษย์เก่า', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/cram-school', label: 'โรงเรียนกวดวิชา', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/documents', label: 'ข้อมูลเชิงกำกับดูแล', roles: ['staff'] as MemberRoleView[] },
+    { to: '/member/association', label: 'สมาคมศิษย์เก่า', shortLabel: 'สมาคม', roles: ['member', 'staff'] as MemberRoleView[] },
+    { to: '/member/cram-school', label: 'โรงเรียนกวดวิชา', shortLabel: 'กวดวิชา', roles: ['member', 'staff'] as MemberRoleView[] },
+    {
+      to: '/member/documents',
+      label: 'ข้อมูลเชิงกำกับดูแล',
+      shortLabel: 'กำกับดูแล',
+      roles: ['staff'] as MemberRoleView[],
+    },
   ]
-  const visibleNavItems = memberNav.filter((item) => item.roles.includes(roleView)).map((item) => ({ to: item.to, label: item.label }))
+  const visibleNavItems = memberNav
+    .filter((item) => item.roles.includes(roleView))
+    .map((item) => ({ to: item.to, label: item.label, shortLabel: item.shortLabel }))
   const roleViewLabel = roleView === 'member' ? 'สมาชิกทั่วไป' : 'เจ้าหน้าที่สมาคม'
 
   return (
     <PortalShell
       title="พอร์ทัลสมาชิก"
-      subtitle="แดชบอร์ด · บัตร · แก้ไขข้อมูล · สนับสนุนยุพราช · สมาคม · กวดวิชา"
+      subtitle="แดชบอร์ด บัตร แก้ข้อมูล สนับสนุนยุพราช สมาคม กวดวิชา — เลือกจากเมนูด้านบนหรือแถบด้านข้างบนจอใหญ่"
       navItems={visibleNavItems}
     >
-      <section className="mb-4 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
-          <select
-            value={roleView}
-            onChange={(e) => setRoleView(e.target.value as MemberRoleView)}
-            aria-label="เลือกมุมมองบทบาทในพอร์ทัลสมาชิก"
-            aria-describedby={roleViewSummaryId}
-            className={`min-w-0 max-w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
+      <section className="mb-3 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-2.5 text-sm sm:mb-4 sm:p-3" aria-busy={portalData.loading}>
+        <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
+            <select
+              value={roleView}
+              onChange={(e) => setRoleView(e.target.value as MemberRoleView)}
+              aria-label="เลือกมุมมองบทบาทในพอร์ทัลสมาชิก"
+              aria-describedby={roleViewSummaryId}
+              className={`min-w-0 max-w-full flex-1 rounded border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-200 sm:flex-none sm:py-1 sm:text-xs ${portalFocusRing}`}
+            >
+              <option value="member">สมาชิกทั่วไป</option>
+              <option value="staff">เจ้าหน้าที่สมาคม</option>
+            </select>
+          </div>
+          <span className="hidden text-xs text-slate-500 md:inline">จำลองสิทธิ์เมนูภายในพอร์ทัลสมาชิก</span>
+          <span
+            id={roleViewSummaryId}
+            className="min-w-0 text-xs leading-snug text-slate-400 sm:max-w-[min(100%,28rem)]"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
           >
-            <option value="member">สมาชิกทั่วไป</option>
-            <option value="staff">เจ้าหน้าที่สมาคม</option>
-          </select>
-          <span className="text-xs text-slate-400 sm:shrink-0">จำลองสิทธิ์เมนูภายในพอร์ทัลสมาชิก</span>
-          <span id={roleViewSummaryId} className="min-w-0 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
-            บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
+            <span className="sm:hidden">
+              {roleViewLabel} · {visibleNavItems.length.toLocaleString('th-TH')} เมนู
+            </span>
+            <span className="hidden sm:inline">
+              บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
+            </span>
           </span>
-          <div className="shrink-0">
+          <div className="shrink-0 sm:ml-auto">
             <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
           </div>
         </div>

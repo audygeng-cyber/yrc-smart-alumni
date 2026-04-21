@@ -3,6 +3,9 @@ import { Link, NavLink } from 'react-router-dom'
 import { themeTapTarget } from '../lib/themeTokens'
 import { portalAccent, portalFocusRing } from './portalLabels'
 
+/** รายการเมนูพอร์ทัล — `shortLabel` ใช้บนมือถือเมื่อ `label` ยาวเกินไป */
+export type PortalNavItem = { to: string; label: string; shortLabel?: string }
+
 function portalNavLinkClass(isActive: boolean, layout: 'sidebar' | 'strip') {
   const base = `${themeTapTarget} text-sm ${portalFocusRing} `
   if (layout === 'sidebar') {
@@ -16,40 +19,44 @@ function portalNavLinkClass(isActive: boolean, layout: 'sidebar' | 'strip') {
 export function PortalShell(props: {
   title: string
   subtitle: string
-  navItems: Array<{ to: string; label: string }>
+  navItems: PortalNavItem[]
   children: React.ReactNode
 }) {
   const titleId = useId()
   const navHeadingId = useId()
   const mobileNavId = useId()
   return (
-    <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 md:p-5" aria-labelledby={titleId}>
-      <div className="mb-4 border-b border-slate-800 pb-4">
+    <section
+      className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-3 sm:p-4 md:p-5"
+      aria-labelledby={titleId}
+    >
+      <div className="mb-3 border-b border-slate-800 pb-3 sm:mb-4 sm:pb-4">
         <h2 id={titleId} className="text-sm font-medium uppercase tracking-wide text-slate-300">
           {props.title}
         </h2>
-        <p className="mt-2 text-sm text-slate-400">{props.subtitle}</p>
+        <p className="mt-2 text-sm text-slate-400 line-clamp-2 sm:line-clamp-none">{props.subtitle}</p>
       </div>
 
       {/* มือถือ/แท็บเล็ต: เมนูพอร์ทัลแนวนอนเลื่อนได้ — ลดการเลื่อนยาวจากรายการเมนูแนวตั้งเต็มความกว้าง */}
-      <div className="mb-4 min-w-0 max-w-full lg:hidden">
+      <div className="mb-3 min-w-0 max-w-full sm:mb-4 lg:hidden">
         <p id={mobileNavId} className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
           เมนูพอร์ทัล
         </p>
         <nav
-          className="-mx-1 flex min-w-0 max-w-full touch-pan-x gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]"
+          className="-mx-1 flex min-w-0 max-w-full touch-pan-x snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain scroll-px-2 px-2 pb-1 [scrollbar-width:thin]"
           aria-labelledby={mobileNavId}
           aria-label="เมนูพอร์ทัล (เลื่อนแนวนอน มือถือ)"
         >
-          <ul className="flex w-max gap-2" role="list">
+          <ul className="flex w-max gap-2.5 pr-2" role="list">
             {props.navItems.map((item) => (
-              <li key={item.to} role="listitem" className="shrink-0">
+              <li key={item.to} role="listitem" className="shrink-0 snap-start">
                 <NavLink
                   to={item.to}
                   aria-label={`ไปหน้า ${item.label}`}
                   className={({ isActive }) => portalNavLinkClass(isActive, 'strip')}
                 >
-                  {item.label}
+                  <span className="sm:hidden">{item.shortLabel ?? item.label}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
                 </NavLink>
               </li>
             ))}
@@ -57,7 +64,7 @@ export function PortalShell(props: {
         </nav>
       </div>
 
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden rounded-lg border border-slate-800 bg-slate-950/50 p-3 lg:block">
           <p id={navHeadingId} className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
             เมนูพอร์ทัล
@@ -86,9 +93,9 @@ export function PortalShell(props: {
 
 export function MetricCards(props: { items: Array<{ label: string; value: string; hint: string }> }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="list" aria-label="การ์ดสรุปตัวชี้วัด">
+    <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-2 xl:grid-cols-4" role="list" aria-label="การ์ดสรุปตัวชี้วัด">
       {props.items.map((item) => (
-        <div key={item.label} className="rounded-lg border border-slate-800 bg-slate-950/50 p-4" role="listitem">
+        <div key={item.label} className="rounded-lg border border-slate-800 bg-slate-950/50 p-3 sm:p-4" role="listitem">
           <p className="text-xs uppercase tracking-wide text-slate-400">{item.label}</p>
           <p className="mt-2 text-2xl font-semibold text-slate-100" aria-label={`${item.label} มีค่า ${item.value}`}>
             {item.value}

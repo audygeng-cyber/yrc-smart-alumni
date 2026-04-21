@@ -26,14 +26,26 @@ export function AcademyArea(props: { apiBase: string }) {
   const portalData = useAcademyPortalData(props.apiBase)
   const roleViewSummaryId = 'academy-role-view-summary'
   const navItems = [
-    { to: '/academy/dashboard', label: 'แดชบอร์ด', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
-    { to: '/academy/students', label: 'นักเรียน/ห้องเรียน', roles: ['admin', 'teacher'] as AcademyRoleView[] },
-    { to: '/academy/courses', label: 'คอร์สเรียน', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
-    { to: '/academy/enrollment', label: 'สมัครเรียน', roles: ['admin', 'student', 'parent'] as AcademyRoleView[] },
-    { to: '/academy/results', label: 'ผลการเรียน/คะแนน', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
-    { to: '/academy/reports', label: 'รายงานอินโฟกราฟิก', roles: ['admin', 'teacher'] as AcademyRoleView[] },
+    { to: '/academy/dashboard', label: 'แดชบอร์ด', shortLabel: 'แดชบอร์ด', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
+    {
+      to: '/academy/students',
+      label: 'นักเรียน/ห้องเรียน',
+      shortLabel: 'ห้อง/นักเรียน',
+      roles: ['admin', 'teacher'] as AcademyRoleView[],
+    },
+    { to: '/academy/courses', label: 'คอร์สเรียน', shortLabel: 'คอร์ส', roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[] },
+    { to: '/academy/enrollment', label: 'สมัครเรียน', shortLabel: 'สมัครเรียน', roles: ['admin', 'student', 'parent'] as AcademyRoleView[] },
+    {
+      to: '/academy/results',
+      label: 'ผลการเรียน/คะแนน',
+      shortLabel: 'ผลเรียน',
+      roles: ['admin', 'teacher', 'student', 'parent'] as AcademyRoleView[],
+    },
+    { to: '/academy/reports', label: 'รายงานอินโฟกราฟิก', shortLabel: 'รายงาน', roles: ['admin', 'teacher'] as AcademyRoleView[] },
   ]
-  const visibleNavItems = navItems.filter((item) => item.roles.includes(roleView)).map((item) => ({ to: item.to, label: item.label }))
+  const visibleNavItems = navItems
+    .filter((item) => item.roles.includes(roleView))
+    .map((item) => ({ to: item.to, label: item.label, shortLabel: item.shortLabel }))
   const roleViewLabel =
     roleView === 'admin'
       ? 'ผู้บริหารโรงเรียน'
@@ -46,29 +58,42 @@ export function AcademyArea(props: { apiBase: string }) {
   return (
     <PortalShell
       title="พอร์ทัลโรงเรียนกวดวิชา (Academy)"
-      subtitle="ผู้บริหาร · ผู้ปกครอง · นักเรียน · ครู · แดชบอร์ดอินโฟกราฟิก (ตามบทบาท)"
+      subtitle="ผู้บริหาร ครู นักเรียน ผู้ปกครอง — แดชบอร์ดและรายงานตามบทบาท (เลือกเมนูด้านบน)"
       navItems={visibleNavItems}
     >
-      <section className="mb-4 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
-          <select
-            value={roleView}
-            onChange={(e) => setRoleView(e.target.value as AcademyRoleView)}
-            aria-label="เลือกมุมมองบทบาทในพอร์ทัลโรงเรียนกวดวิชา"
-            aria-describedby={roleViewSummaryId}
-            className={`min-w-0 max-w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
+      <section className="mb-3 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-2.5 text-sm sm:mb-4 sm:p-3" aria-busy={portalData.loading}>
+        <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
+            <select
+              value={roleView}
+              onChange={(e) => setRoleView(e.target.value as AcademyRoleView)}
+              aria-label="เลือกมุมมองบทบาทในพอร์ทัลโรงเรียนกวดวิชา"
+              aria-describedby={roleViewSummaryId}
+              className={`min-w-0 max-w-full flex-1 rounded border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-200 sm:flex-none sm:py-1 sm:text-xs ${portalFocusRing}`}
+            >
+              <option value="admin">ผู้บริหารโรงเรียน</option>
+              <option value="teacher">ครู</option>
+              <option value="student">นักเรียน</option>
+              <option value="parent">ผู้ปกครอง</option>
+            </select>
+          </div>
+          <span className="hidden text-xs text-slate-500 lg:inline">จำลองสิทธิ์เมนูภายใน Academy</span>
+          <span
+            id={roleViewSummaryId}
+            className="min-w-0 text-xs leading-snug text-slate-400 sm:max-w-[min(100%,28rem)]"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
           >
-            <option value="admin">ผู้บริหารโรงเรียน</option>
-            <option value="teacher">ครู</option>
-            <option value="student">นักเรียน</option>
-            <option value="parent">ผู้ปกครอง</option>
-          </select>
-          <span className="text-xs text-slate-400 sm:shrink-0">จำลองสิทธิ์การเข้าถึงเมนูภายในพอร์ทัลโรงเรียนกวดวิชา (Academy)</span>
-          <span id={roleViewSummaryId} className="min-w-0 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
-            บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
+            <span className="sm:hidden">
+              {roleViewLabel} · {visibleNavItems.length.toLocaleString('th-TH')} เมนู
+            </span>
+            <span className="hidden sm:inline">
+              บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
+            </span>
           </span>
-          <div className="shrink-0">
+          <div className="shrink-0 sm:ml-auto">
             <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
           </div>
         </div>

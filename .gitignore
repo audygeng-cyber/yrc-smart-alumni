@@ -25,6 +25,10 @@ out/
 .DS_Store
 Thumbs.db
 
+# Python (e.g. Cursor ui-ux-pro-max skill scripts)
+__pycache__/
+*.py[cod]
+
 # Temporary clone when syncing Cursor community skills (scripts/sync-cursor-community-skills.ps1)
 _skill-vendor/
 

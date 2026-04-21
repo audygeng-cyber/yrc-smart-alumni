@@ -33,40 +33,60 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
   const portalData = useCommitteePortalData(props.apiBase)
   const roleViewSummaryId = 'committee-role-view-summary'
   const navItems = [
-    { to: '/committee/dashboard', label: 'แดชบอร์ด', roles: ['chair', 'member'] as CommitteeRoleView[] },
-    { to: '/committee/members', label: 'ทะเบียนสมาชิก', roles: ['chair', 'member'] as CommitteeRoleView[] },
-    { to: '/committee/finance', label: 'การเงินละเอียด', roles: ['chair'] as CommitteeRoleView[] },
-    { to: '/committee/meetings', label: 'วาระ/รายงานประชุม', roles: ['chair', 'member'] as CommitteeRoleView[] },
-    { to: '/committee/attendance', label: 'ลงทะเบียน/ลงชื่อประชุม', roles: ['chair', 'member'] as CommitteeRoleView[] },
-    { to: '/committee/voting', label: 'ลงมติ', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    { to: '/committee/dashboard', label: 'แดชบอร์ด', shortLabel: 'แดชบอร์ด', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    { to: '/committee/members', label: 'ทะเบียนสมาชิก', shortLabel: 'ทะเบียน', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    { to: '/committee/finance', label: 'การเงินละเอียด', shortLabel: 'การเงิน', roles: ['chair'] as CommitteeRoleView[] },
+    { to: '/committee/meetings', label: 'วาระ/รายงานประชุม', shortLabel: 'ประชุม', roles: ['chair', 'member'] as CommitteeRoleView[] },
+    {
+      to: '/committee/attendance',
+      label: 'ลงทะเบียน/ลงชื่อประชุม',
+      shortLabel: 'ลงชื่อ',
+      roles: ['chair', 'member'] as CommitteeRoleView[],
+    },
+    { to: '/committee/voting', label: 'ลงมติ', shortLabel: 'ลงมติ', roles: ['chair', 'member'] as CommitteeRoleView[] },
   ]
-  const visibleNavItems = navItems.filter((item) => item.roles.includes(roleView)).map((item) => ({ to: item.to, label: item.label }))
+  const visibleNavItems = navItems
+    .filter((item) => item.roles.includes(roleView))
+    .map((item) => ({ to: item.to, label: item.label, shortLabel: item.shortLabel }))
   const roleViewLabel = roleView === 'chair' ? 'ประธานคณะกรรมการ' : 'กรรมการ'
 
   return (
     <PortalShell
       title="พอร์ทัลคณะกรรมการ"
-      subtitle="คณะกรรมการ 35 คน · ทะเบียนสมาชิก · การเงินละเอียด · ประชุม · ลงมติ"
+      subtitle="ทะเบียน การเงิน ประชุม ลงมติ — คณะกรรมการ 35 คน (เลือกเมนูด้านบนหรือแถบข้างบนจอใหญ่)"
       navItems={visibleNavItems}
     >
-      <section className="mb-4 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
-          <select
-            value={roleView}
-            onChange={(e) => setRoleView(e.target.value as CommitteeRoleView)}
-            aria-label="เลือกมุมมองบทบาทในพอร์ทัลคณะกรรมการ"
-            aria-describedby={roleViewSummaryId}
-            className={`min-w-0 max-w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
+      <section className="mb-3 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-2.5 text-sm sm:mb-4 sm:p-3" aria-busy={portalData.loading}>
+        <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
+            <select
+              value={roleView}
+              onChange={(e) => setRoleView(e.target.value as CommitteeRoleView)}
+              aria-label="เลือกมุมมองบทบาทในพอร์ทัลคณะกรรมการ"
+              aria-describedby={roleViewSummaryId}
+              className={`min-w-0 max-w-full flex-1 rounded border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-200 sm:flex-none sm:py-1 sm:text-xs ${portalFocusRing}`}
+            >
+              <option value="chair">ประธานคณะกรรมการ</option>
+              <option value="member">กรรมการ</option>
+            </select>
+          </div>
+          <span className="hidden text-xs text-slate-500 md:inline">จำลองสิทธิ์เมนูภายในพอร์ทัลคณะกรรมการ</span>
+          <span
+            id={roleViewSummaryId}
+            className="min-w-0 text-xs leading-snug text-slate-400 sm:max-w-[min(100%,28rem)]"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
           >
-            <option value="chair">ประธานคณะกรรมการ</option>
-            <option value="member">กรรมการ</option>
-          </select>
-          <span className="text-xs text-slate-400 sm:shrink-0">จำลองสิทธิ์เมนูภายในพอร์ทัลคณะกรรมการ</span>
-          <span id={roleViewSummaryId} className="min-w-0 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
-            บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
+            <span className="sm:hidden">
+              {roleViewLabel} · {visibleNavItems.length.toLocaleString('th-TH')} เมนู
+            </span>
+            <span className="hidden sm:inline">
+              บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
+            </span>
           </span>
-          <div className="shrink-0">
+          <div className="shrink-0 sm:ml-auto">
             <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
           </div>
         </div>
