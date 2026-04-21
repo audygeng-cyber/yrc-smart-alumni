@@ -6,6 +6,7 @@ import type {
   IncomeStatementPayload,
   JournalListItem,
 } from '../../lib/adminFinanceTypes'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 export type JournalDetailState = {
@@ -124,7 +125,7 @@ export function FinanceJournalsGlPanel({
       aria-label="สมุดรายรับและรายงาน GL · งบกำไร · งบดุล"
     >
       <h3 className="text-sm font-medium text-indigo-200">สมุดรายรับ · GL · งบกำไร · งบดุล</h3>
-      <p className="mt-1 text-[11px] text-slate-500">
+      <p className="mt-1 text-[11px] text-slate-400">
         ใช้ตัวกรองวันที่/หน่วยงานด้านบน — คอลัมน์ซ้ายบันทึกผ่านสมุดรายวัน (double-entry) ในชื่อเรียกงาน <span className="text-slate-400">สมุดรายรับ</span>
       </p>
       <div className="mt-3 grid gap-3 xl:grid-cols-2">
@@ -152,7 +153,7 @@ export function FinanceJournalsGlPanel({
           </div>
           <div className="mt-2 max-h-36 overflow-y-auto rounded border border-slate-800">
             {journalList.length === 0 ? (
-              <p className="p-2 text-[11px] text-slate-500">ยังไม่มีข้อมูล</p>
+              <p className="p-2 text-[11px] text-slate-400">ยังไม่มีข้อมูล</p>
             ) : (
               <ul className="divide-y divide-slate-800 text-[11px]">
                 {journalList.slice(0, 40).map((j) => (
@@ -163,7 +164,7 @@ export function FinanceJournalsGlPanel({
                       onClick={() => void onLoadJournalDetail(j.id)}
                       className={`w-full px-2 py-1 text-left hover:bg-slate-800/80 ${portalFocusRing}`}
                     >
-                      <span className="text-slate-300">{j.entry_date}</span> <span className="text-slate-500">{j.status}</span> · {j.reference_no || '—'} ·{' '}
+                      <span className="text-slate-300">{j.entry_date}</span> <span className="text-slate-400">{j.status}</span> · {j.reference_no || '—'} ·{' '}
                       {(j.legal_entity_code ?? '').slice(0, 4)}
                     </button>
                   </li>
@@ -171,7 +172,7 @@ export function FinanceJournalsGlPanel({
               </ul>
             )}
           </div>
-          <p className="mt-2 text-[10px] text-slate-500">สร้างร่างใหม่</p>
+          <p className="mt-2 text-[10px] text-slate-400">สร้างร่างใหม่</p>
           <div className="mt-1 grid gap-1 sm:grid-cols-2">
             <select
               value={journalDraftEntity}
@@ -217,7 +218,7 @@ export function FinanceJournalsGlPanel({
           >
             สร้างร่าง
           </button>
-          <p className="mt-2 text-[10px] text-slate-500">
+          <p className="mt-2 text-[10px] text-slate-400">
             เอกสารที่เลือก: {journalActiveId || '—'} · เพิ่มบรรทัด (draft เท่านั้น)
           </p>
           <div className="mt-1 grid grid-cols-2 gap-1">
@@ -262,7 +263,7 @@ export function FinanceJournalsGlPanel({
               type="button"
               disabled={loading}
               onClick={onAddJournalLine}
-              className={`rounded bg-slate-700 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-slate-700 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               เพิ่มบรรทัด
             </button>
@@ -277,7 +278,7 @@ export function FinanceJournalsGlPanel({
               type="button"
               disabled={loading}
               onClick={onPostJournal}
-              className={`rounded bg-fuchsia-800 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded px-2 py-1 text-[11px] text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
             >
               โพสต์
             </button>
@@ -301,7 +302,7 @@ export function FinanceJournalsGlPanel({
               type="button"
               disabled={loading}
               onClick={onVoidJournal}
-              className={`rounded bg-rose-900 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-rose-900 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               Void
             </button>
@@ -325,7 +326,7 @@ export function FinanceJournalsGlPanel({
                   type="button"
                   disabled={loading}
                   onClick={onLinkJournalToPaymentRequest}
-                  className={`mt-2 rounded bg-fuchsia-900/80 px-2 py-1 text-[11px] text-fuchsia-100 disabled:opacity-50 ${portalFocusRing}`}
+                  className={`tap-target mt-2 rounded ${themeAccent.buttonPrimaryStrong} px-2 py-1 text-[11px] disabled:opacity-50 ${portalFocusRing}`}
                 >
                   ผูกคำขอจ่ายกับเอกสารสมุดนี้
                 </button>
@@ -341,7 +342,7 @@ export function FinanceJournalsGlPanel({
               type="button"
               disabled={loading}
               onClick={onLoadIncomeStatement}
-              className={`rounded bg-slate-700 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-slate-700 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               งบกำไรขาดทุน
             </button>
@@ -355,7 +356,7 @@ export function FinanceJournalsGlPanel({
               type="button"
               disabled={loading}
               onClick={onLoadBalanceSheet}
-              className={`rounded bg-slate-700 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-slate-700 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               งบดุล (ถึงวันที่)
             </button>
@@ -372,7 +373,7 @@ export function FinanceJournalsGlPanel({
               type="button"
               disabled={loading}
               onClick={onLoadGeneralLedger}
-              className={`rounded bg-indigo-800 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded bg-indigo-800 px-2 py-1 text-[11px] text-white disabled:opacity-50 ${portalFocusRing}`}
             >
               โหลด GL
             </button>

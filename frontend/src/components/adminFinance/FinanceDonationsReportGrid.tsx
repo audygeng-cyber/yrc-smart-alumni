@@ -111,7 +111,7 @@ export function FinanceDonationsReportGrid({
             </div>
           ))}
           {donorPaged.pageRows.length === 0 ? (
-            <p className="py-2 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            <p className="py-2 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
               ไม่พบข้อมูลผู้บริจาคตามตัวกรองปัจจุบัน
             </p>
           ) : null}
@@ -159,7 +159,7 @@ export function FinanceDonationsReportGrid({
             </div>
           ))}
           {batchPaged.pageRows.length === 0 ? (
-            <p className="py-2 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            <p className="py-2 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
               ไม่พบข้อมูลเงินบริจาคแยกรุ่นตามตัวกรองปัจจุบัน
             </p>
           ) : null}
@@ -207,7 +207,7 @@ export function FinanceDonationsReportGrid({
             </div>
           ))}
           {entityPaged.pageRows.length === 0 ? (
-            <p className="py-2 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+            <p className="py-2 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
               ไม่พบข้อมูลเงินบริจาคแยกนิติบุคคลตามตัวกรองปัจจุบัน
             </p>
           ) : null}

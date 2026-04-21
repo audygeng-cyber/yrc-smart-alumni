@@ -60,7 +60,7 @@ export function createApp(): express.Express {
         membersAppRoles:
           'POST /api/members/app-roles (line_uid, entry_source?) — app_users + roles + entry; sync member_id/approved ถ้าผูกสมาชิกแล้วแต่แถวค้าง',
         membersDonations:
-          'POST /api/members/donations (line_uid + activity_id + amount — บริจาคกิจกรรม) | POST /api/members/donations/history (line_uid — ประวัติการบริจาค)',
+          'POST /api/members/donations (line_uid + activity_id + amount — บริจาคกิจกรรม) | POST /api/members/donations/history (line_uid — ประวัติการบริจาค) | GET /api/members/donations/yupparaj-stats (สถิติกองยุพราชสาธารณะ)',
         membersRequestStatus: 'POST /api/members/request-status (line_uid — ดูคำร้องล่าสุดของสมาชิก)',
         membersUpdateSelf: 'POST /api/members/update-self (line_uid + updates — หลังผูกแล้ว)',
         membersRegister: 'POST /api/members/register-request',

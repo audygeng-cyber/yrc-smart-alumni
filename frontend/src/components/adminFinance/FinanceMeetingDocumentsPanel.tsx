@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { MeetingDocumentItem } from '../../lib/adminFinanceTypes'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 export type FinanceMeetingDocumentsPanelProps = {
@@ -72,7 +73,7 @@ export function FinanceMeetingDocumentsPanel({
   return (
     <div className="mt-4 rounded border border-slate-800 bg-slate-950/50 p-3" role="group" aria-label="เครื่องมือจัดการเอกสารประชุม">
       <h4 className="text-xs font-medium uppercase tracking-wide text-slate-300">1.2) เอกสารประชุม</h4>
-      <p className="mt-1 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+      <p className="mt-1 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
         เอกสารที่โหลดแล้ว {documents.length.toLocaleString('th-TH')} รายการ
       </p>
       <input
@@ -116,7 +117,7 @@ export function FinanceMeetingDocumentsPanel({
           disabled={loading}
           onClick={onCreateMeetingDocument}
           aria-label="เพิ่มเอกสารประชุมใหม่"
-          className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+          className={`tap-target rounded px-3 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
         >
           เพิ่มเอกสาร
         </button>
@@ -133,7 +134,7 @@ export function FinanceMeetingDocumentsPanel({
 
       <div className="mt-3 max-h-40 overflow-auto rounded border border-slate-800 p-2 text-xs" role="list" aria-label="รายการเอกสารประชุม">
         {documents.length === 0 ? (
-          <p className="text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p className="text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             ยังไม่มีเอกสารในตัวกรองนี้
           </p>
         ) : (
@@ -141,11 +142,11 @@ export function FinanceMeetingDocumentsPanel({
             <div key={doc.id} className="mb-2 rounded border border-slate-800 p-2" role="listitem">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-slate-200">{doc.title}</span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-slate-400">
                   {doc.scope} · {doc.published_to_portal ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่'}
                 </span>
               </div>
-              <p className="mt-1 break-all text-[11px] text-slate-500">{doc.id}</p>
+              <p className="mt-1 break-all text-[11px] text-slate-400">{doc.id}</p>
               {doc.document_url ? (
                 <a
                   href={doc.document_url}
@@ -243,7 +244,7 @@ export function FinanceMeetingDocumentsPanel({
               disabled={loading}
               onClick={() => void onSavePatchMeetingDocument()}
               aria-label="บันทึกการแก้ไขเอกสารประชุม"
-              className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded px-3 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
             >
               บันทึกการแก้ไข
             </button>

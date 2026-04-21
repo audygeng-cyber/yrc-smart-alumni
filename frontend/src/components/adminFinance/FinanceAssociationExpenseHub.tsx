@@ -9,6 +9,7 @@ import { postTaxCalculate } from '../../lib/adminFinanceOpsApi'
 import { PAYMENT_PURPOSE_OPTIONS } from '../../lib/adminFinanceConstants'
 import type { ActivityItem, BankAccount } from '../../lib/adminFinanceTypes'
 import { formatFetchError } from '../../lib/adminHttp'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 type LegalEntityRow = { id: string; code: string; name_th: string }
@@ -471,13 +472,13 @@ export function FinanceAssociationExpenseHub({
         <ol className="mt-3 grid gap-3 md:grid-cols-3">
           <li className="rounded-lg border border-slate-700/80 bg-slate-950/50 p-3">
             <p className="text-xs font-semibold text-slate-200">1. สร้างค่าใช้จ่าย / ขออนุมัติ</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">
               ผู้ดูแลบันทึกรายการ ยอดรวม และหลักฐาน (ชื่อไฟล์แนบ) ระบบกำหนดเส้นทางอนุมัติตามยอดและหมวดค่าใช้จ่าย
             </p>
           </li>
           <li className="rounded-lg border border-slate-700/80 bg-slate-950/50 p-3">
             <p className="text-xs font-semibold text-slate-200">2. อนุมัติตามสิทธิ์</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">
               ยอดไม่เกิน 20,000 บ. (ค่าใช้จ่ายปกติธุระ): ต้องได้รับการอนุมัติจากผู้มีอำนาจลงนามในสมุดบัญชีที่มีชื่อใน KBiz{' '}
               <span className="text-fuchsia-200/90">3 ใน 5 คน</span> ครบก่อนจึงเป็น &quot;อนุมัติจ่าย&quot; · ยอดเกิน 20,000 บ. ใช้มติประชุม
               ก.ก. ตามที่ backend กำหนด
@@ -485,7 +486,7 @@ export function FinanceAssociationExpenseHub({
           </li>
           <li className="rounded-lg border border-slate-700/80 bg-slate-950/50 p-3">
             <p className="text-xs font-semibold text-slate-200">3. แจ้งผู้มีอำนาจ KBiz → โอนเงิน</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">
               หลังอนุมัติครบ ให้แจ้งผู้มีอำนาจลงนามที่ใช้ KBiz เพื่อเข้าระบบธนาคารและโอนเงินต่อไป (ขั้นตอนจริงอยู่นอกแอป — บันทึกเลขอ้างอิงโอน/ลิงก์สลิป/หมายเหตุภายใน และทำเครื่องหมาย &quot;โอนแล้ว&quot; ในรายละเอียดรายการ)
             </p>
           </li>
@@ -530,7 +531,7 @@ export function FinanceAssociationExpenseHub({
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className={`rounded-lg bg-fuchsia-700 px-3 py-2 text-xs font-semibold text-white hover:bg-fuchsia-600 ${focus}`}
+            className={`tap-target rounded-lg ${themeAccent.buttonPrimaryStrong} px-3 py-2 text-xs font-semibold ${focus}`}
           >
             {showForm ? 'ปิดฟอร์มสร้าง' : '+ สร้างค่าใช้จ่าย'}
           </button>
@@ -538,7 +539,7 @@ export function FinanceAssociationExpenseHub({
 
         <div className="mt-4 overflow-x-auto rounded-lg border border-slate-800">
           <table className="min-w-full divide-y divide-slate-800 text-left text-xs text-slate-300">
-            <thead className="bg-slate-900/80 text-[11px] uppercase tracking-wide text-slate-500">
+            <thead className="bg-slate-900/80 text-[11px] uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-3 py-2">วันที่</th>
                 <th className="px-3 py-2">เลขที่เอกสาร</th>
@@ -553,13 +554,13 @@ export function FinanceAssociationExpenseHub({
             <tbody className="divide-y divide-slate-800/80">
               {listLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
+                  <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
                     กำลังโหลด…
                   </td>
                 </tr>
               ) : list.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
+                  <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
                     ยังไม่มีรายการในหน่วยงานนี้
                   </td>
                 </tr>
@@ -604,7 +605,7 @@ export function FinanceAssociationExpenseHub({
                             {statusLabel(row.status)}
                           </span>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-[11px] text-slate-500">{ruleShort(row.approval_rule)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-[11px] text-slate-400">{ruleShort(row.approval_rule)}</td>
                         <td className="px-3 py-2">
                           <button
                             type="button"
@@ -645,7 +646,7 @@ export function FinanceAssociationExpenseHub({
                                     type="button"
                                     disabled={loading || detailLoading || detailPaymentRequest?.id !== row.id}
                                     onClick={() => void copyKbizNotifyText(row)}
-                                    className={`rounded-lg border border-fuchsia-800/80 bg-fuchsia-950/40 px-3 py-1.5 text-[11px] font-medium text-fuchsia-200 hover:bg-fuchsia-900/50 disabled:opacity-50 ${focus}`}
+                                    className={`tap-target rounded-lg ${themeAccent.buttonOutlineOnDark} px-3 py-1.5 text-[11px] font-medium disabled:opacity-50 ${focus}`}
                                   >
                                     คัดลอกข้อความแจ้ง KBiz
                                   </button>
@@ -665,7 +666,7 @@ export function FinanceAssociationExpenseHub({
                                   {displayRow.purpose}
                                 </pre>
                                 <div className="grid gap-3 rounded-lg border border-slate-800 bg-slate-950/50 p-3 md:grid-cols-2">
-                                  <label className="block text-[11px] text-slate-500">
+                                  <label className="block text-[11px] text-slate-400">
                                     เลขอ้างอิงโอน KBiz
                                     <input
                                       value={editKbizRef}
@@ -674,7 +675,7 @@ export function FinanceAssociationExpenseHub({
                                       className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 disabled:opacity-50 ${focus}`}
                                     />
                                   </label>
-                                  <label className="block text-[11px] text-slate-500">
+                                  <label className="block text-[11px] text-slate-400">
                                     URL สลิป/หลักฐาน (อัปโหลดไฟล์จริงยังไม่มี — วางลิงก์ภายนอกได้)
                                     <input
                                       value={editSlipUrl}
@@ -683,7 +684,7 @@ export function FinanceAssociationExpenseHub({
                                       className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 disabled:opacity-50 ${focus}`}
                                     />
                                   </label>
-                                  <label className="block text-[11px] text-slate-500 md:col-span-2">
+                                  <label className="block text-[11px] text-slate-400 md:col-span-2">
                                     หมายเหตุภายใน (note)
                                     <textarea
                                       value={editNoteDetail}
@@ -698,7 +699,7 @@ export function FinanceAssociationExpenseHub({
                                       type="button"
                                       disabled={loading || displayRow.status === 'rejected'}
                                       onClick={() => void saveDetailPatch(row.id)}
-                                      className={`rounded-lg bg-fuchsia-800 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-fuchsia-700 disabled:opacity-50 ${focus}`}
+                                      className={`tap-target rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${focus}`}
                                     >
                                       บันทึกฟิลด์ด้านบน
                                     </button>
@@ -726,7 +727,7 @@ export function FinanceAssociationExpenseHub({
                                     ))}
                                   </ul>
                                 ) : (
-                                  <p className="text-[11px] text-slate-500">ยังไม่มีการอนุมัติบันทึก</p>
+                                  <p className="text-[11px] text-slate-400">ยังไม่มีการอนุมัติบันทึก</p>
                                 )}
                               </div>
                             )}
@@ -745,7 +746,7 @@ export function FinanceAssociationExpenseHub({
       {showForm ? (
         <section className="rounded-xl border border-fuchsia-900/40 bg-fuchsia-950/10 p-4 text-sm text-slate-200">
           <h3 className="text-sm font-semibold text-fuchsia-100/95">ฟอร์มค่าใช้จ่าย (สไตล์เอกสาร — ฝั่งสมาคม)</h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-400">
             ยอดรวมจากตารางรายการ → หักส่วนลด → คำนวณภาษีเหมือน backend · แนบไฟล์จริงยังไม่อัปโหลดเซิร์ฟเวอร์ — ระบุชื่อไฟล์เพื่ออ้างอิง
           </p>
 
@@ -802,7 +803,7 @@ export function FinanceAssociationExpenseHub({
 
           <div className="mt-4 overflow-x-auto rounded-lg border border-slate-800">
             <table className="min-w-full text-xs">
-              <thead className="bg-slate-900/90 text-[11px] uppercase text-slate-500">
+              <thead className="bg-slate-900/90 text-[11px] uppercase text-slate-400">
                 <tr>
                   <th className="px-2 py-2">ลำดับ</th>
                   <th className="px-2 py-2">รายละเอียด</th>
@@ -820,7 +821,7 @@ export function FinanceAssociationExpenseHub({
                   const tot = Math.round(q * up * 100) / 100
                   return (
                     <tr key={row.id} className="border-t border-slate-800">
-                      <td className="px-2 py-1 text-center text-slate-500">{idx + 1}</td>
+                      <td className="px-2 py-1 text-center text-slate-400">{idx + 1}</td>
                       <td className="px-2 py-1">
                         <input
                           value={row.description}
@@ -944,7 +945,7 @@ export function FinanceAssociationExpenseHub({
                   placeholder="เช่น ใบเสร็จ_001.pdf, สลิป.jpg"
                 />
               </label>
-              <div className="rounded border border-dashed border-slate-700 bg-slate-950/60 px-3 py-4 text-center text-[11px] text-slate-500">
+              <div className="rounded border border-dashed border-slate-700 bg-slate-950/60 px-3 py-4 text-center text-[11px] text-slate-400">
                 ลากวางไฟล์ / อัปโหลดจริง — รอเชื่อม storage ในขั้นถัดไป
               </div>
             </div>
@@ -990,7 +991,7 @@ export function FinanceAssociationExpenseHub({
               type="button"
               disabled={loading}
               onClick={() => void submitExpense()}
-              className={`rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white hover:bg-fuchsia-500 disabled:opacity-50 ${focus}`}
+              className={`tap-target rounded-lg ${themeAccent.buttonPrimaryStrong} px-4 py-2 text-sm font-semibold disabled:opacity-50 ${focus}`}
             >
               บันทึกคำขอจ่าย (ส่งเข้าลำดับอนุมัติ)
             </button>

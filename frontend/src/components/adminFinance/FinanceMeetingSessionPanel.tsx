@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 export type FinanceMeetingSessionPanelProps = {
@@ -93,7 +94,7 @@ export function FinanceMeetingSessionPanel({
         disabled={loading}
         onClick={onCreateMeeting}
         aria-label="สร้างรอบประชุมใหม่"
-        className={`mt-3 rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+        className={`tap-target mt-3 rounded px-3 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
       >
         สร้างประชุม
       </button>
@@ -167,7 +168,7 @@ export function FinanceMeetingSessionPanel({
       <div className="mt-3 rounded border border-slate-800 bg-slate-950/50 p-3" role="group" aria-label="ส่วนบันทึกรายงานการประชุม">
         <h4 className="text-xs font-medium uppercase tracking-wide text-slate-300">บันทึกรายงานการประชุม (Minutes)</h4>
         {meetingMinutesMeta ? (
-          <p className="mt-1 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p className="mt-1 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             {meetingMinutesMeta}
           </p>
         ) : null}
@@ -184,7 +185,7 @@ export function FinanceMeetingSessionPanel({
             disabled={loading}
             onClick={onSaveMeetingMinutes}
             aria-label="บันทึกรายงานการประชุม"
-            className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+            className={`tap-target rounded px-3 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
           >
             บันทึก minutes
           </button>
@@ -216,7 +217,7 @@ export function FinanceMeetingSessionPanel({
             ซ่อน minutes
           </button>
         </div>
-        <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           สถานะพอร์ทัล: {meetingMinutesPublished ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่'}
         </p>
       </div>

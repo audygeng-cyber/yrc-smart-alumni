@@ -37,6 +37,23 @@ describe.sequential('createApp', () => {
     expect(res.body.error).toBeDefined()
   })
 
+  it('GET /api/members/donations/yupparaj-stats returns stats payload when Supabase is configured', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/members/donations/yupparaj-stats')
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      expect(res.status).toBe(500)
+      expect(res.body.error).toBeDefined()
+      return
+    }
+    expect(res.status).toBe(200)
+    expect(res.body.ok).toBe(true)
+    expect(typeof res.body.totalAmount).toBe('number')
+    expect(typeof res.body.donationCount).toBe('number')
+    expect(Array.isArray(res.body.byActivity)).toBe(true)
+    expect(Array.isArray(res.body.byBatch)).toBe(true)
+    expect(Array.isArray(res.body.donors)).toBe(true)
+  })
+
   it('POST /api/members/app-roles returns 400 without line_uid', async () => {
     const app = createApp()
     const res = await request(app).post('/api/members/app-roles').send({})

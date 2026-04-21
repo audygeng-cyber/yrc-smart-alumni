@@ -2,8 +2,9 @@ import type { ReactNode } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAppRoles } from '../context/useAppRoles'
 import { rolesAllow } from '../lib/appRoles'
+import { themeAccent } from '../lib/themeTokens'
 
-const denyRing = `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950`
+const denyRing = themeAccent.focusRing
 
 function AccessDenied() {
   return (
@@ -14,11 +15,11 @@ function AccessDenied() {
     >
       <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200/90">ไม่มีสิทธิ์เข้าถึง</h2>
       <p className="mt-3 text-sm text-slate-300">
-        บัญชี LINE นี้ยังไม่มีบทบาทที่อนุญาตในส่วนนี้ — ติดต่อผู้ดูแลระบบหากต้องการเข้าถึง
+        บัญชี LINE นี้ยังไม่มีบทบาทที่อนุญาตในส่วนนี้ — กลับหน้าหลักเพื่อเลือกเมนูอื่น หรือติดต่อผู้ดูแลระบบหากต้องการสิทธิ์เพิ่ม
       </p>
       <Link
         to="/"
-        className={`mt-6 inline-flex rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 ${denyRing}`}
+        className={`tap-target mt-6 inline-flex items-center justify-center rounded-lg ${themeAccent.buttonPrimary} px-4 py-2 text-sm font-medium ${denyRing}`}
       >
         กลับหน้าหลัก
       </Link>
@@ -64,14 +65,14 @@ function RolesFetchFailed() {
         <button
           type="button"
           onClick={() => refetchRoles()}
-          className={`inline-flex rounded-lg bg-fuchsia-900/50 px-4 py-2 text-sm text-fuchsia-100 hover:bg-fuchsia-900/70 ${denyRing}`}
+          className={`tap-target inline-flex items-center justify-center rounded-lg ${themeAccent.buttonPrimaryStrong} px-4 py-2 text-sm font-medium ${denyRing}`}
         >
           ลองอีกครั้ง
         </button>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className={`inline-flex rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 ${denyRing}`}
+          className={`tap-target inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 ${denyRing}`}
         >
           รีเฟรชหน้า
         </button>

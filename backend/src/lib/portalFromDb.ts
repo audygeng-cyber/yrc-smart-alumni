@@ -792,6 +792,7 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
     .from('school_activities')
     .select('id, title, category, description')
     .eq('active', true)
+    .neq('fund_scope', 'yupparaj_school')
     .order('category', { ascending: true })
     .order('title', { ascending: true })
     .limit(200)

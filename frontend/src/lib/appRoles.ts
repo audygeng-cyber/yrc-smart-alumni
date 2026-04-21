@@ -3,7 +3,9 @@ export function enforceAppRbac(): boolean {
   return import.meta.env.VITE_ENFORCE_APP_RBAC === 'true'
 }
 
-/** ชุดบทบาทสำหรับแต่ละพื้นที่ (admin มองได้ทุกพอร์ทัล) */
+/**
+ * ชุดบทบาทสำหรับแต่ละพื้นที่ (บทบาท `admin` ในแอปรวมอยู่ในพอร์ทัลหลัก รวม `committee` — สอดคล้องลิงก์จาก `/admin` ไป `/committee/meetings`)
+ */
 export const RBAC_NAV = {
   member: ['member', 'admin'] as const,
   committee: ['committee', 'committee_authorized_3of5', 'bank_signer_3of5', 'admin'] as const,

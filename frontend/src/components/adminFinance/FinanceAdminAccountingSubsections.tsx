@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { themeAccent } from '../../lib/themeTokens'
 
 /** รายงานภาพรวม ปิดงวด และงบทดลอง — แยกจากบล็อกบัญชี-การเงินด้านล่าง */
 export function FinanceAdminReportsOverviewSection({ children }: { children: ReactNode }) {
@@ -11,7 +12,7 @@ export function FinanceAdminReportsOverviewSection({ children }: { children: Rea
         <h2 id="finance-reports-overview-heading" className="text-sm font-semibold tracking-tight text-slate-100">
           รายงานและปิดงวด
         </h2>
-        <p className="mt-1 text-[11px] text-slate-500">งบ P/L · ปิดงวดบัญชี · งบทดลอง — ใช้ตัวกรองวันที่/หน่วยงานด้านบน</p>
+        <p className="mt-1 text-[11px] text-slate-400">งบ P/L · ปิดงวดบัญชี · งบทดลอง — ใช้ตัวกรองวันที่/หน่วยงานด้านบน</p>
       </header>
       {children}
     </section>
@@ -24,14 +25,14 @@ export function FinanceAdminReportsOverviewSection({ children }: { children: Rea
 export function FinanceAdminAccountingFinanceSection({ children }: { children: ReactNode }) {
   return (
     <section
-      className="mt-6 flex flex-col gap-3 rounded-xl border border-fuchsia-900/45 bg-fuchsia-950/15 p-4"
+      className={`mt-6 flex flex-col gap-3 rounded-xl border p-4 ${themeAccent.panelSoft}`}
       aria-labelledby="finance-accounting-finance-heading"
     >
       <header className="border-b border-fuchsia-900/35 pb-3">
         <h2 id="finance-accounting-finance-heading" className="text-sm font-semibold tracking-tight text-fuchsia-100">
           บัญชี-การเงิน
         </h2>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-[11px] text-slate-400">
           ส่วน <span className="text-fuchsia-200/90">สมุดรายรับ</span> ใช้บันทึกรายการรับรู้รายได้และเงินเข้า (ระบบ backend เป็นสมุดรายวันแบบคู่บัญชี) — คู่กับรายงาน GL และงบการเงินในคอลัมน์ถัดไป
         </p>
       </header>
@@ -51,7 +52,7 @@ export function FinanceAdminFiscalToolsSection({ children }: { children: ReactNo
         <h2 id="finance-fiscal-tools-heading" className="text-sm font-semibold tracking-tight text-amber-100">
           รอบปีบัญชี · ภาษี · สินทรัพย์
         </h2>
-        <p className="mt-1 text-[11px] text-slate-500">ปิดปี สินทรัพย์ถาวร และรายงานภาษีรายเดือน</p>
+        <p className="mt-1 text-[11px] text-slate-400">ปิดปี สินทรัพย์ถาวร และรายงานภาษีรายเดือน</p>
       </header>
       {children}
     </section>
@@ -69,7 +70,7 @@ export function FinanceAdminDonationsSection({ children }: { children: ReactNode
         <h2 id="finance-donations-heading" className="text-sm font-semibold tracking-tight text-violet-100">
           บริจาคและการแบ่งมุมมอง
         </h2>
-        <p className="mt-1 text-[11px] text-slate-500">สรุปบริจาคตามผู้บริจาค / รุ่น / หน่วยงาน</p>
+        <p className="mt-1 text-[11px] text-slate-400">สรุปบริจาคตามผู้บริจาค / รุ่น / หน่วยงาน</p>
       </header>
       {children}
     </section>

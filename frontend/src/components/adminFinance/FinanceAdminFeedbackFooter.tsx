@@ -18,7 +18,7 @@ export function FinanceAdminFeedbackFooter({ msg, isErrorMsg, loading }: Props) 
         </pre>
       ) : null}
       {loading ? (
-        <p className="mt-3 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-3 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           กำลังโหลดรายงานและประมวลผลข้อมูลการเงิน...
         </p>
       ) : null}

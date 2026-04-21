@@ -28,7 +28,7 @@ export function FinanceTrialBalancePanel({ trialBalance, onExportViewCsv }: Fina
       </p>
       <div className="overflow-x-auto rounded border border-slate-800">
         <table className="min-w-full text-left text-[11px] text-slate-300" aria-label="ตาราง Trial Balance">
-          <thead className="bg-slate-900/80 text-[10px] uppercase tracking-wide text-slate-500">
+          <thead className="bg-slate-900/80 text-[10px] uppercase tracking-wide text-slate-400">
             <tr>
               <th scope="col" className="px-2 py-1.5">
                 หน่วยงาน
@@ -69,7 +69,7 @@ export function FinanceTrialBalancePanel({ trialBalance, onExportViewCsv }: Fina
         </table>
       </div>
       {trialBalance.rows.length > 200 ? (
-        <p className="mt-2 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-2 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           แสดง 200 รายการแรกจากทั้งหมด {formatThNumber(trialBalance.rows.length)} รายการ (ส่งออก CSV ได้ครบทั้งหมด)
         </p>
       ) : null}

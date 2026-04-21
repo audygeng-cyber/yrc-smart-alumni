@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MemberPortal } from '../components/MemberPortal'
+import { themeAccent } from '../lib/themeTokens'
 import { portalFocusRing, portalNotFoundScopeLabel } from './portalLabels'
 import {
   DonationCampaignCard,
@@ -21,6 +22,7 @@ import {
   useMemberPortalData,
 } from './dataAdapter'
 import { memberDonationHistoryMock } from './mockData'
+import { MemberYupparajPublicStats } from './memberDonationStats'
 
 export function MemberArea(props: {
   apiBase: string
@@ -50,24 +52,26 @@ export function MemberArea(props: {
       subtitle="เมนูสมาชิก · บัตรสมาชิก · ข้อมูลส่วนตัว · สถิติ · การสนับสนุน"
       navItems={visibleNavItems}
     >
-      <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
+      <section className="mb-4 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as MemberRoleView)}
             aria-label="เลือกมุมมองบทบาทในพอร์ทัลสมาชิก"
             aria-describedby={roleViewSummaryId}
-            className={`tap-target rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
+            className={`min-w-0 max-w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
           >
             <option value="member">สมาชิกทั่วไป</option>
             <option value="staff">เจ้าหน้าที่สมาคม</option>
           </select>
-          <span className="text-xs text-slate-400">จำลองสิทธิ์เมนูภายในพอร์ทัลสมาชิก</span>
-          <span id={roleViewSummaryId} className="text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+          <span className="text-xs text-slate-400 sm:shrink-0">จำลองสิทธิ์เมนูภายในพอร์ทัลสมาชิก</span>
+          <span id={roleViewSummaryId} className="min-w-0 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
           </span>
-          <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
+          <div className="shrink-0">
+            <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
+          </div>
         </div>
       </section>
       <Routes>
@@ -126,7 +130,7 @@ function MemberDashboardSnapshotBar(props: { portalState: PortalDataState<Member
           <Link
             to="/member/statistics"
             aria-label="ไปหน้า สถิติสมาชิก"
-            className={`tap-target rounded-lg bg-fuchsia-900/50 px-2.5 py-1 text-xs font-medium text-fuchsia-100 hover:bg-fuchsia-800/60 ${portalFocusRing}`}
+            className={`tap-target inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium ${themeAccent.buttonSoft} ${portalFocusRing}`}
           >
             ไปสถิติสมาชิก
           </Link>
@@ -187,7 +191,7 @@ function MemberStaffDocumentsPage() {
             </li>
           ))}
         </ul>
-        <p className="mt-5 text-xs text-slate-400">
+        <p className="mt-5 text-xs text-slate-600">
           หมายเหตุ: การเข้าถึงข้อมูลส่วนบัญชีอาจต้องใช้คีย์หรือสิทธิ์ตามที่กำหนดในแผงผู้ดูแล (Admin)
         </p>
       </section>
@@ -239,14 +243,14 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
         <Link
           to="/member/profile"
           aria-label="ไปหน้า ข้อมูลส่วนตัวสมาชิก"
-          className={`rounded-lg bg-fuchsia-800 px-4 py-2 text-sm text-white hover:bg-fuchsia-700 ${portalFocusRing}`}
+          className={`tap-target inline-flex items-center rounded-lg px-4 py-2 text-sm text-white ${themeAccent.buttonPrimary} ${portalFocusRing}`}
         >
           ข้อมูลส่วนตัว
         </Link>
         <Link
           to="/member/dashboard"
           aria-label="กลับไปหน้า แดชบอร์ดสมาชิก"
-          className={`rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+          className={`tap-target inline-flex items-center rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
         >
           แดชบอร์ด
         </Link>
@@ -278,7 +282,7 @@ function MemberProfilePage(props: { member: Record<string, unknown> }) {
             </div>
           ))}
         </dl>
-        <p className="mt-4 text-xs text-slate-400">
+        <p className="mt-4 text-xs text-slate-600">
           หากข้อมูลไม่ครบหรือต้องแก้ไข ใช้ flow คำร้องในแอปหลักหลังเชื่อม LINE
         </p>
       </section>
@@ -367,6 +371,12 @@ function MemberDonationsPage(props: {
   const [history, setHistory] = useState<MemberDonationHistoryRow[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyErr, setHistoryErr] = useState<string | null>(null)
+  const [yupparajStatsRefresh, setYupparajStatsRefresh] = useState(0)
+
+  const selectedDonationActivity = useMemo(
+    () => data.yupparajDonationActivities.find((a) => a.id === activityId.trim()) ?? null,
+    [activityId, data.yupparajDonationActivities],
+  )
 
   const donorName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || '—'
   const donorBatch = props.member.batch != null ? String(props.member.batch) : '—'
@@ -465,6 +475,7 @@ function MemberDonationsPage(props: {
       setAmount('')
       setSlipUrl('')
       setNote('')
+      setYupparajStatsRefresh((n) => n + 1)
       void props.portalState.refetch()
       void loadDonationHistory()
     } catch {
@@ -514,6 +525,7 @@ function MemberDonationsPage(props: {
                     <div key={a.id} role="listitem">
                       <DonationCampaignCard
                         title={`${a.title} (${a.category})`}
+                        description={a.description}
                         progress={pct}
                         target={a.targetAmount != null ? Math.round(a.targetAmount).toLocaleString('th-TH') : '—'}
                         raised={Math.round(a.raisedAmount).toLocaleString('th-TH')}
@@ -522,6 +534,13 @@ function MemberDonationsPage(props: {
                   )
                 })
               )}
+            </div>
+            <div className="mt-8">
+              <MemberYupparajPublicStats
+                apiBase={props.apiBase}
+                refreshTrigger={yupparajStatsRefresh}
+                mockMode={portalMockMode}
+              />
             </div>
             <div className="mt-6 space-y-3 rounded-lg border border-fuchsia-900/40 bg-fuchsia-950/15 p-4" aria-label="ฟอร์มบันทึกการบริจาค">
               <p className="text-xs font-medium uppercase tracking-wide text-fuchsia-200/90">บันทึกการโอน</p>
@@ -540,6 +559,20 @@ function MemberDonationsPage(props: {
                   ))}
                 </select>
               </label>
+              {selectedDonationActivity ? (
+                <div
+                  className="rounded border border-slate-700/80 bg-slate-900/40 px-3 py-2 text-sm text-slate-300"
+                  role="region"
+                  aria-label="รายละเอียดโครงการที่เลือก"
+                >
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">รายละเอียดโครงการ</p>
+                  {selectedDonationActivity.description != null && String(selectedDonationActivity.description).trim() ? (
+                    <p className="mt-1 whitespace-pre-wrap text-slate-300">{String(selectedDonationActivity.description).trim()}</p>
+                  ) : (
+                    <p className="mt-1 text-slate-500">ยังไม่มีคำอธิบายเพิ่มเติม — ผู้ดูแลสามารถกรอกที่ Admin → คอร์ส/กิจกรรม</p>
+                  )}
+                </div>
+              ) : null}
               <label className="block text-xs text-slate-400">
                 จำนวนเงิน (บาท)
                 <input
@@ -589,7 +622,7 @@ function MemberDonationsPage(props: {
                 disabled={submitting || data.yupparajDonationActivities.length === 0}
                 onClick={() => void submitDonation()}
                 aria-label="ส่งข้อมูลการบริจาค"
-                className={`rounded bg-fuchsia-800 px-4 py-2 text-sm text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
+                className={`tap-target rounded px-4 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
               >
                 {submitting ? 'กำลังส่ง…' : 'ยืนยันการบริจาค'}
               </button>
@@ -656,7 +689,7 @@ function MemberDonationsPage(props: {
                                   href={h.slipFileUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-fuchsia-400 underline hover:text-fuchsia-300"
+                                  className={`${themeAccent.link} ${portalFocusRing}`}
                                 >
                                   สลิป
                                 </a>

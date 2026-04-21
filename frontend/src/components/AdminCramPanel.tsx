@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY, adminJsonHeaders, normalizeApiBase } from '../lib/adminApi'
+import { themeAccent } from '../lib/themeTokens'
 import { portalFocusRing } from '../portal/portalLabels'
 
 type Classroom = {
@@ -297,7 +298,7 @@ export function AdminCramPanel({ apiBase }: Props) {
   return (
     <section className="mt-8 rounded-xl border border-violet-900/40 bg-violet-950/15 p-6" aria-busy={loading}>
       <h2 className="text-sm font-medium uppercase tracking-wide text-violet-200">Admin — โรงเรียนกวดวิชา (ห้องเรียน / นักเรียน)</h2>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-slate-400">
         ต้องรันไมเกรชัน (migration) สำหรับ <code className="text-slate-400">cram_classrooms</code> /{' '}
         <code className="text-slate-400">cram_students</code> บน Supabase ก่อน — ใช้ Admin key เดียวกับการนำเข้าสมาชิก
       </p>
@@ -359,7 +360,7 @@ export function AdminCramPanel({ apiBase }: Props) {
               disabled={loading}
               onClick={() => void addClassroom()}
               aria-label="เพิ่มห้องเรียนใหม่"
-              className={`rounded bg-fuchsia-800 px-3 py-1.5 text-sm text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded px-3 py-1.5 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
             >
               เพิ่มห้อง
             </button>
@@ -368,12 +369,12 @@ export function AdminCramPanel({ apiBase }: Props) {
 
         <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
           <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายการห้อง</h3>
-          <p id={classroomSummaryId} className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p id={classroomSummaryId} className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             ห้องเรียนทั้งหมด {classrooms.length.toLocaleString('th-TH')} ห้อง
           </p>
           <div className="mt-2 max-h-48 overflow-auto text-sm">
             {classrooms.length === 0 ? (
-              <p className="text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+              <p className="text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                 ยังไม่มีข้อมูล — กดโหลดห้องเรียน
               </p>
             ) : (
@@ -382,10 +383,10 @@ export function AdminCramPanel({ apiBase }: Props) {
                   <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-2 py-1" role="listitem">
                     <span className="text-slate-200">
                       {c.display_name}{' '}
-                      <span className="text-slate-500">({c.room_code})</span>
+                      <span className="text-slate-400">({c.room_code})</span>
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className={c.active ? 'text-fuchsia-400' : 'text-slate-500'}>{c.active ? 'เปิดใช้งาน' : 'ปิด'}</span>
+                      <span className={c.active ? 'text-fuchsia-400' : 'text-slate-400'}>{c.active ? 'เปิดใช้งาน' : 'ปิด'}</span>
                       <button
                         type="button"
                         className={`rounded-sm text-xs text-violet-300 hover:underline ${portalFocusRing}`}
@@ -423,13 +424,13 @@ export function AdminCramPanel({ apiBase }: Props) {
             ))}
           </select>
         </label>
-        <p id={studentSummaryId} className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p id={studentSummaryId} className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           {selectedClassroom
             ? `ห้อง ${selectedClassroom.display_name} มีนักเรียน ${students.length.toLocaleString('th-TH')} คน`
             : 'ยังไม่ได้เลือกห้องเรียน'}
         </p>
         {!selectedClassroomId ? (
-          <p className="mt-3 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p className="mt-3 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             เลือกห้องเรียนก่อนเพื่อเพิ่มหรือแก้ไขนักเรียน
           </p>
         ) : null}
@@ -465,7 +466,7 @@ export function AdminCramPanel({ apiBase }: Props) {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-sm" aria-label="ตารางรายชื่อนักเรียนในห้องที่เลือก">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-500">
+                <tr className="border-b border-slate-800 text-slate-400">
                   <th scope="col" className="py-1 pr-2">ชื่อ</th>
                   <th scope="col" className="py-1 pr-2">คะแนนเฉลี่ย</th>
                   <th scope="col" className="py-1"> </th>
@@ -545,7 +546,7 @@ export function AdminCramPanel({ apiBase }: Props) {
           </div>
         ) : null}
         {selectedClassroomId && students.length === 0 && !loading ? (
-          <p className="mt-3 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p className="mt-3 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             ห้องนี้ยังไม่มีรายชื่อนักเรียน
           </p>
         ) : null}
@@ -562,7 +563,7 @@ export function AdminCramPanel({ apiBase }: Props) {
         </pre>
       ) : null}
       {loading ? (
-        <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           กำลังโหลด…
         </p>
       ) : null}

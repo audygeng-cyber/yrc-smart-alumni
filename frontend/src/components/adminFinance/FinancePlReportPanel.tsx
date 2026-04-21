@@ -95,7 +95,7 @@ export function FinancePlReportPanel({
           </div>
         ))}
         {plPaged.pageRows.length === 0 ? (
-          <p className="py-2 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p className="py-2 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             ไม่พบข้อมูลบัญชี P/L ตามตัวกรองปัจจุบัน
           </p>
         ) : null}

@@ -1,12 +1,9 @@
 {
-  "generatedAt": "2026-04-20T16:28:34.427Z",
-  "mainChunkName": "index-BHQdJOzu.js",
-  "mainJsRawBytes": 283948,
-  "mainJsGzipBytes": 87088,
-  "totalJsRawBytes": 797342,
-  "totalJsGzipBytes": 195507,
-  "totalAssetsRawBytes": 836869,
-  "totalAssetsGzipBytes": 202964,
-  "cssRawBytes": 39527,
-  "cssGzipBytes": 7457
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-21T00:25:11.602Z",
+  "snapshotGeneratedAt": "2026-04-21T00:25:11.602Z",
+  "mainJsGzipBytes": 126862,
+  "totalJsGzipBytes": 181120,
+  "totalAssetsGzipBytes": 189202,
+  "mainIndexJsName": "assets/index-D25uDGhN.js"
 }

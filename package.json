@@ -33,7 +33,11 @@
     "verify:line": "node scripts/verify-line-config.mjs",
     "verify:vercel-line-cors": "node scripts/verify-vercel-line-cors.mjs",
     "migrations:list": "node scripts/list-supabase-migrations.mjs",
-    "line:show-env": "node scripts/show-cloud-run-line-env.mjs"
+    "line:show-env": "node scripts/show-cloud-run-line-env.mjs",
+    "perf:baseline": "node scripts/measure-frontend-bundle.mjs",
+    "perf:baseline:fast": "node scripts/measure-frontend-bundle.mjs --skip-build",
+    "perf:budget": "node scripts/check-performance-budget.mjs",
+    "perf:report": "node scripts/write-performance-summary.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

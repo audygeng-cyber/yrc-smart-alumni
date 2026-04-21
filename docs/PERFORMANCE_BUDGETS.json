@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "description": "งบประมาณขนาด bundle (gzip) — ปรับค่าได้เมื่อโครงสร้างแอปเปลี่ยน",
+  "maxMainJsGzipBytes": 140000,
+  "maxTotalJsGzipBytes": 210000,
+  "maxTotalAssetsGzipBytes": 230000
+}

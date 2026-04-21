@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { MeetingAgendaItem } from '../../lib/adminFinanceTypes'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 export type FinanceMeetingAgendaPanelProps = {
@@ -70,7 +71,7 @@ export function FinanceMeetingAgendaPanel({
   return (
     <div className="mt-4 rounded border border-slate-800 bg-slate-950/50 p-3" role="group" aria-label="เครื่องมือวาระประชุมและการลงมติ">
       <h4 className="text-xs font-medium uppercase tracking-wide text-slate-300">1.1) วาระประชุมและลงมติ</h4>
-      <p className="mt-1 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+      <p className="mt-1 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
         รายการวาระที่โหลดแล้ว {agendas.length.toLocaleString('th-TH')} วาระ
       </p>
 
@@ -94,7 +95,7 @@ export function FinanceMeetingAgendaPanel({
           disabled={loading}
           onClick={onCreateMeetingAgenda}
           aria-label="สร้างวาระประชุมใหม่"
-          className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+          className={`tap-target rounded px-3 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
         >
           สร้างวาระ
         </button>
@@ -121,7 +122,7 @@ export function FinanceMeetingAgendaPanel({
 
       <div className="mt-3 max-h-36 overflow-auto rounded border border-slate-800 p-2 text-xs" role="list" aria-label="รายการวาระประชุม">
         {agendas.length === 0 ? (
-          <p className="text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+          <p className="text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             ยังไม่มีรายการวาระในตัวกรองนี้
           </p>
         ) : (
@@ -129,11 +130,11 @@ export function FinanceMeetingAgendaPanel({
             <div key={agenda.id} className="mb-2 rounded border border-slate-800 p-2" role="listitem">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-slate-200">{agenda.title}</span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-slate-400">
                   {agenda.status === 'open' ? 'เปิดโหวต' : 'ปิดแล้ว'} · {agenda.scope}
                 </span>
               </div>
-              <p className="mt-1 break-all text-[11px] text-slate-500">{agenda.id}</p>
+              <p className="mt-1 break-all text-[11px] text-slate-400">{agenda.id}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -206,7 +207,7 @@ export function FinanceMeetingAgendaPanel({
               disabled={loading}
               onClick={() => void onSavePatchMeetingAgenda()}
               aria-label="บันทึกการแก้ไขวาระประชุม"
-              className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+              className={`tap-target rounded px-3 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
             >
               บันทึกการแก้ไข
             </button>
@@ -220,7 +221,7 @@ export function FinanceMeetingAgendaPanel({
               ยกเลิก
             </button>
           </div>
-          <p className="mt-2 text-[10px] text-slate-500">
+          <p className="mt-2 text-[10px] text-slate-400">
             เปลี่ยนเป็น &quot;เปิดโหวต&quot; ใช้เมื่อแก้ข้อความหลังปิดผิดพลาด — ระวังซ้ำกับ flow ปิดมติทางการ
           </p>
         </div>

@@ -1,6 +1,17 @@
 import { useId, type ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
+import { themeTapTarget } from '../lib/themeTokens'
 import { portalAccent, portalFocusRing } from './portalLabels'
+
+function portalNavLinkClass(isActive: boolean, layout: 'sidebar' | 'strip') {
+  const base = `${themeTapTarget} text-sm ${portalFocusRing} `
+  if (layout === 'sidebar') {
+    return `${base}block rounded px-3 py-2 ${isActive ? portalAccent.button : 'text-slate-300 hover:bg-slate-800'}`
+  }
+  return `${base}inline-flex max-w-[min(100%,18rem)] items-center justify-center rounded-lg px-3 py-2 whitespace-normal text-center sm:max-w-none sm:whitespace-nowrap ${
+    isActive ? portalAccent.button : 'border border-slate-700 bg-slate-950/80 text-slate-200 hover:bg-slate-800'
+  }`
+}
 
 export function PortalShell(props: {
   title: string
@@ -10,16 +21,44 @@ export function PortalShell(props: {
 }) {
   const titleId = useId()
   const navHeadingId = useId()
+  const mobileNavId = useId()
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 md:p-5" aria-labelledby={titleId}>
+    <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 md:p-5" aria-labelledby={titleId}>
       <div className="mb-4 border-b border-slate-800 pb-4">
         <h2 id={titleId} className="text-sm font-medium uppercase tracking-wide text-slate-300">
           {props.title}
         </h2>
         <p className="mt-2 text-sm text-slate-400">{props.subtitle}</p>
       </div>
-      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+
+      {/* มือถือ/แท็บเล็ต: เมนูพอร์ทัลแนวนอนเลื่อนได้ — ลดการเลื่อนยาวจากรายการเมนูแนวตั้งเต็มความกว้าง */}
+      <div className="mb-4 min-w-0 max-w-full lg:hidden">
+        <p id={mobileNavId} className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+          เมนูพอร์ทัล
+        </p>
+        <nav
+          className="-mx-1 flex min-w-0 max-w-full touch-pan-x gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]"
+          aria-labelledby={mobileNavId}
+          aria-label="เมนูพอร์ทัล (เลื่อนแนวนอน มือถือ)"
+        >
+          <ul className="flex w-max gap-2" role="list">
+            {props.navItems.map((item) => (
+              <li key={item.to} role="listitem" className="shrink-0">
+                <NavLink
+                  to={item.to}
+                  aria-label={`ไปหน้า ${item.label}`}
+                  className={({ isActive }) => portalNavLinkClass(isActive, 'strip')}
+                >
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="hidden rounded-lg border border-slate-800 bg-slate-950/50 p-3 lg:block">
           <p id={navHeadingId} className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
             เมนูพอร์ทัล
           </p>
@@ -30,11 +69,7 @@ export function PortalShell(props: {
                   <NavLink
                     to={item.to}
                     aria-label={`ไปหน้า ${item.label}`}
-                    className={({ isActive }) =>
-                      `tap-target block rounded px-3 py-2 text-sm ${portalFocusRing} ${
-                        isActive ? portalAccent.button : 'text-slate-300 hover:bg-slate-800'
-                      }`
-                    }
+                    className={({ isActive }) => portalNavLinkClass(isActive, 'sidebar')}
                   >
                     {item.label}
                   </NavLink>
@@ -77,7 +112,7 @@ export function PortalSnapshotRefreshButton(props: {
       aria-busy={props.loading}
       aria-label="โหลดสแนปช็อตพอร์ทัลจากเซิร์ฟเวอร์ใหม่"
       onClick={() => void props.onRefresh()}
-      className={`rounded border border-slate-600 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${portalFocusRing}`}
+      className={`${themeTapTarget} rounded border border-slate-600 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${portalFocusRing}`}
     >
       รีเฟรชสแนปช็อต
     </button>
@@ -177,7 +212,16 @@ export function PortalNotFound(props: { scopeLabel: string }) {
       aria-live="polite"
       aria-atomic="true"
     >
-      ไม่พบหน้าที่ร้องขอภายในพอร์ทัล{props.scopeLabel}
+      <p className="text-slate-300">ไม่พบหน้าที่ร้องขอภายในพอร์ทัล{props.scopeLabel}</p>
+      <p className="mt-3">
+        เลือกหน้าจากเมนูพอร์ทัล (ด้านข้างบนจอใหญ่ หรือแถบเลื่อนแนวนอนบนมือถือ) หรือกลับไปหน้าหลักของระบบ
+      </p>
+      <Link
+        to="/"
+        className={`${themeTapTarget} mt-4 inline-flex items-center rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-2 text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+      >
+        กลับหน้าหลัก
+      </Link>
     </section>
   )
 }
@@ -217,11 +261,24 @@ export function TrendBars(props: { items: Array<{ label: string; value: number }
   )
 }
 
-export function DonationCampaignCard(props: { title: string; progress: number; target: string; raised: string }) {
+export function DonationCampaignCard(props: {
+  title: string
+  progress: number
+  target: string
+  raised: string
+  /** รายละเอียดจาก Admin — school_activities.description */
+  description?: string | null
+}) {
   const progress = Math.min(100, Math.max(0, Number.isFinite(props.progress) ? props.progress : 0))
+  const desc = props.description != null && String(props.description).trim() ? String(props.description).trim() : ''
   return (
     <div className="rounded border border-slate-800 bg-slate-900/60 p-4">
       <p className="text-sm text-slate-100">{props.title}</p>
+      {desc ? (
+        <p className="mt-1 line-clamp-3 text-xs text-slate-500" title={desc}>
+          {desc}
+        </p>
+      ) : null}
       <p className="mt-1 text-xs text-slate-400">
         สะสม {props.raised} / เป้าหมาย {props.target}
       </p>

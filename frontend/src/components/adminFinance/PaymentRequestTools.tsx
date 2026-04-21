@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { PAYMENT_PURPOSE_OPTIONS } from '../../lib/adminFinanceConstants'
 import type { BankAccount } from '../../lib/adminFinanceTypes'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 export type PaymentRequestToolsProps = {
@@ -190,7 +191,7 @@ export function PaymentRequestTools({
         disabled={loading || paymentLowAmountOtherBlocked}
         onClick={onCreatePaymentRequest}
         aria-label="สร้างคำขอจ่ายเงินใหม่"
-        className={`mt-3 rounded bg-fuchsia-700 px-3 py-2 text-sm text-white disabled:opacity-50 ${portalFocusRing}`}
+        className={`tap-target mt-3 rounded px-3 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
       >
         สร้างคำขอจ่ายเงิน
       </button>

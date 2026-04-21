@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { formatThNumber } from '../../lib/adminFinanceHelpers'
 import type { FinancePeriodClosingDetail, FinancePeriodClosingItem } from '../../lib/adminFinanceTypes'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 export type FinancePeriodClosingPanelProps = {
@@ -66,7 +67,7 @@ export function FinancePeriodClosingPanel({
     <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="ปิดงวดบัญชีและส่งผู้ตรวจสอบ">
       <h3 className="text-sm font-medium text-slate-100">ปิดงวดบัญชีและเตรียมไฟล์ผู้ตรวจสอบ</h3>
       <p className="mt-1 text-[11px] text-slate-400">
-        เลือกหน่วยงานและช่วงวันที่เพื่อบันทึกงวดปิดบัญชี จากนั้นส่งออก <code className="text-slate-500">Auditor Package CSV</code> เพื่อส่งผู้ตรวจสอบ
+        เลือกหน่วยงานและช่วงวันที่เพื่อบันทึกงวดปิดบัญชี จากนั้นส่งออก <code className="text-slate-400">Auditor Package CSV</code> เพื่อส่งผู้ตรวจสอบ
       </p>
       <div className="mt-3 grid gap-2 md:grid-cols-5">
         <input
@@ -151,13 +152,13 @@ export function FinancePeriodClosingPanel({
         />
       </div>
       {periodClosings.length === 0 ? (
-        <p className="mt-3 text-[11px] text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-3 text-[11px] text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           {'ยังไม่มีประวัติปิดงวดบัญชี (กด "โหลดประวัติปิดงวด")'}
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto rounded border border-slate-800">
           <table className="min-w-full text-left text-[11px] text-slate-300" aria-label="ประวัติปิดงวดบัญชีล่าสุด">
-            <thead className="bg-slate-900/80 text-[10px] uppercase tracking-wide text-slate-500">
+            <thead className="bg-slate-900/80 text-[10px] uppercase tracking-wide text-slate-400">
               <tr>
                 <th scope="col" className="px-2 py-1.5">
                   หน่วยงาน
@@ -239,7 +240,7 @@ export function FinancePeriodClosingPanel({
                       disabled={loading || row.auditor_handoff_status !== 'pending'}
                       onClick={() => onMarkAuditorSent(row.id, `${row.period_from} ถึง ${row.period_to}`)}
                       aria-label={`ยืนยันส่งผู้ตรวจสอบงวด ${row.period_from} ถึง ${row.period_to}`}
-                      className={`rounded bg-fuchsia-700 px-2 py-1 text-[10px] text-white hover:bg-fuchsia-600 disabled:opacity-50 ${portalFocusRing}`}
+                      className={`tap-target rounded ${themeAccent.buttonPrimaryStrong} px-2 py-1 text-[10px] disabled:opacity-50 ${portalFocusRing}`}
                     >
                       Mark sent
                     </button>
@@ -338,7 +339,7 @@ export function FinancePeriodClosingPanel({
           </p>
           <div className="mt-2 overflow-x-auto rounded border border-slate-800">
             <table className="min-w-full text-left text-[10px] text-slate-300" aria-label="ตาราง snapshot trial balance ของงวดที่เลือก">
-              <thead className="bg-slate-900/80 uppercase tracking-wide text-slate-500">
+              <thead className="bg-slate-900/80 uppercase tracking-wide text-slate-400">
                 <tr>
                   <th scope="col" className="px-2 py-1">
                     รหัส
@@ -375,7 +376,7 @@ export function FinancePeriodClosingPanel({
             </table>
           </div>
           {periodClosingDetail.trialBalanceRows.length > 100 ? (
-            <p className="mt-1 text-slate-500">
+            <p className="mt-1 text-slate-400">
               แสดง 100 บัญชีแรกจากทั้งหมด {formatThNumber(periodClosingDetail.trialBalanceRows.length)} บัญชี
             </p>
           ) : null}

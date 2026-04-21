@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MEMBER_REGISTER_EXTRA_HEADERS } from '../memberImportMap'
+import { themeAccent, themeTapTarget } from '../lib/themeTokens'
 import { portalFocusRing } from '../portal/portalLabels'
 
 type Props = {
@@ -239,7 +240,7 @@ export function MemberLinkPanel({
   }
 
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6" aria-busy={loading || requestStatusLoading}>
+    <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6" aria-busy={loading || requestStatusLoading}>
       <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ผูกบัญชีสมาชิก</h2>
 
       {lineLoginAvailable ? (
@@ -248,7 +249,7 @@ export function MemberLinkPanel({
             type="button"
             onClick={onStartLineLogin}
             aria-label="เข้าสู่ระบบด้วย LINE เพื่อดึง LINE UID"
-            className={`w-full rounded-lg bg-[#06C755] px-4 py-3 text-sm font-semibold text-white hover:opacity-95 ${portalFocusRing}`}
+            className={`${themeTapTarget} w-full rounded-lg bg-[#06C755] px-4 py-3 text-sm font-semibold text-white hover:opacity-95 ${portalFocusRing}`}
           >
             เข้าสู่ระบบด้วย LINE
           </button>
@@ -260,7 +261,7 @@ export function MemberLinkPanel({
                 type="button"
                 onClick={onClearLineSession}
                 aria-label="ออกจากบัญชี LINE ที่ผูกไว้"
-                className={`mt-3 rounded-sm text-xs text-amber-400 underline hover:text-amber-300 ${portalFocusRing}`}
+                className={`${themeTapTarget} mt-3 inline-flex min-h-[44px] items-center rounded-sm text-xs text-amber-400 underline hover:text-amber-300 ${portalFocusRing}`}
               >
                 ออกจากบัญชี LINE นี้
               </button>
@@ -273,7 +274,7 @@ export function MemberLinkPanel({
             aria-expanded={showManualUid || !lineLoginAvailable}
             aria-controls={manualUidPanelId}
             aria-label="สลับโหมดกรอก LINE UID เองสำหรับทดสอบ"
-            className={`text-xs text-slate-500 underline hover:text-slate-400 ${portalFocusRing} rounded-sm`}
+            className={`${themeTapTarget} inline-flex min-h-[44px] items-center rounded-sm text-xs text-slate-400 underline hover:text-slate-400 ${portalFocusRing}`}
           >
             {showManualUid ? 'ซ่อนการใส่ LINE UID เอง (ทดสอบ)' : 'ทดสอบ — ใส่ LINE UID เอง'}
           </button>
@@ -284,9 +285,9 @@ export function MemberLinkPanel({
         </p>
       )}
 
-      {(showManualUid || !lineLoginAvailable) && (
+      {(!lineUidFromOAuth || showManualUid || !lineLoginAvailable) && (
         <label id={manualUidPanelId} className="mt-4 block text-sm text-slate-300">
-          LINE UID {lineUidFromOAuth ? '' : '(ทดสอบ)'}
+          LINE UID {lineUidFromOAuth ? '' : '(หรือวางจากที่อื่น)'}
           <input
             value={lineUid}
             onChange={(e) => onLineUidChange(e.target.value)}
@@ -298,10 +299,10 @@ export function MemberLinkPanel({
         </label>
       )}
 
-      <p className="mt-4 text-xs text-slate-500">
+      <p className="mt-4 text-xs text-slate-400">
         ตรวจสอบว่ามีในทะเบียนหรือไม่ — ต้องตรงกับข้อมูลที่ Admin นำเข้า (รุ่น · ชื่อ · นามสกุล)
       </p>
-      <p id={verificationHintId} className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+      <p id={verificationHintId} className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
         {requestStatusSummary}
       </p>
 
@@ -333,12 +334,12 @@ export function MemberLinkPanel({
                     คำร้องนี้ได้รับอนุมัติแล้ว ถ้ายังไม่เห็นข้อมูลสมาชิก ให้กด &quot;ตรวจสอบและผูก&quot; อีกครั้ง
                   </p>
                   {approvedRequestedNames ? (
-                    <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="เครื่องมือใช้ข้อมูลจากคำร้องล่าสุด">
+                    <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" role="group" aria-label="เครื่องมือใช้ข้อมูลจากคำร้องล่าสุด">
                       <button
                         type="button"
                         onClick={applyApprovedRequestData}
                         aria-label="ใช้ข้อมูลจากคำร้องล่าสุดเพื่อเติมฟอร์ม"
-                        className={`rounded-lg bg-fuchsia-800 px-3 py-2 text-xs font-medium text-white hover:bg-fuchsia-700 ${portalFocusRing}`}
+                        className={`${themeTapTarget} rounded-lg px-3 py-2 text-xs font-medium text-white ${themeAccent.buttonPrimary} ${portalFocusRing}`}
                       >
                         ใช้ข้อมูลจากคำร้องล่าสุด
                       </button>
@@ -347,11 +348,11 @@ export function MemberLinkPanel({
                         disabled={loading}
                         onClick={autoLinkFromApprovedRequest}
                         aria-label="ผูกบัญชีอัตโนมัติจากข้อมูลคำร้องล่าสุด"
-                        className={`rounded-lg bg-fuchsia-600 px-3 py-2 text-xs font-medium text-white hover:bg-fuchsia-500 disabled:opacity-50 ${portalFocusRing}`}
+                        className={`${themeTapTarget} rounded-lg px-3 py-2 text-xs font-medium text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
                       >
                         ผูกอัตโนมัติ
                       </button>
-                      <span className="self-center text-xs opacity-80">
+                      <span className="min-w-0 break-words text-xs opacity-80 sm:self-center">
                         {approvedRequestedNames.batch} · {approvedRequestedNames.firstName} {approvedRequestedNames.lastName}
                       </span>
                     </div>
@@ -381,11 +382,11 @@ export function MemberLinkPanel({
         onClick={verifyLink}
         aria-label="ตรวจสอบข้อมูลและผูกบัญชีสมาชิก"
         aria-describedby={`${verificationHintId} ${requestStatusSummaryId}`}
-        className={`mt-4 rounded-lg bg-fuchsia-700 px-4 py-2 text-sm font-medium text-white hover:bg-fuchsia-600 disabled:opacity-50 ${portalFocusRing}`}
+        className={`${themeTapTarget} mt-4 rounded-lg ${themeAccent.buttonPrimaryStrong} px-4 py-2 text-sm font-medium disabled:opacity-50 ${portalFocusRing}`}
       >
         ตรวจสอบและผูก
       </button>
-      <p id={requestStatusSummaryId} className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+      <p id={requestStatusSummaryId} className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
         {hasApprovedRequest
           ? 'พบคำร้องที่อนุมัติแล้ว สามารถกด "ใช้ข้อมูลจากคำร้องล่าสุด" หรือกดตรวจสอบเพื่อผูกบัญชีได้ทันที'
           : 'หากยังไม่พบในทะเบียน ให้ส่งคำร้องสมัครใหม่และรอประธานรุ่น/ผู้ดูแลอนุมัติ'}
@@ -394,7 +395,7 @@ export function MemberLinkPanel({
       {showRegister && (
         <div className="mt-8 border-t border-slate-800 pt-6">
           <h3 className="text-sm font-medium text-slate-300">สมัครสมาชิกใหม่ (คำร้อง)</h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-400">
             กรอกรุ่น · ชื่อ · นามสกุล และรายละเอียดอื่นตามที่มี — ส่งแล้วรอประธานรุ่น / Admin อนุมัติ
           </p>
           <div className="mt-4 grid max-h-[28rem] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
@@ -412,7 +413,7 @@ export function MemberLinkPanel({
             disabled={loading || !lineUid.trim()}
             onClick={submitRegister}
             aria-label="ส่งคำร้องสมัครสมาชิกใหม่"
-            className={`mt-4 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
+            className={`${themeTapTarget} mt-4 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
           >
             ส่งคำร้องสมัครใหม่
           </button>
@@ -421,7 +422,7 @@ export function MemberLinkPanel({
 
       {msg && (
         <pre
-          className="mt-4 max-h-56 overflow-auto rounded-lg bg-slate-950 p-3 text-left text-xs text-fuchsia-200/90"
+          className="mt-4 max-h-56 max-w-full overflow-auto overscroll-x-contain rounded-lg bg-slate-950 p-3 text-left text-xs text-fuchsia-200/90"
           role={isErrorMsg ? 'alert' : 'status'}
           aria-live={isErrorMsg ? undefined : 'polite'}
           aria-atomic="true"
@@ -430,7 +431,7 @@ export function MemberLinkPanel({
         </pre>
       )}
       {loading ? (
-        <p className="mt-3 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-3 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           กำลังตรวจสอบหรือส่งคำร้องสมาชิก...
         </p>
       ) : null}

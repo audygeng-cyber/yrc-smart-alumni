@@ -47,6 +47,7 @@ import {
   SS_OAUTH_STATE,
 } from './lineSession'
 import { normalizeApiBase } from './lib/adminApi'
+import { themeAccent, themeTapTarget } from './lib/themeTokens'
 import { syncLineAppUser } from './lib/syncLineAppUser'
 
 const apiBase = normalizeApiBase(import.meta.env.VITE_API_URL ?? 'http://localhost:4000')
@@ -77,10 +78,6 @@ function getLineRedirectUri(): string {
 }
 
 type RoleView = 'all' | 'member' | 'committee' | 'academy'
-
-/** วงโฟกัสคีย์บอร์ด — ใช้ร่วมกับปุ่ม/ลิงก์ในแอปหลัก */
-const appFocusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950'
 
 function getInitialVerifiedMember(): Record<string, unknown> | null {
   const uid = readLineUid()
@@ -155,6 +152,8 @@ export default function App() {
     if (!lineUid.trim() || verifiedMember) return
 
     let cancelled = false
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 25_000)
     ;(async () => {
       setRestoringMemberSession(true)
       try {
@@ -162,6 +161,7 @@ export default function App() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ line_uid: lineUid.trim() }),
+          signal: controller.signal,
         })
         const j = (await r.json().catch(() => ({}))) as { member?: Record<string, unknown> }
         if (cancelled || !r.ok || !j.member) return
@@ -170,14 +170,17 @@ export default function App() {
         setLinkedMemberVersion((n) => n + 1)
         navigate('/member', { replace: true })
       } catch (e) {
-        console.error(e)
+        if ((e as Error)?.name !== 'AbortError') console.error(e)
       } finally {
+        window.clearTimeout(timeoutId)
         if (!cancelled) setRestoringMemberSession(false)
       }
     })()
 
     return () => {
       cancelled = true
+      controller.abort()
+      window.clearTimeout(timeoutId)
     }
   }, [lineUid, navigate, verifiedMember])
 
@@ -381,34 +384,39 @@ function AppChrome(props: AppChromeProps) {
     <div className="relative min-h-screen bg-slate-950 text-slate-100">
       <a
         href="#app-main"
-        className={`absolute left-4 top-0 z-[100] -translate-y-full rounded-b bg-fuchsia-800 px-4 py-2 text-sm font-medium text-white shadow transition focus-visible:translate-y-0 ${appFocusRing}`}
+        className={`${themeTapTarget} absolute left-[max(1rem,env(safe-area-inset-left,0px))] top-[max(0px,env(safe-area-inset-top,0px))] z-[100] -translate-y-full rounded-b px-4 py-2 text-sm font-medium shadow transition focus-visible:translate-y-0 ${themeAccent.buttonPrimary} ${themeAccent.focusRing}`}
       >
         ข้ามไปยังเนื้อหาหลัก
       </a>
-      <header className="border-b border-slate-800 bg-slate-900/80 px-6 py-4 backdrop-blur">
+      <header className="border-b border-slate-800 bg-slate-900/80 pb-3 backdrop-blur sm:pb-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pt-[max(1rem,env(safe-area-inset-top,0px))]">
         <h1 className="text-xl font-semibold tracking-tight">YRC Smart Alumni</h1>
         <p className="mt-1 text-sm text-slate-400">พอร์ทัลสมาชิก · คณะกรรมการ · โรงเรียนกวดวิชา (Academy)</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-500">มุมมองบทบาท</span>
-          <select
-            value={props.roleView}
-            onChange={(e) => props.setRoleView(e.target.value as RoleView)}
-            aria-label="เลือกมุมมองบทบาทของพอร์ทัล"
-            aria-describedby={roleViewSummaryId}
-            className={`rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${appFocusRing}`}
-          >
-            <option value="all">ทุกพอร์ทัล</option>
-            <option value="member">เฉพาะสมาชิก</option>
-            <option value="committee">เฉพาะคณะกรรมการ</option>
-            <option value="academy">เฉพาะโรงเรียนกวดวิชา (Academy)</option>
-          </select>
-          <span className="text-xs text-slate-500">จำลองการมองเห็นเมนูตามสิทธิ์</span>
-          <span id={roleViewSummaryId} className="text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <div
+          className="mt-3 min-w-0 rounded-lg border border-slate-800/80 bg-slate-950/40 p-2 sm:border-0 sm:bg-transparent sm:p-0"
+          aria-label="มุมมองบทบาทและเมนูพอร์ทัล"
+        >
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
+            <select
+              value={props.roleView}
+              onChange={(e) => props.setRoleView(e.target.value as RoleView)}
+              aria-label="เลือกมุมมองบทบาทของพอร์ทัล"
+              aria-describedby={roleViewSummaryId}
+              className={`${themeTapTarget} min-w-0 w-full max-w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 sm:w-auto sm:max-w-md sm:py-1.5 sm:text-xs ${themeAccent.focusRing}`}
+            >
+              <option value="all">ทุกพอร์ทัล</option>
+              <option value="member">เฉพาะสมาชิก</option>
+              <option value="committee">เฉพาะคณะกรรมการ</option>
+              <option value="academy">เฉพาะโรงเรียนกวดวิชา (Academy)</option>
+            </select>
+            <span className="text-xs text-slate-400 sm:shrink-0">จำลองการมองเห็นเมนูตามสิทธิ์</span>
+          </div>
+          <p id={roleViewSummaryId} className="mt-2 min-w-0 break-words text-xs text-slate-400 sm:mt-0" role="status" aria-live="polite" aria-atomic="true">
             มุมมองปัจจุบัน: {roleViewLabel} · พอร์ทัลที่แสดง {visiblePortalCount.toLocaleString('th-TH')} หมวด
-          </span>
+          </p>
         </div>
         {import.meta.env.DEV && !rbac.enforced ? (
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-400">
             RBAC ปิดอยู่ — ตั้ง <code className="text-slate-400">VITE_ENFORCE_APP_RBAC=true</code> เพื่อกันเส้นทางตามบทบาทใน DB
           </p>
         ) : null}
@@ -418,27 +426,36 @@ function AppChrome(props: AppChromeProps) {
             <button
               type="button"
               onClick={() => rbac.refetchRoles()}
-              className={`rounded-md border border-rose-800/60 bg-rose-950/40 px-2 py-0.5 text-rose-100 hover:bg-rose-950/70 ${appFocusRing}`}
+              className={`rounded-md border border-rose-800/60 bg-rose-950/40 px-2 py-0.5 text-rose-100 hover:bg-rose-950/70 ${themeAccent.focusRing}`}
             >
               ลองอีกครั้ง
             </button>
           </div>
         ) : null}
-        <nav className="mt-4 flex flex-wrap gap-2" aria-label="เมนูหลัก">
-          <NavPill to="/" label="หน้าหลัก" active={location.pathname === '/'} />
-          <NavPill to="/auth/link" label="ผูกบัญชี" active={location.pathname.startsWith('/auth/link')} />
-          {showMemberNav ? <NavPill to="/member/dashboard" label="สมาชิก" active={location.pathname.startsWith('/member')} /> : null}
-          {showCommitteeNav ? <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} /> : null}
-          {showAcademyNav ? <NavPill to="/academy/dashboard" label="โรงเรียนกวดวิชา" active={location.pathname.startsWith('/academy')} /> : null}
-          {canRequests ? <NavPill to="/requests" label="คำร้อง" active={location.pathname.startsWith('/requests')} /> : null}
-          {canAdmin ? <NavPill to="/admin" label="ผู้ดูแล (Admin)" active={location.pathname.startsWith('/admin')} /> : null}
+        <nav
+          className="mt-4 -mx-1 min-w-0 touch-pan-x overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]"
+          aria-label="เมนูหลัก (เลื่อนแนวนอนบนจอแคบ)"
+        >
+          <div className="flex w-max min-w-full flex-nowrap gap-2">
+            <NavPill to="/" label="หน้าหลัก" active={location.pathname === '/'} />
+            <NavPill to="/auth/link" label="ผูกบัญชี" active={location.pathname.startsWith('/auth/link')} />
+            {showMemberNav ? <NavPill to="/member/dashboard" label="สมาชิก" active={location.pathname.startsWith('/member')} /> : null}
+            {showCommitteeNav ? (
+              <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} />
+            ) : null}
+            {showAcademyNav ? (
+              <NavPill to="/academy/dashboard" label="โรงเรียนกวดวิชา" active={location.pathname.startsWith('/academy')} />
+            ) : null}
+            {canRequests ? <NavPill to="/requests" label="คำร้อง" active={location.pathname.startsWith('/requests')} /> : null}
+            {canAdmin ? <NavPill to="/admin" label="ผู้ดูแล (Admin)" active={location.pathname.startsWith('/admin')} /> : null}
+          </div>
         </nav>
       </header>
 
       <main
         id="app-main"
         tabIndex={-1}
-        className={`mx-auto px-6 py-10 outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-600/45 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${portalWidthClass}`}
+        className={`mx-auto min-w-0 scroll-mt-2 pt-6 outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-600/45 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:scroll-mt-0 sm:pt-10 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] sm:pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] ${portalWidthClass}`}
       >
         <Routes>
           <Route
@@ -506,7 +523,9 @@ function AppChrome(props: AppChromeProps) {
             path="/requests"
             element={
               <RequireAppRoles lineUid={props.lineUid} allow={RBAC_NAV.requests}>
-                <MemberRequestsPanel apiBase={props.apiBase} />
+                <div className="min-w-0">
+                  <MemberRequestsPanel apiBase={props.apiBase} />
+                </div>
               </RequireAppRoles>
             }
           />
@@ -573,8 +592,8 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
       to={to}
       aria-label={`ไปหน้า ${label}`}
       aria-current={active ? 'page' : undefined}
-      className={`rounded-lg px-3 py-1.5 text-sm font-medium ${appFocusRing} ${
-        active ? 'bg-fuchsia-800 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+      className={`${themeTapTarget} inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium ${themeAccent.focusRing} ${
+        active ? themeAccent.navItemActive : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
       }`}
     >
       {label}
@@ -584,40 +603,49 @@ function NavPill({ to, label, active }: { to: string; label: string; active: boo
 
 function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
   return (
-    <div className="space-y-6">
-      <section className="rounded-xl border border-fuchsia-900/35 bg-fuchsia-950/20 p-6">
+    <div className="min-w-0 space-y-6">
+      <section className="rounded-xl border border-fuchsia-900/35 bg-fuchsia-950/20 p-4 sm:p-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-fuchsia-200/90">เข้าสู่ระบบด้วย LINE</h2>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="mt-2 break-words text-sm text-slate-400">
           หลังล็อกอิน LINE ระบบจะได้รับ UID จาก LINE (ค่า <code className="text-slate-300">sub</code>) เก็บในเบราว์เซอร์
           และบันทึกแถวใน <code className="text-slate-300">app_users</code> ผ่าน API — จากนั้นจึงผูกกับทะเบียนสมาชิกได้ที่หน้าผูกบัญชี
         </p>
         <Link
           to="/auth/link"
-          className={`mt-4 inline-flex rounded-lg bg-fuchsia-700 px-4 py-2 text-sm font-medium text-white hover:bg-fuchsia-600 ${appFocusRing}`}
+          className={`${themeTapTarget} mt-4 inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium ${themeAccent.buttonPrimaryStrong} ${themeAccent.focusRing}`}
         >
           ไปล็อกอิน LINE / ผูกบัญชี
         </Link>
       </section>
-      <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+      <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">สถานะระบบ Backend (/health)</h2>
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-left text-sm text-fuchsia-300" role="status" aria-live="polite" aria-atomic="true">
+        <pre
+          className="mt-3 max-w-full overflow-x-auto overscroll-x-contain rounded-lg bg-slate-950 p-3 text-left text-sm text-fuchsia-300 sm:p-4"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {health}
         </pre>
-        <p className="mt-4 text-sm text-slate-500">
+        <p className="mt-4 break-words text-sm text-slate-400">
           ตั้งค่า <code className="text-slate-300">VITE_API_URL</code> ใน <code className="text-slate-300">frontend/.env</code>{' '}
           และค่า LINE ใน <code className="text-slate-300">VITE_LINE_*</code> / backend <code className="text-slate-300">LINE_*</code>
         </p>
         <PushOptIn apiBase={apiBase} />
       </section>
-      <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+      <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6">
         <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ทางลัดพอร์ทัล (โหมดพัฒนา)</h2>
-        <p className="mt-2 text-sm text-slate-500">เปิดสแนปช็อตแดชบอร์ดตามบทบาท — ใช้เมนูด้านบนหรือลิงก์ด้านล่าง</p>
-        <ul className="mt-4 flex flex-wrap gap-2" role="list" aria-label="ทางลัดพอร์ทัลในโหมดพัฒนา">
+        <p className="mt-2 text-sm text-slate-400">เปิดสแนปช็อตแดชบอร์ดตามบทบาท — ใช้เมนูด้านบนหรือลิงก์ด้านล่าง</p>
+        <nav
+          className="mt-4 -mx-1 min-w-0 touch-pan-x overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]"
+          aria-label="ทางลัดพอร์ทัลในโหมดพัฒนา (เลื่อนแนวนอน)"
+        >
+        <ul className="flex w-max min-w-full flex-nowrap gap-2" role="list">
           <li role="listitem">
             <Link
               to="/member/dashboard"
               aria-label="เปิดพอร์ทัลสมาชิก"
-              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+              className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${themeAccent.focusRing}`}
             >
               สมาชิก
             </Link>
@@ -626,7 +654,7 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
             <Link
               to="/committee/dashboard"
               aria-label="เปิดพอร์ทัลคณะกรรมการ"
-              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+              className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${themeAccent.focusRing}`}
             >
               คณะกรรมการ
             </Link>
@@ -635,7 +663,7 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
             <Link
               to="/academy/dashboard"
               aria-label="เปิดพอร์ทัลโรงเรียนกวดวิชา"
-              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+              className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${themeAccent.focusRing}`}
             >
               พอร์ทัลโรงเรียนกวดวิชา (Academy)
             </Link>
@@ -644,7 +672,7 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
             <Link
               to="/auth/link"
               aria-label="ไปหน้าผูกบัญชีสมาชิก"
-              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+              className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${themeAccent.focusRing}`}
             >
               ผูกบัญชี
             </Link>
@@ -653,7 +681,7 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
             <Link
               to="/entry/cram-qr"
               aria-label="หน้าปลายทาง QR โรงเรียนกวดวิชา"
-              className={`rounded-lg border border-violet-800/50 bg-violet-950/40 px-3 py-2 text-sm text-violet-100 hover:bg-violet-950/70 ${appFocusRing}`}
+              className={`${themeTapTarget} inline-flex items-center rounded-lg border border-violet-800/50 bg-violet-950/40 px-3 py-2 text-sm text-violet-100 hover:bg-violet-950/70 ${themeAccent.focusRing}`}
             >
               ทดสอบหน้า QR กวดวิชา
             </Link>
@@ -662,12 +690,13 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
             <Link
               to="/?entry=alumni_url"
               aria-label="ทดสอบช่องทางเข้าศิษย์เก่าทาง URL"
-              className={`rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${appFocusRing}`}
+              className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${themeAccent.focusRing}`}
             >
               ทดสอบ entry ศิษย์เก่า (URL)
             </Link>
           </li>
         </ul>
+        </nav>
       </section>
     </div>
   )
@@ -691,7 +720,7 @@ function LinkPage(props: {
   const hasMember = Boolean(props.verifiedMember && props.lineUid)
   const lineEntry = readLineEntrySource()
   return (
-    <>
+    <div className="min-w-0">
       {props.lineIdentitySyncMessage ? (
         <section
           className={`mb-4 rounded-xl border p-4 text-sm ${
@@ -702,12 +731,12 @@ function LinkPage(props: {
           role="status"
           aria-live="polite"
         >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <p>{props.lineIdentitySyncMessage.text}</p>
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+            <p className="min-w-0 break-words">{props.lineIdentitySyncMessage.text}</p>
             <button
               type="button"
               onClick={() => props.onDismissLineIdentityMessage()}
-              className={`shrink-0 rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800/80 ${appFocusRing}`}
+              className={`${themeTapTarget} w-full shrink-0 rounded-md border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800/80 sm:w-auto ${themeAccent.focusRing}`}
             >
               ปิด
             </button>
@@ -715,34 +744,38 @@ function LinkPage(props: {
         </section>
       ) : null}
       <section className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-sm" role="status" aria-live="polite" aria-atomic="true">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">สถานะการเชื่อมสมาชิก</p>
             {props.restoringMemberSession ? (
               <p className="mt-1 text-fuchsia-200">กำลังกู้เซสชันสมาชิกจาก LINE UID...</p>
             ) : hasMember ? (
-              <p className="mt-1 text-fuchsia-200">
+              <p className="mt-1 break-words text-fuchsia-200">
                 ผูกสมาชิกแล้ว: {props.verifiedMemberName || 'สมาชิกที่ผูกไว้'}{' '}
                 {readLineName() ? `· LINE ${readLineName()}` : ''}
               </p>
             ) : props.lineUid ? (
-              <p className="mt-1 text-amber-200">มี LINE UID แล้ว แต่ยังไม่ได้ผูกสมาชิกในรอบนี้</p>
+              <p className="mt-1 text-amber-200">
+                มี LINE UID แล้ว แต่ยังไม่ได้ผูกสมาชิกในรอบนี้ — กรอกข้อมูลด้านล่างแล้วกด &quot;ตรวจสอบและผูก&quot;
+              </p>
             ) : (
-              <p className="mt-1 text-slate-400">ยังไม่มี LINE เซสชัน หรือเซสชันสมาชิก</p>
+              <p className="mt-1 text-slate-400">
+                ยังไม่มี LINE เซสชัน หรือเซสชันสมาชิก — ล็อกอินด้านล่างหรือใส่ LINE UID แล้วผูกบัญชี
+              </p>
             )}
           </div>
           {hasMember ? (
             <Link
               to="/member/dashboard"
               aria-label="ไปยังหน้าแดชบอร์ดสมาชิก"
-              className={`rounded-lg bg-fuchsia-800 px-4 py-2 text-sm text-white hover:bg-fuchsia-700 ${appFocusRing}`}
+              className={`${themeTapTarget} inline-flex w-full shrink-0 items-center justify-center rounded-lg px-4 py-2 text-sm sm:w-auto ${themeAccent.buttonPrimary} ${themeAccent.focusRing}`}
             >
               ไปหน้าสมาชิก
             </Link>
           ) : null}
         </div>
         {lineEntry ? (
-          <p className="mt-3 border-t border-slate-800 pt-3 text-xs text-slate-500">
+          <p className="mt-3 border-t border-slate-800 pt-3 text-xs text-slate-400">
             ช่องทางเข้าระบบ (ใช้กับ LINE UID): {lineEntrySourceDescription(lineEntry)}
           </p>
         ) : null}
@@ -762,7 +795,7 @@ function LinkPage(props: {
         onStartLineLogin={props.onStartLineLogin}
         onMemberVerified={props.onMemberVerified}
       />
-    </>
+    </div>
   )
 }
 
@@ -773,7 +806,7 @@ function MissingMemberSession() {
       <Link
         to="/auth/link"
         aria-label="ไปหน้าผูกบัญชีเพื่อผูกสมาชิก"
-        className={`mt-4 inline-flex rounded-lg bg-fuchsia-800 px-4 py-2 text-sm text-white hover:bg-fuchsia-700 ${appFocusRing}`}
+        className={`${themeTapTarget} mt-4 inline-flex items-center rounded-lg px-4 py-2 text-sm ${themeAccent.buttonPrimary} ${themeAccent.focusRing}`}
       >
         ไปหน้าผูกบัญชี
       </Link>
@@ -785,11 +818,13 @@ function NotFound() {
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
       <h2 className="text-sm font-medium uppercase tracking-wide text-slate-300">ไม่พบหน้า</h2>
-      <p className="mt-3 text-sm text-slate-400">ไม่พบหน้านี้</p>
+      <p className="mt-3 text-sm text-slate-400">
+        ตรวจสอบที่อยู่ (URL) หรือเลือกจากเมนูด้านบน — ถ้ายังไม่พบ ให้กลับหน้าหลักแล้วเริ่มใหม่
+      </p>
       <Link
         to="/"
         aria-label="กลับไปหน้าหลักของระบบ"
-        className={`mt-4 inline-flex rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 ${appFocusRing}`}
+        className={`${themeTapTarget} mt-4 inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 ${themeAccent.focusRing}`}
       >
         กลับหน้าหลัก
       </Link>

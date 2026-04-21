@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { themeAccent } from '../../lib/themeTokens'
 
 export function FinanceAdminPanelSection({
   loading,
@@ -8,7 +9,7 @@ export function FinanceAdminPanelSection({
   children: ReactNode
 }) {
   return (
-    <section className="mt-6 rounded-xl border border-fuchsia-900/50 bg-fuchsia-950/20 p-6" aria-busy={loading}>
+    <section className={`mt-6 rounded-xl border p-6 ${themeAccent.panel}`} aria-busy={loading}>
       {children}
     </section>
   )

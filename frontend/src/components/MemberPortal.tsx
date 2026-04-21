@@ -1,6 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { portalFocusRing } from '../portal/portalLabels'
+import { themeAccent, themeLayout, themeTapTarget } from '../lib/themeTokens'
+import { portalAccent, portalFocusRing } from '../portal/portalLabels'
 import { MemberProfileSection } from './MemberProfileSection'
 
 type MemberRow = Record<string, unknown>
@@ -76,56 +77,61 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
   const last = member.last_name != null ? String(member.last_name) : ''
 
   return (
-    <div className="space-y-6">
-      <header className="rounded-xl border border-fuchsia-900/40 bg-fuchsia-950/20 p-5" aria-label="ข้อมูลสมาชิกปัจจุบัน">
-        <p className="text-xs font-medium uppercase tracking-wide text-fuchsia-200/80">หน้าสมาชิก</p>
+    <div className="min-w-0 space-y-6">
+      <header
+        className={`rounded-xl border ${themeAccent.panel} p-5`}
+        aria-label="ข้อมูลสมาชิกปัจจุบัน"
+      >
+        <p className={themeLayout.sectionTitle}>หน้าสมาชิก</p>
         <h2 className="mt-1 text-lg font-semibold text-slate-100">
           {first} {last}
           <span className="ml-2 text-sm font-normal text-slate-400">รุ่น {batch}</span>
         </h2>
         {lineDisplayName ? (
-          <p className="mt-1 text-xs text-slate-500">ชื่อ LINE: {lineDisplayName}</p>
+          <p className="mt-1 text-xs text-slate-400">ชื่อ LINE: {lineDisplayName}</p>
         ) : null}
-        <p className="mt-2 break-all font-mono text-xs text-slate-500">LINE UID: {lineUid}</p>
+        <p className="mt-2 break-all font-mono text-xs text-slate-400">LINE UID: {lineUid}</p>
       </header>
 
       <p id="member-portal-tab-help" className="sr-only">
         ใช้ปุ่มลูกศรซ้าย-ขวา หรือปุ่ม Home และ End เพื่อย้ายโฟกัสระหว่างแท็บพอร์ทัลสมาชิก
       </p>
       <nav
-        className="flex flex-wrap gap-2 border-b border-slate-800 pb-3"
-        aria-label="เมนูส่วนต่าง ๆ ในพอร์ทัลสมาชิก"
+        className="-mx-1 min-w-0 max-w-full touch-pan-x overflow-x-auto overscroll-x-contain border-b border-slate-800 px-1 pb-3 [scrollbar-width:thin]"
+        aria-label="เมนูส่วนต่าง ๆ ในพอร์ทัลสมาชิก (เลื่อนแนวนอนบนจอแคบ)"
         aria-describedby="member-portal-tab-help"
-        role="tablist"
-        aria-orientation="horizontal"
       >
-        {SECTIONS.map(({ id, label }, index) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setSection(id)}
-            onKeyDown={(event) => handleTabKeyDown(event, index)}
-            aria-label={`เปิดเมนู ${label}`}
-            role="tab"
-            id={`member-tab-${id}`}
-            aria-selected={section === id}
-            aria-controls={`member-panel-${id}`}
-            aria-keyshortcuts="ArrowLeft ArrowRight Home End"
-            aria-posinset={index + 1}
-            aria-setsize={SECTIONS.length}
-            tabIndex={index === activeIndex ? 0 : -1}
-            ref={(node) => {
-              tabRefs.current[id] = node
-            }}
-            className={`rounded-lg px-3 py-2 text-sm font-medium ${portalFocusRing} ${
-              section === id
-                ? 'bg-fuchsia-800 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        <div
+          className="flex w-max min-w-full flex-nowrap gap-2"
+          role="tablist"
+          aria-orientation="horizontal"
+        >
+          {SECTIONS.map(({ id, label }, index) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSection(id)}
+              onKeyDown={(event) => handleTabKeyDown(event, index)}
+              aria-label={`เปิดเมนู ${label}`}
+              role="tab"
+              id={`member-tab-${id}`}
+              aria-selected={section === id}
+              aria-controls={`member-panel-${id}`}
+              aria-keyshortcuts="ArrowLeft ArrowRight Home End"
+              aria-posinset={index + 1}
+              aria-setsize={SECTIONS.length}
+              tabIndex={index === activeIndex ? 0 : -1}
+              ref={(node) => {
+                tabRefs.current[id] = node
+              }}
+              className={`${themeTapTarget} shrink-0 rounded-lg px-3 py-2 text-sm font-medium ${portalFocusRing} ${
+                section === id ? portalAccent.button : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </nav>
 
       {section === 'profile' && (
@@ -133,10 +139,11 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
           id="member-panel-profile"
           role="tabpanel"
           aria-labelledby="member-tab-profile"
-          className="rounded-xl border border-slate-800 bg-slate-900/50 p-6"
+          className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6"
           aria-label="ฟอร์มเปลี่ยนแปลงข้อมูลสมาชิก"
         >
           <h3 className="text-base font-medium text-slate-200">เปลี่ยนแปลงข้อมูลสมาชิก</h3>
+          <p className="mt-2 text-xs text-slate-500 sm:text-sm">แบ่งช่องกรอกเป็นหมวด — เลื่อนในกรอบฟอร์มได้บนมือถือ</p>
           <MemberProfileSection
             apiBase={apiBase}
             lineUid={lineUid}
@@ -204,14 +211,14 @@ export function MemberPortal({ apiBase, lineUid, member, onMemberUpdated, lineDi
 function PortalRelatedLinks(props: { links: Array<{ to: string; label: string }> }) {
   return (
     <div className="mt-4">
-      <p className="text-xs text-slate-500">ลิงก์ที่เกี่ยวข้อง:</p>
+      <p className="text-xs text-slate-400">ลิงก์ที่เกี่ยวข้อง:</p>
       <ul className="mt-2 flex flex-wrap gap-2" role="list" aria-label="ลิงก์ที่เกี่ยวข้องในพอร์ทัลสมาชิก">
         {props.links.map((l) => (
           <li key={l.to} role="listitem">
             <Link
               to={l.to}
               aria-label={`ไปยัง ${l.label}`}
-              className={`rounded border border-fuchsia-900/45 bg-fuchsia-950/25 px-2.5 py-1 text-xs text-fuchsia-200 hover:bg-fuchsia-900/35 ${portalFocusRing}`}
+              className={`${themeTapTarget} inline-flex items-center rounded ${themeAccent.surfaceChip} px-2.5 py-1 text-xs ${portalFocusRing}`}
             >
               {l.label}
             </Link>
@@ -228,13 +235,13 @@ function PlaceholderBlock(props: { title: string; children: ReactNode; panelId: 
       id={props.panelId}
       role="tabpanel"
       aria-labelledby={props.tabId}
-      className="rounded-xl border border-slate-800 bg-slate-900/50 p-6"
+      className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6"
       aria-label={props.title}
     >
       <h3 className="text-base font-medium text-slate-200">{props.title}</h3>
-      <div className="mt-3 text-sm text-slate-400">{props.children}</div>
-      <div className="mt-6 rounded-lg border border-dashed border-slate-600 bg-slate-950/50 px-4 py-10 text-center text-sm text-slate-500">
-        พื้นที่สำหรับพัฒนาต่อ — สรุปความต้องการเพิ่มเติมแล้วค่อยเชื่อม API / ฐานข้อมูล
+      <div className="mt-3 space-y-4 text-sm text-slate-400">{props.children}</div>
+      <div className="mt-5 rounded-lg border border-dashed border-slate-600 bg-slate-950/50 px-3 py-6 text-center text-xs text-slate-400 sm:px-4 sm:py-8 sm:text-sm">
+        พื้นที่สำหรับพัฒนาต่อ — ขั้นตอนถัดไป: สรุปความต้องการกับทีม แล้วเชื่อม API / ฐานข้อมูล
       </div>
     </section>
   )

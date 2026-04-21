@@ -567,6 +567,183 @@ function isFundScope(s: string): s is FundScope {
 }
 
 /**
+ * สถิติบริจาคกองโรงเรียนยุพราช (สาธารณะ — ไม่ต้องล็อกอิน) สำหรับพอร์ทัลสมาชิก
+ * รวมยอดตามโครงการ ตามรุ่น รายชื่อผู้บริจาค — ดึงจาก donations + school_activities
+ */
+membersRouter.get('/donations/yupparaj-stats', async (_req, res) => {
+  try {
+    const supabase = getServiceSupabase()
+    const { data: acts, error: aErr } = await supabase
+      .from('school_activities')
+      .select('id, title, category, target_amount')
+      .eq('fund_scope', 'yupparaj_school')
+      .eq('active', true)
+      .order('category', { ascending: true })
+      .order('title', { ascending: true })
+    if (aErr) {
+      res.status(500).json({ error: 'โหลดกิจกรรมไม่สำเร็จ', details: aErr })
+      return
+    }
+
+    const { data: dons, error: dErr } = await supabase
+      .from('donations')
+      .select(
+        'id, activity_id, amount, donor_first_name, donor_last_name, donor_batch, donor_batch_name, created_at',
+      )
+      .eq('fund_scope', 'yupparaj_school')
+      .order('created_at', { ascending: false })
+      .limit(5000)
+    if (dErr) {
+      res.status(500).json({ error: 'โหลดการบริจาคไม่สำเร็จ', details: dErr })
+      return
+    }
+
+    const titleById = new Map<string, { title: string; category: string }>()
+    for (const a of acts ?? []) {
+      const id = String((a as { id: string }).id)
+      titleById.set(id, {
+        title: String((a as { title?: string | null }).title ?? '').trim() || '—',
+        category: String((a as { category?: string | null }).category ?? '').trim() || 'ทั่วไป',
+      })
+    }
+
+    const extraIds = Array.from(
+      new Set(
+        (dons ?? [])
+          .map((r) => ((r as { activity_id?: string | null }).activity_id == null ? '' : String((r as { activity_id: string }).activity_id)))
+          .filter((id) => id && !titleById.has(id)),
+      ),
+    )
+    if (extraIds.length > 0) {
+      const { data: extraActs } = await supabase
+        .from('school_activities')
+        .select('id, title, category')
+        .in('id', extraIds)
+      for (const a of extraActs ?? []) {
+        const id = String((a as { id: string }).id)
+        if (!titleById.has(id)) {
+          titleById.set(id, {
+            title: String((a as { title?: string | null }).title ?? '').trim() || '—',
+            category: String((a as { category?: string | null }).category ?? '').trim() || 'ทั่วไป',
+          })
+        }
+      }
+    }
+
+    let totalAmount = 0
+    let donationCount = 0
+    const byAct = new Map<string, { raised: number; count: number }>()
+    type BatchAgg = { batch: string; batchName: string | null; total: number; count: number }
+    const byBatch = new Map<string, BatchAgg>()
+
+    for (const row of dons ?? []) {
+      const r = row as {
+        activity_id?: string | null
+        amount?: unknown
+        donor_batch?: string | null
+        donor_batch_name?: string | null
+      }
+      const raw = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
+      if (!Number.isFinite(raw) || raw <= 0) continue
+      totalAmount += raw
+      donationCount += 1
+
+      const aid = r.activity_id == null ? '' : String(r.activity_id)
+      if (aid) {
+        const cur = byAct.get(aid) ?? { raised: 0, count: 0 }
+        cur.raised += raw
+        cur.count += 1
+        byAct.set(aid, cur)
+      }
+
+      const bRaw = r.donor_batch != null && String(r.donor_batch).trim() ? String(r.donor_batch).trim() : '—'
+      const bn =
+        r.donor_batch_name != null && String(r.donor_batch_name).trim() ? String(r.donor_batch_name).trim() : null
+      const bk = `${bRaw}|||${bn ?? ''}`
+      const curB = byBatch.get(bk) ?? { batch: bRaw, batchName: bn, total: 0, count: 0 }
+      curB.total += raw
+      curB.count += 1
+      byBatch.set(bk, curB)
+    }
+
+    const byActivity = (acts ?? []).map((a) => {
+      const id = String((a as { id: string }).id)
+      const st = byAct.get(id) ?? { raised: 0, count: 0 }
+      const tgtRaw = (a as { target_amount?: unknown }).target_amount
+      const tgt = tgtRaw != null && tgtRaw !== '' ? Number(tgtRaw) : null
+      const targetAmount = tgt != null && Number.isFinite(tgt) && tgt >= 0 ? tgt : null
+      const progressPercent =
+        targetAmount != null && targetAmount > 0 && Number.isFinite(st.raised)
+          ? Math.min(100, Math.round((st.raised / targetAmount) * 100))
+          : null
+      const meta = titleById.get(id) ?? { title: '—', category: 'ทั่วไป' }
+      return {
+        activityId: id,
+        title: meta.title,
+        category: meta.category,
+        targetAmount,
+        raisedAmount: Math.round(st.raised * 100) / 100,
+        donationCount: st.count,
+        progressPercent,
+      }
+    })
+
+    const byBatchList = [...byBatch.values()]
+      .map((b) => ({
+        batch: b.batch,
+        batchName: b.batchName,
+        totalAmount: Math.round(b.total * 100) / 100,
+        donationCount: b.count,
+      }))
+      .sort((x, y) => y.totalAmount - x.totalAmount)
+
+    const donors = (dons ?? [])
+      .map((row) => {
+        const r = row as {
+          id: string
+          activity_id?: string | null
+          amount?: unknown
+          donor_first_name?: string | null
+          donor_last_name?: string | null
+          donor_batch?: string | null
+          donor_batch_name?: string | null
+          created_at?: string | null
+        }
+        const raw = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
+        if (!Number.isFinite(raw) || raw <= 0) return null
+        const aid = r.activity_id == null ? '' : String(r.activity_id)
+        const act = aid ? titleById.get(aid) : undefined
+        const donorName = [r.donor_first_name, r.donor_last_name].filter(Boolean).join(' ').trim() || '—'
+        return {
+          id: String(r.id),
+          donorName,
+          batch: r.donor_batch != null && String(r.donor_batch).trim() ? String(r.donor_batch).trim() : null,
+          batchName:
+            r.donor_batch_name != null && String(r.donor_batch_name).trim() ? String(r.donor_batch_name).trim() : null,
+          amount: Math.round(raw * 100) / 100,
+          activityTitle: act?.title ?? '—',
+          activityCategory: act?.category ?? null,
+          createdAt: r.created_at ?? null,
+        }
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null)
+
+    res.json({
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      totalAmount: Math.round(totalAmount * 100) / 100,
+      donationCount,
+      byActivity,
+      byBatch: byBatchList,
+      donors,
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})
+
+/**
  * ประวัติการบริจาคของสมาชิก (ผ่านพอร์ทัล)
  * Body: { line_uid }
  */

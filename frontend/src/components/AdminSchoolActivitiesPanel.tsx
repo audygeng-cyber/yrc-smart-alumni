@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY, adminJsonHeaders, normalizeApiBase } from '../lib/adminApi'
+import { themeAccent } from '../lib/themeTokens'
 import { portalFocusRing } from '../portal/portalLabels'
 
 type Activity = {
@@ -274,9 +275,18 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
   return (
     <section className="mt-8 rounded-xl border border-amber-900/40 bg-amber-950/10 p-6" aria-busy={loading}>
       <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200">Admin — คอร์ส / กิจกรรม (ตาราง school_activities)</h2>
-      <p className="mt-2 text-xs text-slate-500">
-        รายการที่แสดงในพอร์ทัลโรงเรียนกวดวิชา (Academy) หน้าคอร์สเรียน — ใช้ Admin key เดียวกับการนำเข้าสมาชิก
+      <p className="mt-2 text-xs text-slate-400">
+        ตั้งค่าชื่อ หมวด รายละเอียด เป้ายอด และ &quot;กองเงิน&quot; ที่นี่ — ข้อมูลจะถูกส่งต่อไปยังพอร์ทัลอัตโนมัติเมื่อสถานะเป็น &quot;เปิด&quot;
       </p>
+      <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-slate-500">
+        <li>
+          <span className="text-slate-400">กองโรงเรียนยุพราช</span> → พอร์ทัลสมาชิก หน้า &quot;สนับสนุนกิจกรรม&quot; (เลือกโครงการ / การ์ดความคืบหน้า / รายละเอียดใต้ dropdown)
+        </li>
+        <li>
+          <span className="text-slate-400">สมาคม / กวดวิชา</span> → พอร์ทัล Academy หน้า &quot;คอร์สเรียน / กิจกรรม&quot; (ไม่รวมกองยุพราช)
+        </li>
+      </ul>
+      <p className="mt-2 text-xs text-slate-500">ใช้ Admin key เดียวกับการนำเข้าสมาชิก</p>
       <label className="mt-4 block text-sm text-slate-300">
         Admin key (x-admin-key)
         <input
@@ -296,7 +306,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           disabled={loading}
           onClick={() => void loadActivities()}
           aria-label="โหลดรายการคอร์สและกิจกรรมทั้งหมด"
-          className={`rounded-lg bg-amber-800 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
+          className={`tap-target rounded-lg bg-amber-800 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
         >
           โหลดรายการ
         </button>
@@ -304,7 +314,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={() => void loadYupparajSummary()}
-          className={`rounded-lg border border-amber-700 px-4 py-2 text-sm text-amber-100 hover:bg-amber-950/50 disabled:opacity-50 ${portalFocusRing}`}
+          className={`tap-target rounded-lg border border-amber-700 px-4 py-2 text-sm text-amber-100 hover:bg-amber-950/50 disabled:opacity-50 ${portalFocusRing}`}
         >
           สรุปยอดบริจาคยุพราช (JSON)
         </button>
@@ -312,7 +322,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={() => void downloadYupparajCsv()}
-          className={`rounded-lg border border-fuchsia-800 px-4 py-2 text-sm text-fuchsia-100 hover:bg-fuchsia-950/40 disabled:opacity-50 ${portalFocusRing}`}
+          className={`tap-target rounded-lg ${themeAccent.buttonOutline} px-4 py-2 text-sm text-fuchsia-100 disabled:opacity-50 ${portalFocusRing}`}
         >
           ดาวน์โหลด CSV บริจาคยุพราช
         </button>
@@ -382,7 +392,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           disabled={loading}
           onClick={() => void addActivity()}
           aria-label="เพิ่มคอร์สหรือกิจกรรมใหม่"
-          className={`mt-2 rounded bg-fuchsia-800 px-3 py-1.5 text-sm text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
+          className={`tap-target mt-2 rounded px-3 py-1.5 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
         >
           เพิ่ม
         </button>
@@ -391,7 +401,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
       <div className="mt-6 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/50" role="group" aria-label="ตารางจัดการคอร์สและกิจกรรม">
         <table className="w-full min-w-[720px] text-left text-sm" aria-label="ตารางคอร์สและกิจกรรมโรงเรียนกวดวิชา">
           <thead>
-            <tr className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <tr className="border-b border-slate-800 text-xs uppercase text-slate-400">
               <th scope="col" className="px-3 py-2">หมวด</th>
               <th scope="col" className="px-3 py-2">ชื่อ</th>
               <th scope="col" className="px-3 py-2">กอง</th>
@@ -404,7 +414,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           <tbody>
             {activities.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+                <td colSpan={7} className="px-3 py-6 text-center text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                   ยังไม่มีข้อมูล — กดโหลดรายการ
                 </td>
               </tr>
@@ -458,7 +468,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                         />
                       </div>
                     </td>
-                    <td className="px-3 py-2 align-middle text-slate-500">—</td>
+                    <td className="px-3 py-2 align-middle text-slate-400">—</td>
                     <td className="px-3 py-2 align-top">
                       <div className="flex flex-wrap gap-2" role="group" aria-label="คำสั่งบันทึกหรือยกเลิกการแก้ไขกิจกรรม">
                         <button
@@ -484,7 +494,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                   <tr key={a.id} className="border-b border-slate-800/80">
                     <td className="px-3 py-2 text-slate-400">{a.category}</td>
                     <td className="px-3 py-2 font-medium text-slate-100">{a.title}</td>
-                    <td className="px-3 py-2 text-xs text-slate-500">
+                    <td className="px-3 py-2 text-xs text-slate-400">
                       {a.fund_scope === 'yupparaj_school'
                         ? 'ยุพราช'
                         : a.fund_scope === 'cram_school'
@@ -494,7 +504,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                     <td className="px-3 py-2 text-xs text-slate-400">
                       {a.target_amount != null && a.target_amount !== '' ? String(a.target_amount) : '—'}
                     </td>
-                    <td className="max-w-xs truncate px-3 py-2 text-slate-500" title={a.description ?? undefined}>
+                    <td className="max-w-xs truncate px-3 py-2 text-slate-400" title={a.description ?? undefined}>
                       {a.description ?? '—'}
                     </td>
                     <td className="px-3 py-2">
@@ -503,7 +513,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                         onClick={() => void toggleActive(a)}
                         aria-pressed={a.active}
                         aria-label={`สลับสถานะการใช้งานกิจกรรม ${a.title}`}
-                        className={`rounded-sm text-xs underline ${portalFocusRing} ${a.active ? 'text-fuchsia-400' : 'text-slate-500'}`}
+                        className={`rounded-sm text-xs underline ${portalFocusRing} ${a.active ? 'text-fuchsia-400' : 'text-slate-400'}`}
                       >
                         {a.active ? 'เปิด' : 'ปิด'}
                       </button>
@@ -549,7 +559,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
         </pre>
       ) : null}
       {loading ? (
-        <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           กำลังโหลดรายการคอร์สและกิจกรรม...
         </p>
       ) : null}

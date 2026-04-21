@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { themeTapTarget } from '../lib/themeTokens'
 import { portalFocusRing } from '../portal/portalLabels'
 import { getPushSupportHint, subscribePushNotifications } from '../pushClient'
 
@@ -24,9 +25,9 @@ export function PushOptIn({ apiBase }: Props) {
   }
 
   return (
-    <div className="mt-6 rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-left" aria-busy={loading}>
+    <div className="mt-6 min-w-0 rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-left" aria-busy={loading}>
       <h3 className="text-sm font-medium text-slate-300">การแจ้งเตือน (Web Push)</h3>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 break-words text-xs text-slate-400">
         ใช้ได้เมื่อระบบ backend ตั้งค่า VAPID และรันไมเกรชัน (migration) ตาราง `push_subscriptions` — แจ้งเมื่อมีคำร้องสมาชิกใหม่
       </p>
       {supportHint ? (
@@ -44,7 +45,7 @@ export function PushOptIn({ apiBase }: Props) {
         disabled={loading}
         onClick={() => void onEnable()}
         aria-label="เปิดการแจ้งเตือน Web Push สำหรับเบราว์เซอร์นี้"
-        className={`tap-target mt-3 rounded-lg bg-slate-700 px-4 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50 ${portalFocusRing}`}
+        className={`${themeTapTarget} mt-3 w-full rounded-lg bg-slate-700 px-4 py-2 text-sm text-white hover:bg-slate-600 disabled:opacity-50 sm:w-auto ${portalFocusRing}`}
       >
         {loading ? 'กำลังเปิด…' : 'เปิดการแจ้งเตือนในเบราว์เซอร์นี้'}
       </button>
@@ -53,7 +54,7 @@ export function PushOptIn({ apiBase }: Props) {
           role={isErrorMsg ? 'alert' : 'status'}
           aria-live={isErrorMsg ? undefined : 'polite'}
           aria-atomic="true"
-          className={`mt-3 text-sm ${
+          className={`mt-3 break-words text-sm ${
             msg.includes('เปิดการแจ้งเตือนแล้ว') ? 'text-fuchsia-300/90' : 'text-amber-200'
           }`}
         >

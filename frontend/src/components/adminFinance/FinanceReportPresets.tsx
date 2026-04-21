@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { ReportPreset } from '../../lib/adminFinanceHelpers'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 export type FinanceReportPresetsProps = {
@@ -59,7 +60,7 @@ export function FinanceReportPresets({
         disabled={loading}
         onClick={onApplyPresetAndLoad}
         aria-label="ใช้พรีเซ็ตรายงานและโหลดข้อมูลทันที"
-        className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white hover:bg-fuchsia-600 disabled:opacity-50 ${portalFocusRing}`}
+        className={`tap-target rounded ${themeAccent.buttonPrimaryStrong} px-3 py-2 text-sm disabled:opacity-50 ${portalFocusRing}`}
       >
         ใช้พรีเซ็ต + โหลดทันที
       </button>
@@ -76,7 +77,7 @@ export function FinanceReportPresets({
         disabled={loading}
         onClick={onSaveCurrentPreset}
         aria-label="บันทึกค่าตัวกรองปัจจุบันเป็นพรีเซ็ต"
-        className={`rounded bg-fuchsia-700 px-3 py-2 text-sm text-white hover:bg-fuchsia-600 disabled:opacity-50 ${portalFocusRing}`}
+        className={`tap-target rounded ${themeAccent.buttonPrimaryStrong} px-3 py-2 text-sm disabled:opacity-50 ${portalFocusRing}`}
       >
         บันทึกพรีเซ็ตปัจจุบัน
       </button>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY, normalizeApiBase } from '../lib/adminApi'
 import { formatFetchError, readApiJson } from '../lib/adminHttp'
+import { themeAccent } from '../lib/themeTokens'
 import { portalFocusRing } from '../portal/portalLabels'
 
 const BATCH_ID_KEY = 'yrc_last_import_batch_id'
@@ -178,7 +179,7 @@ export function AdminImportPanel({ apiBase }: Props) {
       <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200/90">
         Admin — นำเข้า / ล้างข้อมูลสมาชิก
       </h2>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-slate-400">
         ใช้เฉพาะผู้ดูแลระบบ ห้าม commit Admin key; เก็บในเซสชันของเบราว์เซอร์เท่านั้น
       </p>
       <label className="mt-4 block text-sm text-slate-300">
@@ -232,11 +233,11 @@ export function AdminImportPanel({ apiBase }: Props) {
         />
       </label>
       {!file ? (
-        <p id={fileStatusId} className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p id={fileStatusId} className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           ยังไม่ได้เลือกไฟล์นำเข้า
         </p>
       ) : (
-        <p id={fileStatusId} className="mt-2 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p id={fileStatusId} className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           เลือกไฟล์แล้ว: {file.name}
         </p>
       )}
@@ -280,14 +281,14 @@ export function AdminImportPanel({ apiBase }: Props) {
         </pre>
       )}
       {loading ? (
-        <p className="mt-3 text-xs text-slate-500" role="status" aria-live="polite" aria-atomic="true">
+        <p className="mt-3 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
           กำลังประมวลผลคำสั่งนำเข้าหรือสรุปผล...
         </p>
       ) : null}
 
       <div className="mt-10 border-t border-slate-800 pt-8">
         <h3 className="text-sm font-medium text-slate-200">บทบาทกรรมการและผู้อนุมัติจ่าย</h3>
-        <p className="mt-2 text-xs leading-relaxed text-slate-500">
+        <p className="mt-2 text-xs leading-relaxed text-slate-400">
           กำหนดว่าสมาชิกคนใดเป็นกรรมการ (<code className="text-slate-400">committee</code>) และคนใดมีอำนาจอนุมัติคำขอจ่ายที่เกี่ยวกับมติประชุม (
           <code className="text-slate-400">payment_approver</code>) — สมาชิกต้องผูก LINE แล้ว และเคยเปิดแอปเพื่อให้มีแถว{' '}
           <code className="text-slate-400">app_users</code>
@@ -317,7 +318,7 @@ export function AdminImportPanel({ apiBase }: Props) {
           type="button"
           disabled={roleLoading}
           onClick={() => void saveMemberAppRoles()}
-          className={`mt-3 rounded-lg bg-fuchsia-800 px-4 py-2 text-sm font-medium text-white hover:bg-fuchsia-700 disabled:opacity-50 ${portalFocusRing}`}
+          className={`tap-target mt-3 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
         >
           {roleLoading ? 'กำลังบันทึก…' : 'บันทึกบทบาท'}
         </button>

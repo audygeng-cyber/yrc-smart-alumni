@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { AUTO_REFRESH_MAX_FAILURES } from '../../lib/adminFinanceConstants'
+import { themeAccent } from '../../lib/themeTokens'
 import { portalFocusRing } from '../../portal/portalLabels'
 
 export type FinanceAutoRefreshBarProps = {
@@ -65,7 +66,7 @@ export function FinanceAutoRefreshBar({
               ? 'bg-rose-900/70 text-rose-200'
               : isAutoRefreshing
                 ? 'bg-amber-900/70 text-amber-200'
-                : 'bg-fuchsia-900/70 text-fuchsia-200'
+                : 'bg-emerald-900/70 text-emerald-200'
         }`}
       >
         {!autoRefreshEnabled
@@ -86,7 +87,7 @@ export function FinanceAutoRefreshBar({
           type="button"
           onClick={onResumeAutoRefresh}
           aria-label="ทำงานรีเฟรชอัตโนมัติต่อ"
-          className={`tap-target rounded bg-fuchsia-700 px-2 py-1 text-[11px] text-white hover:bg-fuchsia-600 ${portalFocusRing}`}
+          className={`tap-target rounded ${themeAccent.buttonPrimaryStrong} px-2 py-1 text-[11px] ${portalFocusRing}`}
         >
           ทำงานรีเฟรชอัตโนมัติต่อ
         </button>

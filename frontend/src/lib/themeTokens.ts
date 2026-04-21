@@ -1,3 +1,9 @@
+/**
+ * ชื่อคลาสเดียวกับ `index.css` (`.tap-target`) — เป้าแตะขั้นต่ำ ~44px สูง + `touch-manipulation`
+ * ใช้คู่กับ `themeAccent.focusRing` ใน shell หรือ `portalFocusRing` ในพอร์ทัล
+ */
+export const themeTapTarget = 'tap-target' as const
+
 export const themeAccent = {
   colorName: 'fuchsia',
   focusRing:
@@ -13,6 +19,18 @@ export const themeAccent = {
   text: 'text-fuchsia-200',
   textStrong: 'text-fuchsia-100',
   link: 'text-fuchsia-400 underline hover:text-fuchsia-300',
+  /** ช่องกรอกข้อความ — ขอบโฟกัสสีบานเย็น อ่านง่ายบนพื้นมืด */
+  formInput:
+    'rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none transition-colors focus-visible:border-fuchsia-500/75',
+  /** ปุ่ม/ลิงก์แบบเบา — พื้นโปร่ง */
+  buttonSoft: 'bg-fuchsia-900/50 text-fuchsia-100 hover:bg-fuchsia-800/60',
+  /** ปุ่มขอบ — คู่กับปุ่มทึบสีเดียวกัน */
+  buttonOutline: 'border border-fuchsia-800 text-fuchsia-200 hover:bg-fuchsia-950/30',
+  /** ปุ่มขอบบนพื้นมืด — มีพื้นหลังจาง */
+  buttonOutlineOnDark:
+    'border border-fuchsia-800/80 bg-fuchsia-950/40 text-fuchsia-200 hover:bg-fuchsia-900/50',
+  /** ชิปลิงก์ในการ์ด */
+  surfaceChip: 'border border-fuchsia-900/45 bg-fuchsia-950/25 text-fuchsia-200 hover:bg-fuchsia-900/35',
 } as const
 
 /** โทน typography/spacing กลาง เพื่อใช้ซ้ำในหน้าใหม่ */

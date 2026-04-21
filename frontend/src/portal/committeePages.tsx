@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
+import { themeAccent } from '../lib/themeTokens'
 import { portalFocusRing, portalNotFoundScopeLabel } from './portalLabels'
 import {
   MetricCards,
@@ -23,6 +24,10 @@ function committeeMeetingStatusLabel(s: 'ready' | 'pending_vote' | 'in_review') 
   return s === 'ready' ? 'พร้อม' : s === 'pending_vote' ? 'รอลงมติ' : 'ตรวจสอบ'
 }
 
+/** จำกัดความสูงรายการยาวในพอร์ทัลคณะกรรมการ — เลื่อนในกรอบ ไม่ดันหน้าทั้งหมด */
+const committeePortalScrollList =
+  'max-h-[min(45dvh,22rem)] overflow-y-auto overscroll-y-contain pr-1 [scrollbar-width:thin]'
+
 export function CommitteeArea(props: { apiBase: string; lineUid: string | null }) {
   const [roleView, setRoleView] = useState<CommitteeRoleView>('chair')
   const portalData = useCommitteePortalData(props.apiBase)
@@ -44,24 +49,26 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
       subtitle="คณะกรรมการ 35 คน · ทะเบียนสมาชิก · การเงินละเอียด · ประชุม · ลงมติ"
       navItems={visibleNavItems}
     >
-      <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
+      <section className="mb-4 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
           <select
             value={roleView}
             onChange={(e) => setRoleView(e.target.value as CommitteeRoleView)}
             aria-label="เลือกมุมมองบทบาทในพอร์ทัลคณะกรรมการ"
             aria-describedby={roleViewSummaryId}
-            className={`rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
+            className={`min-w-0 max-w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 ${portalFocusRing}`}
           >
             <option value="chair">ประธานคณะกรรมการ</option>
             <option value="member">กรรมการ</option>
           </select>
-          <span className="text-xs text-slate-400">จำลองสิทธิ์เมนูภายในพอร์ทัลคณะกรรมการ</span>
-          <span id={roleViewSummaryId} className="text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+          <span className="text-xs text-slate-400 sm:shrink-0">จำลองสิทธิ์เมนูภายในพอร์ทัลคณะกรรมการ</span>
+          <span id={roleViewSummaryId} className="min-w-0 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
           </span>
-          <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
+          <div className="shrink-0">
+            <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
+          </div>
         </div>
       </section>
       <Routes>
@@ -123,7 +130,7 @@ function CommitteeFinancePage(props: {
 
   if (props.roleView === 'member') {
     return (
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
           <PortalSectionHeader loading={loading} source={source}>
             <div>
@@ -158,7 +165,7 @@ function CommitteeFinancePage(props: {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
@@ -208,9 +215,41 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
   const recentMinutes = data.recentMinutes
   const closedAgendaResults = data.closedAgendaResults
 
+  const jumpClass = `rounded border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-800 ${portalFocusRing}`
+
   return (
-    <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
+    <div className="min-w-0 space-y-4">
+      {!loading ? (
+        <nav
+          className="flex flex-col gap-2 rounded-lg border border-dashed border-slate-700 bg-slate-950/40 p-3 text-xs lg:hidden"
+          aria-label="ข้ามไปยังส่วนของหน้าวาระและรอบประชุม"
+        >
+          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">ในหน้านี้</span>
+          <div className="flex flex-wrap gap-2">
+            <a href="#committee-meetings-sessions" className={jumpClass}>
+              รายการประชุม
+            </a>
+            <a href="#committee-meetings-documents" className={jumpClass}>
+              เอกสาร
+            </a>
+            <a href="#committee-meetings-minutes" className={jumpClass}>
+              รายงาน
+            </a>
+            <a href="#committee-meetings-closed" className={jumpClass}>
+              ผลมติ
+            </a>
+            <a href="#committee-meetings-shortcuts" className={jumpClass}>
+              ทางลัด
+            </a>
+          </div>
+        </nav>
+      ) : null}
+
+      <section
+        id="committee-meetings-sessions"
+        className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+        aria-busy={loading}
+      >
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">วาระและรอบประชุม</h3>
@@ -226,157 +265,202 @@ function CommitteeMeetingsPage(props: { portalState: PortalDataState<CommitteePo
             ยังไม่มีรายการประชุมในสแนปช็อต
           </p>
         ) : (
-          <ul className="mt-4 space-y-2 text-sm" role="list" aria-label="รายการวาระและรอบประชุมล่าสุด">
-            {meetings.map((m, i) => (
-              <li
-                key={`${m.topic}-${m.time}-${i}`}
-                className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2.5"
-                role="listitem"
-              >
-                <div>
-                  <p className="font-medium text-slate-100">{m.topic}</p>
-                  <p className="text-xs text-slate-400">เวลา {m.time}</p>
-                </div>
-                <span
-                  className={`rounded px-2 py-0.5 text-xs ${
-                    m.status === 'ready'
-                      ? 'bg-fuchsia-900/40 text-fuchsia-200'
-                      : m.status === 'pending_vote'
-                        ? 'bg-amber-900/40 text-amber-200'
-                        : 'bg-sky-900/40 text-sky-200'
-                  }`}
+          <div className={meetings.length > 4 ? `mt-4 ${committeePortalScrollList}` : 'mt-4'}>
+            <ul className="space-y-2 text-sm" role="list" aria-label="รายการวาระและรอบประชุมล่าสุด">
+              {meetings.map((m, i) => (
+                <li
+                  key={`${m.topic}-${m.time}-${i}`}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2.5"
+                  role="listitem"
                 >
-                  {committeeMeetingStatusLabel(m.status)}
-                </span>
-              </li>
-            ))}
-          </ul>
+                  <div>
+                    <p className="font-medium text-slate-100">{m.topic}</p>
+                    <p className="text-xs text-slate-400">เวลา {m.time}</p>
+                  </div>
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs ${
+                      m.status === 'ready'
+                        ? 'bg-fuchsia-900/40 text-fuchsia-200'
+                        : m.status === 'pending_vote'
+                          ? 'bg-amber-900/40 text-amber-200'
+                          : 'bg-sky-900/40 text-sky-200'
+                    }`}
+                  >
+                    {committeeMeetingStatusLabel(m.status)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
-        <div className="mt-6 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="เอกสารประชุมล่าสุด">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">เอกสารประชุมล่าสุด</h4>
-          {loading ? null : documents.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
-              ยังไม่มีเอกสารประชุมที่เผยแพร่
-            </p>
-          ) : (
-            <ul className="mt-2 space-y-2 text-xs" role="list" aria-label="รายการเอกสารประชุม">
-              {documents.map((doc) => (
-                <li key={doc.id} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium text-slate-200">{doc.title}</span>
-                    <span className="text-slate-400">{doc.scope}</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-600">
-                    อัปเดต {new Date(doc.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-2" role="group" aria-label="คำสั่งเอกสารประชุม">
-                    <a
-                      href={`${props.apiBase}/api/portal/committee/documents/${encodeURIComponent(doc.id)}/download.txt`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
-                      aria-label={`ดาวน์โหลดเอกสาร ${doc.title}`}
-                    >
-                      ดาวน์โหลด .txt
-                    </a>
-                    {doc.documentUrl ? (
-                      <a
-                        href={doc.documentUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`rounded border border-slate-700 px-2 py-0.5 text-[11px] text-fuchsia-300 hover:bg-slate-800 ${portalFocusRing}`}
-                        aria-label={`เปิดลิงก์เอกสาร ${doc.title}`}
-                      >
-                        เปิดลิงก์
-                      </a>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="รายงานการประชุมล่าสุด">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายงานการประชุมล่าสุด</h4>
-          {loading ? null : recentMinutes.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
-              ยังไม่มีรายงานการประชุมที่เผยแพร่
-            </p>
-          ) : (
-            <ul className="mt-2 space-y-2 text-xs" role="list" aria-label="รายการรายงานการประชุมล่าสุด">
-              {recentMinutes.map((m) => (
-                <li key={m.meetingSessionId} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium text-slate-200">{m.title}</span>
-                    <span className="text-slate-400">
-                      อัปเดต {new Date(m.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <a
-                      href={`${props.apiBase}/api/portal/committee/meetings/${encodeURIComponent(m.meetingSessionId)}/minutes.txt`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
-                      aria-label={`ดาวน์โหลดรายงานการประชุม ${m.title}`}
-                    >
-                      ดาวน์โหลด minutes.txt
-                    </a>
-                    <span className="text-[11px] text-slate-600">ผู้บันทึก: {m.recordedBy ?? 'ไม่ระบุ'}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3" role="region" aria-label="ผลมติวาระที่ปิดแล้วล่าสุด">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">ผลมติวาระที่ปิดแล้วล่าสุด</h4>
-          {loading ? null : closedAgendaResults.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
-              ยังไม่มีวาระที่ปิดพร้อมผลมติ
-            </p>
-          ) : (
-            <ul className="mt-2 space-y-2 text-xs" role="list" aria-label="รายการผลมติวาระที่ปิดแล้ว">
-              {closedAgendaResults.map((row) => (
-                <li key={row.id} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium text-slate-200">{row.title}</span>
-                    <span
-                      className={`rounded px-2 py-0.5 ${
-                        row.approvedByVote ? 'bg-fuchsia-900/40 text-fuchsia-200' : 'bg-rose-900/40 text-rose-200'
-                      }`}
-                    >
-                      {row.resultLabel}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    {agendaScopeLabel(row.scope)} · ปิดเมื่อ{' '}
-                    {new Date(row.closedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    เห็นชอบ {row.approve.toLocaleString('th-TH')} · ไม่เห็นชอบ {row.reject.toLocaleString('th-TH')} · งดออกเสียง{' '}
-                    {row.abstain.toLocaleString('th-TH')} · รวม {row.totalVotes.toLocaleString('th-TH')} เสียง
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-slate-600">
-                    ผู้เข้าร่วม {row.attendees.toLocaleString('th-TH')} · เสียงขั้นต่ำ {row.majorityRequired.toLocaleString('th-TH')} ·{' '}
-                    {row.quorumRequired > 0
-                      ? `องค์ประชุมขั้นต่ำ ${row.quorumRequired.toLocaleString('th-TH')} (${row.quorumMet ? 'ครบ' : 'ไม่ครบ'})`
-                      : 'ไม่มีเงื่อนไของค์ประชุม'}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าวาระและรอบประชุม">
-          <Link to="/committee/dashboard" aria-label="กลับไปหน้าแดชบอร์ดคณะกรรมการ" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
-            กลับแดชบอร์ด
-          </Link>
-          <Link to="/committee/voting" aria-label="ไปหน้าลงมติคณะกรรมการ" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
-            หน้าลงมติ (ตัวอย่าง)
-          </Link>
-        </div>
       </section>
+
+      {!loading ? (
+        <>
+          <section
+            id="committee-meetings-documents"
+            className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+            role="region"
+            aria-label="เอกสารประชุมล่าสุด"
+          >
+            <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">เอกสารประชุมล่าสุด</h4>
+            <p className="mt-1 text-xs text-slate-500">เอกสารที่เผยแพร่ในรอบสแนปช็อต — เลื่อนในกรอบเมื่อรายการยาว</p>
+            {documents.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+                ยังไม่มีเอกสารประชุมที่เผยแพร่
+              </p>
+            ) : (
+              <div className={documents.length > 3 ? `mt-3 ${committeePortalScrollList}` : 'mt-3'}>
+                <ul className="space-y-2 text-xs" role="list" aria-label="รายการเอกสารประชุม">
+                  {documents.map((doc) => (
+                    <li key={doc.id} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-slate-200">{doc.title}</span>
+                        <span className="text-slate-400">{doc.scope}</span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-600">
+                        อัปเดต {new Date(doc.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-2" role="group" aria-label="คำสั่งเอกสารประชุม">
+                        <a
+                          href={`${props.apiBase}/api/portal/committee/documents/${encodeURIComponent(doc.id)}/download.txt`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+                          aria-label={`ดาวน์โหลดเอกสาร ${doc.title}`}
+                        >
+                          ดาวน์โหลด .txt
+                        </a>
+                        {doc.documentUrl ? (
+                          <a
+                            href={doc.documentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`rounded border border-slate-700 px-2 py-0.5 text-[11px] text-fuchsia-300 hover:bg-slate-800 ${portalFocusRing}`}
+                            aria-label={`เปิดลิงก์เอกสาร ${doc.title}`}
+                          >
+                            เปิดลิงก์
+                          </a>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          <section
+            id="committee-meetings-minutes"
+            className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+            role="region"
+            aria-label="รายงานการประชุมล่าสุด"
+          >
+            <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายงานการประชุมล่าสุด</h4>
+            {recentMinutes.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+                ยังไม่มีรายงานการประชุมที่เผยแพร่
+              </p>
+            ) : (
+              <div className={recentMinutes.length > 3 ? `mt-3 ${committeePortalScrollList}` : 'mt-3'}>
+                <ul className="space-y-2 text-xs" role="list" aria-label="รายการรายงานการประชุมล่าสุด">
+                  {recentMinutes.map((m) => (
+                    <li key={m.meetingSessionId} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-slate-200">{m.title}</span>
+                        <span className="text-slate-400">
+                          อัปเดต {new Date(m.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <a
+                          href={`${props.apiBase}/api/portal/committee/meetings/${encodeURIComponent(m.meetingSessionId)}/minutes.txt`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+                          aria-label={`ดาวน์โหลดรายงานการประชุม ${m.title}`}
+                        >
+                          ดาวน์โหลด minutes.txt
+                        </a>
+                        <span className="text-[11px] text-slate-600">ผู้บันทึก: {m.recordedBy ?? 'ไม่ระบุ'}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          <section
+            id="committee-meetings-closed"
+            className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+            role="region"
+            aria-label="ผลมติวาระที่ปิดแล้วล่าสุด"
+          >
+            <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">ผลมติวาระที่ปิดแล้วล่าสุด</h4>
+            {closedAgendaResults.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+                ยังไม่มีวาระที่ปิดพร้อมผลมติ
+              </p>
+            ) : (
+              <div className={closedAgendaResults.length > 2 ? `mt-3 ${committeePortalScrollList}` : 'mt-3'}>
+                <ul className="space-y-2 text-xs" role="list" aria-label="รายการผลมติวาระที่ปิดแล้ว">
+                  {closedAgendaResults.map((row) => (
+                    <li key={row.id} className="rounded border border-slate-800 px-2 py-1.5" role="listitem">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-slate-200">{row.title}</span>
+                        <span
+                          className={`rounded px-2 py-0.5 ${
+                            row.approvedByVote ? 'bg-fuchsia-900/40 text-fuchsia-200' : 'bg-rose-900/40 text-rose-200'
+                          }`}
+                        >
+                          {row.resultLabel}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        {agendaScopeLabel(row.scope)} · ปิดเมื่อ{' '}
+                        {new Date(row.closedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        เห็นชอบ {row.approve.toLocaleString('th-TH')} · ไม่เห็นชอบ {row.reject.toLocaleString('th-TH')} · งดออกเสียง{' '}
+                        {row.abstain.toLocaleString('th-TH')} · รวม {row.totalVotes.toLocaleString('th-TH')} เสียง
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-slate-600">
+                        ผู้เข้าร่วม {row.attendees.toLocaleString('th-TH')} · เสียงขั้นต่ำ {row.majorityRequired.toLocaleString('th-TH')} ·{' '}
+                        {row.quorumRequired > 0
+                          ? `องค์ประชุมขั้นต่ำ ${row.quorumRequired.toLocaleString('th-TH')} (${row.quorumMet ? 'ครบ' : 'ไม่ครบ'})`
+                          : 'ไม่มีเงื่อนไของค์ประชุม'}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        </>
+      ) : null}
+
+      <div
+        id="committee-meetings-shortcuts"
+        className="scroll-mt-4 flex flex-wrap gap-2 rounded-lg border border-slate-800 bg-slate-950/30 p-4"
+        role="group"
+        aria-label="ลิงก์ทางลัดหน้าวาระและรอบประชุม"
+      >
+        <Link
+          to="/committee/dashboard"
+          aria-label="กลับไปหน้าแดชบอร์ดคณะกรรมการ"
+          className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+        >
+          กลับแดชบอร์ด
+        </Link>
+        <Link
+          to="/committee/voting"
+          aria-label="ไปหน้าลงมติคณะกรรมการ"
+          className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+        >
+          หน้าลงมติ (ตัวอย่าง)
+        </Link>
+      </div>
     </div>
   )
 }
@@ -396,7 +480,7 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
   }, [data.memberDirectoryPreview, query])
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <MetricCards items={data.metricCards.slice(0, 2)} />
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
@@ -518,7 +602,7 @@ function CommitteeAttendancePage(props: {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
         <PortalSectionHeader loading={loading} source={source}>
           <div>
@@ -717,9 +801,35 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
     }
   }
 
+  const votingJumpClass = `rounded border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-800 ${portalFocusRing}`
+
   return (
-    <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
+    <div className="min-w-0 space-y-4">
+      {!loading ? (
+        <nav
+          className="flex flex-col gap-2 rounded-lg border border-dashed border-slate-700 bg-slate-950/40 p-3 text-xs lg:hidden"
+          aria-label="ข้ามไปยังส่วนของหน้าการลงมติ"
+        >
+          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">ในหน้านี้</span>
+          <div className="flex flex-wrap gap-2">
+            <a href="#committee-voting-agendas" className={votingJumpClass}>
+              รายการวาระ
+            </a>
+            <a href="#committee-voting-form" className={votingJumpClass}>
+              ฟอร์มลงมติ
+            </a>
+            <a href="#committee-voting-shortcuts" className={votingJumpClass}>
+              ทางลัด
+            </a>
+          </div>
+        </nav>
+      ) : null}
+
+      <section
+        id="committee-voting-agendas"
+        className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+        aria-busy={loading}
+      >
         <PortalSectionHeader loading={loading} source={source}>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การลงมติ</h3>
@@ -736,7 +846,8 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
             ไม่มีวาระเปิดลงมติในขณะนี้
           </p>
         ) : (
-          <ul className="mt-4 space-y-2" role="list" aria-label="รายการวาระที่เปิดลงมติ">
+          <div className={agendas.length > 2 ? `mt-4 ${committeePortalScrollList}` : 'mt-4'}>
+            <ul className="space-y-2" role="list" aria-label="รายการวาระที่เปิดลงมติ">
             {agendas.map((a) => (
               <li
                 key={a.id}
@@ -752,7 +863,7 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
                       onClick={() => void submitVote(a.id)}
                       disabled={submittingAgendaId === a.id}
                       aria-label={`ลงมติในวาระ ${a.title}`}
-                      className={`rounded bg-fuchsia-800 px-2 py-1 text-xs text-white hover:bg-fuchsia-700 disabled:opacity-60 ${portalFocusRing}`}
+                      className={`tap-target rounded px-2 py-1 text-xs text-white disabled:opacity-60 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
                     >
                       {submittingAgendaId === a.id ? 'กำลังบันทึก…' : 'ลงมติ'}
                     </button>
@@ -761,7 +872,7 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
                       onClick={() => void loadVoteSummary(a.id)}
                       disabled={submittingAgendaId === a.id}
                       aria-label={`โหลดสรุปผลลงมติของวาระ ${a.title}`}
-                      className={`rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+                      className={`tap-target rounded border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
                     >
                       ดูสรุปโหวต
                     </button>
@@ -779,10 +890,17 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
                 </span>
               </li>
             ))}
-          </ul>
+            </ul>
+          </div>
         )}
+      </section>
 
-        <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3">
+      <section
+        id="committee-voting-form"
+        className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+        aria-label="ฟอร์มลงมติ"
+      >
+        <div className="rounded border border-slate-800 bg-slate-900/40 p-3">
           <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">ฟอร์มลงมติ</h4>
           <div className="mt-2 grid gap-2 md:grid-cols-3">
             <input
@@ -822,16 +940,29 @@ function CommitteeVotingPage(props: { portalState: PortalDataState<CommitteePort
         <p className="mt-4 text-xs text-slate-600">
           เมื่อกดปุ่มลงมติ ระบบจะบันทึกลง <code className="text-slate-400">meeting_votes</code> และรีเฟรชรายการวาระอัตโนมัติ
         </p>
-
-        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าการลงมติ">
-          <Link to="/committee/attendance" aria-label="ไปหน้าลงชื่อและลงทะเบียนประชุม" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
-            ดูการลงชื่อประชุม
-          </Link>
-          <Link to="/committee/meetings" aria-label="ไปหน้าวาระและรายงานประชุม" className={`rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
-            วาระ/รายงานประชุม
-          </Link>
-        </div>
       </section>
+
+      <div
+        id="committee-voting-shortcuts"
+        className="scroll-mt-4 flex flex-wrap gap-2 rounded-lg border border-slate-800 bg-slate-950/30 p-4"
+        role="group"
+        aria-label="ลิงก์ทางลัดหน้าการลงมติ"
+      >
+        <Link
+          to="/committee/attendance"
+          aria-label="ไปหน้าลงชื่อและลงทะเบียนประชุม"
+          className={`tap-target inline-flex items-center rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}
+        >
+          ดูการลงชื่อประชุม
+        </Link>
+        <Link
+          to="/committee/meetings"
+          aria-label="ไปหน้าวาระและรายงานประชุม"
+          className={`tap-target inline-flex items-center rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+        >
+          วาระ/รายงานประชุม
+        </Link>
+      </div>
     </div>
   )
 }
@@ -867,8 +998,27 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
   const minutesPublishedCount = data.meetingOverview.minutesPublishedCount
   const payPending = data.paymentRequestsPending
 
+  const dashJumpClass = `rounded border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-800 ${portalFocusRing}`
+
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
+      <nav
+        className="flex flex-col gap-2 rounded-lg border border-dashed border-slate-700 bg-slate-950/40 p-3 text-xs xl:hidden"
+        aria-label="ข้ามไปยังส่วนของหน้าแดชบอร์ดคณะกรรมการ"
+      >
+        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">ในหน้านี้</span>
+        <div className="flex flex-wrap gap-2">
+          <a href="#committee-dash-trends" className={dashJumpClass}>
+            แนวโน้มคำร้อง
+          </a>
+          <a href="#committee-dash-today" className={dashJumpClass}>
+            งานด่วนวันนี้
+          </a>
+          <a href="#committee-dash-meetings" className={dashJumpClass}>
+            สถานะประชุม
+          </a>
+        </div>
+      </nav>
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4" aria-busy={loading}>
         <PortalSnapshotStatusRow loading={loading} source={source}>
           <p className="text-xs uppercase tracking-wide text-slate-400" role="status" aria-live="polite" aria-atomic="true">
@@ -879,16 +1029,25 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
       <MetricCards items={data.metricCards} />
       <MetricCards items={data.roleCards[props.roleView]} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
+        <section
+          id="committee-dash-trends"
+          className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+          aria-busy={loading}
+        >
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">แนวโน้มคำร้อง 7 วัน</h3>
           <p className="mt-2 text-sm text-slate-400">
             จำนวนคำร้องใหม่ต่อวัน (UTC) จาก <code className="text-slate-400">member_update_requests</code> — ใช้ติดตามงานค้าง
           </p>
           <TrendBars items={data.requestTrend} />
         </section>
-        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
+        <section
+          id="committee-dash-today"
+          className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+          aria-busy={loading}
+        >
           <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">งานด่วนวันนี้</h3>
-          <ul className="mt-3 space-y-2 text-sm" role="list" aria-label="รายการงานด่วนวันนี้">
+          <div className={`mt-3 ${committeePortalScrollList}`}>
+          <ul className="space-y-2 text-sm" role="list" aria-label="รายการงานด่วนวันนี้">
             <li className="rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-amber-100" role="listitem">
               {att
                 ? `ลงชื่อประชุมล่าสุด ${att.signedCount.toLocaleString('th-TH')}/${att.expectedParticipants.toLocaleString('th-TH')} · ${att.title}`
@@ -904,7 +1063,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
             <li className="rounded border border-sky-900/40 bg-sky-950/20 px-3 py-2 text-sky-100" role="listitem">
               คำขอจ่ายรอดำเนินการ {payPending.toLocaleString('th-TH')} รายการ (สถานะ pending)
             </li>
-            <li className="rounded border border-fuchsia-900/40 bg-fuchsia-950/20 px-3 py-2 text-fuchsia-100" role="listitem">
+            <li className={`rounded px-3 py-2 text-fuchsia-100 ${themeAccent.panel}`} role="listitem">
               เอกสารประชุมเผยแพร่ {publishedDocumentCount.toLocaleString('th-TH')} รายการ
             </li>
             {latestMinutes ? (
@@ -917,7 +1076,7 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
               <li
                 className={`rounded px-3 py-2 ${
                   latestClosedAgenda.approvedByVote
-                    ? 'border border-fuchsia-900/40 bg-fuchsia-950/20 text-fuchsia-100'
+                    ? `${themeAccent.panel} text-fuchsia-100`
                     : 'border border-rose-900/40 bg-rose-950/20 text-rose-100'
                 }`}
                 role="listitem"
@@ -927,43 +1086,58 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
               </li>
             ) : null}
           </ul>
+          </div>
           <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="ลิงก์งานด่วนสำหรับคณะกรรมการ">
-            <Link to="/committee/voting" aria-label="ไปหน้าลงมติคณะกรรมการทันที" className={`rounded bg-fuchsia-800 px-3 py-1.5 text-xs text-white hover:bg-fuchsia-700 ${portalFocusRing}`}>
+            <Link
+              to="/committee/voting"
+              aria-label="ไปหน้าลงมติคณะกรรมการทันที"
+              className={`tap-target inline-flex items-center rounded px-3 py-1.5 text-xs text-white ${themeAccent.buttonPrimary} ${portalFocusRing}`}
+            >
               เปิดหน้าลงมติ
             </Link>
-            <Link to="/committee/attendance" aria-label="ไปหน้าเช็กชื่อประชุม" className={`rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
+            <Link to="/committee/attendance" aria-label="ไปหน้าเช็กชื่อประชุม" className={`tap-target inline-flex items-center rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}>
               เช็กชื่อประชุม
             </Link>
           </div>
         </section>
       </div>
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
+      <section
+        id="committee-dash-meetings"
+        className="scroll-mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-5"
+        aria-busy={loading}
+      >
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สถานะประชุมวันนี้</h3>
         {data.meetings.length === 0 ? (
           <p className="mt-3 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
             ยังไม่มีรายการประชุมในสแนปช็อต
           </p>
         ) : (
-          <div className="mt-3 space-y-2 text-sm" role="list" aria-label="สถานะประชุมล่าสุด">
-            {data.meetings.map((meeting, mi) => (
-              <div key={`${meeting.topic}-${meeting.time}-${mi}`} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2" role="listitem">
-                <div>
-                  <p className="text-slate-100">{meeting.topic}</p>
-                  <p className="text-xs text-slate-400">เริ่ม {meeting.time}</p>
-                </div>
-                <span
-                  className={`rounded px-2 py-0.5 text-xs ${
-                    meeting.status === 'ready'
-                      ? 'bg-fuchsia-900/40 text-fuchsia-200'
-                      : meeting.status === 'pending_vote'
-                        ? 'bg-amber-900/40 text-amber-200'
-                        : 'bg-sky-900/40 text-sky-200'
-                  }`}
+          <div className={data.meetings.length > 4 ? `mt-3 ${committeePortalScrollList}` : 'mt-3'}>
+            <div className="space-y-2 text-sm" role="list" aria-label="สถานะประชุมล่าสุด">
+              {data.meetings.map((meeting, mi) => (
+                <div
+                  key={`${meeting.topic}-${meeting.time}-${mi}`}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-800 px-3 py-2"
+                  role="listitem"
                 >
-                  {committeeMeetingStatusLabel(meeting.status)}
-                </span>
-              </div>
-            ))}
+                  <div>
+                    <p className="text-slate-100">{meeting.topic}</p>
+                    <p className="text-xs text-slate-400">เริ่ม {meeting.time}</p>
+                  </div>
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs ${
+                      meeting.status === 'ready'
+                        ? 'bg-fuchsia-900/40 text-fuchsia-200'
+                        : meeting.status === 'pending_vote'
+                          ? 'bg-amber-900/40 text-amber-200'
+                          : 'bg-sky-900/40 text-sky-200'
+                    }`}
+                  >
+                    {committeeMeetingStatusLabel(meeting.status)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </section>
