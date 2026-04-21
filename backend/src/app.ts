@@ -134,7 +134,7 @@ export function createApp(): express.Express {
         cramSchool:
           'GET/POST/PATCH /api/admin/cram/classrooms, GET/POST/PATCH/DELETE /api/admin/cram/students (Admin key: x-admin-key) — ห้อง/นักเรียนกวดวิชา',
         schoolActivities:
-          'GET/POST/PATCH/DELETE /api/admin/school-activities | GET /api/admin/school-activities/donations/summary | GET /api/admin/school-activities/donations/yupparaj-export.csv (Admin key: x-admin-key)',
+          'GET/POST/PATCH/DELETE /api/admin/school-activities (กิจกรรมโรงเรียน / school_activities) | GET …/donations/summary | GET …/yupparaj-export.csv (Admin key: x-admin-key)',
       },
     })
   })

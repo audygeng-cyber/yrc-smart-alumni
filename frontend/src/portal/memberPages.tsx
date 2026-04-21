@@ -847,7 +847,7 @@ function MemberDonationsPage(props: {
             <div className="mt-4 grid gap-3 md:grid-cols-2" role="list" aria-label="โครงการโรงเรียนยุพราช (กองแยกจากนิติบุคคลสมาคม/กวดวิชา)">
               {data.yupparajDonationActivities.length === 0 ? (
                 <p className="text-sm text-amber-200/90 md:col-span-2">
-                  ยังไม่มีรายการกิจกรรมประเภทโรงเรียนยุพราชในระบบ — ผู้ดูแลสามารถเพิ่มที่ Admin → คอร์ส/กิจกรรม และตั้งค่าเป็น &quot;กองโรงเรียนยุพราช&quot;
+                  ยังไม่มีรายการกิจกรรมประเภทโรงเรียนยุพราชในระบบ — ผู้ดูแลสามารถเพิ่มที่ Admin → กิจกรรมโรงเรียน และตั้งกลุ่มบัญชีเป็นโรงเรียนยุพราช
                 </p>
               ) : (
                 data.yupparajDonationActivities.map((a) => {
@@ -858,7 +858,7 @@ function MemberDonationsPage(props: {
                   return (
                     <div key={a.id} role="listitem">
                       <DonationCampaignCard
-                        title={`${a.title} (${a.category})`}
+                        title={a.category.trim() ? `${a.title} (${a.category})` : a.title}
                         description={a.description}
                         progress={pct}
                         target={a.targetAmount != null ? Math.round(a.targetAmount).toLocaleString('th-TH') : '—'}
@@ -889,7 +889,7 @@ function MemberDonationsPage(props: {
                   <option value="">— เลือก —</option>
                   {data.yupparajDonationActivities.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.title} ({a.category})
+                      {a.category.trim() ? `${a.title} (${a.category})` : a.title}
                     </option>
                   ))}
                 </select>
@@ -904,7 +904,7 @@ function MemberDonationsPage(props: {
                   {selectedDonationActivity.description != null && String(selectedDonationActivity.description).trim() ? (
                     <p className="mt-1 whitespace-pre-wrap text-slate-300">{String(selectedDonationActivity.description).trim()}</p>
                   ) : (
-                    <p className="mt-1 text-slate-500">ยังไม่มีคำอธิบายเพิ่มเติม — ผู้ดูแลสามารถกรอกที่ Admin → คอร์ส/กิจกรรม</p>
+                    <p className="mt-1 text-slate-500">ยังไม่มีคำอธิบายเพิ่มเติม — ผู้ดูแลสามารถกรอกที่ Admin → กิจกรรมโรงเรียน</p>
                   )}
                 </div>
               ) : null}

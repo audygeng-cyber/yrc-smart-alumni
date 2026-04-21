@@ -13,7 +13,6 @@ schoolActivitiesAdminRouter.get('/donations/summary', async (_req, res) => {
       .from('school_activities')
       .select('id,title,category,fund_scope,target_amount,active')
       .eq('fund_scope', 'yupparaj_school')
-      .order('category', { ascending: true })
       .order('title', { ascending: true })
     if (aErr) {
       res.status(500).json({ error: 'โหลดกิจกรรมไม่สำเร็จ', details: aErr })
@@ -148,7 +147,7 @@ schoolActivitiesAdminRouter.get('/donations/yupparaj-export.csv', async (_req, r
 schoolActivitiesAdminRouter.get('/', async (req, res) => {
   try {
     const supabase = getServiceSupabase()
-    let q = supabase.from('school_activities').select('*').order('category', { ascending: true }).order('title', { ascending: true })
+    let q = supabase.from('school_activities').select('*').order('title', { ascending: true })
     if (req.query.active_only === '1' || req.query.active_only === 'true') {
       q = q.eq('active', true)
     }
@@ -164,13 +163,13 @@ schoolActivitiesAdminRouter.get('/', async (req, res) => {
   }
 })
 
-/** POST / — body: { title, category, description?, active?, created_by?, fund_scope?, target_amount? } */
+/** POST / — body: { title, category?, description?, active?, created_by?, fund_scope?, target_amount? } — category ไม่บังคับ (ค่าว่าง) */
 schoolActivitiesAdminRouter.post('/', async (req, res) => {
   try {
     const title = typeof req.body?.title === 'string' ? req.body.title.trim() : ''
     const category = typeof req.body?.category === 'string' ? req.body.category.trim() : ''
-    if (!title || !category) {
-      res.status(400).json({ error: 'ต้องระบุ title และ category' })
+    if (!title) {
+      res.status(400).json({ error: 'ต้องระบุ title (ชื่อกิจกรรม)' })
       return
     }
     const description =
@@ -193,7 +192,7 @@ schoolActivitiesAdminRouter.post('/', async (req, res) => {
     const supabase = getServiceSupabase()
     const { data, error } = await supabase
       .from('school_activities')
-      .insert({ title, category, description, active, created_by, fund_scope, target_amount })
+      .insert({ title, category: category || '', description, active, created_by, fund_scope, target_amount })
       .select('*')
       .single()
     if (error) {
@@ -252,7 +251,7 @@ schoolActivitiesAdminRouter.patch('/:id', async (req, res) => {
       return
     }
     if (!data) {
-      res.status(404).json({ error: 'ไม่พบคอร์ส/กิจกรรม' })
+      res.status(404).json({ error: 'ไม่พบกิจกรรม' })
       return
     }
     res.json({ ok: true, activity: data })

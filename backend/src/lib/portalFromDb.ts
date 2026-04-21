@@ -354,7 +354,6 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
     .select('id,title,category,description,target_amount,fund_scope')
     .eq('active', true)
     .eq('fund_scope', 'yupparaj_school')
-    .order('category', { ascending: true })
     .order('title', { ascending: true })
     .limit(100)
   if (!yupErr && yupActs && yupActs.length > 0) {
@@ -388,7 +387,7 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
       return {
         id: String(a.id),
         title: String(a.title ?? '').trim() || '—',
-        category: String(a.category ?? '').trim() || 'ทั่วไป',
+        category: String(a.category ?? '').trim(),
         description: a.description != null && String(a.description).trim() ? String(a.description) : null,
         fundScope: 'yupparaj_school' as const,
         targetAmount: tgt != null && Number.isFinite(tgt) ? tgt : null,

@@ -184,7 +184,7 @@ const memberPortalMockData: MemberPortalData = {
     {
       id: 'mock-yup-scholarship-2569',
       title: 'กิจกรรมทุนการศึกษาประจำปี 2569',
-      category: 'ทุนการศึกษา',
+      category: '',
       description: 'ตัวอย่าง — เชื่อมต่อ API จะโหลดจากฐานข้อมูล',
       fundScope: 'yupparaj_school',
       targetAmount: null,
@@ -193,7 +193,7 @@ const memberPortalMockData: MemberPortalData = {
     {
       id: 'mock-yup-lunch-2569',
       title: 'กิจกรรมทุนอาหารกลางวันประจำปี 2569',
-      category: 'ทุนอาหารกลางวัน',
+      category: '',
       description: 'ตัวอย่าง — เชื่อมต่อ API จะโหลดจากฐานข้อมูล',
       fundScope: 'yupparaj_school',
       targetAmount: null,

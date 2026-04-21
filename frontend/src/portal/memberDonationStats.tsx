@@ -50,7 +50,7 @@ const MOCK_STATS: YupparajPublicStats = {
     {
       activityId: 'mock-yup-scholarship-2569',
       title: 'กิจกรรมทุนการศึกษาประจำปี 2569',
-      category: 'ทุนการศึกษา',
+      category: '',
       targetAmount: 500_000,
       raisedAmount: 120_000,
       donationCount: 7,
@@ -59,7 +59,7 @@ const MOCK_STATS: YupparajPublicStats = {
     {
       activityId: 'mock-yup-lunch-2569',
       title: 'กิจกรรมทุนอาหารกลางวันประจำปี 2569',
-      category: 'ทุนอาหารกลางวัน',
+      category: '',
       targetAmount: 300_000,
       raisedAmount: 65_500,
       donationCount: 5,
@@ -80,7 +80,7 @@ const MOCK_STATS: YupparajPublicStats = {
       batchName: 'รุ่นตัวอย่าง',
       amount: 10_000,
       activityTitle: 'กิจกรรมทุนการศึกษาประจำปี 2569',
-      activityCategory: 'ทุนการศึกษา',
+      activityCategory: null,
       createdAt: new Date().toISOString(),
     },
     {
@@ -91,7 +91,7 @@ const MOCK_STATS: YupparajPublicStats = {
       batchName: null,
       amount: 5_000,
       activityTitle: 'กิจกรรมทุนอาหารกลางวันประจำปี 2569',
-      activityCategory: 'ทุนอาหารกลางวัน',
+      activityCategory: null,
       createdAt: new Date().toISOString(),
     },
   ],
@@ -128,7 +128,7 @@ function ActivityStatCard(props: {
   return (
     <div className="rounded-xl border border-fuchsia-900/35 bg-gradient-to-br from-slate-950/80 to-fuchsia-950/20 p-4 shadow-sm shadow-fuchsia-950/20">
       <p className="text-sm font-medium text-slate-100">{props.title}</p>
-      <p className="text-[11px] text-slate-500">{props.category}</p>
+      {props.category.trim() ? <p className="text-[11px] text-slate-500">{props.category}</p> : null}
       <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-[10px] uppercase tracking-wide text-slate-500">ยอดสะสม</p>
@@ -242,7 +242,7 @@ function buildActivityDonorGroups(
       groups.push({
         activityId: key,
         title: first?.activityTitle ?? '—',
-        category: first?.activityCategory ?? 'ทั่วไป',
+        category: first?.activityCategory && String(first.activityCategory).trim() ? String(first.activityCategory).trim() : '—',
         raisedAmount: sumDonorAmounts(raw),
         donationCount: raw.length,
         donors: sortDonorsByDateDesc(raw),
@@ -284,7 +284,7 @@ function buildActivityDonorGroups(
     groups.push({
       activityId: key,
       title: first?.activityTitle ?? '—',
-      category: first?.activityCategory ?? 'ทั่วไป',
+      category: first?.activityCategory && String(first.activityCategory).trim() ? String(first.activityCategory).trim() : '—',
       raisedAmount: sumDonorAmounts(raw),
       donationCount: raw.length,
       donors: sortDonorsByDateDesc(raw),
@@ -413,7 +413,9 @@ function ActivityDonorSection(props: { group: ActivityDonorGroup; generatedAt?: 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h4 className="text-sm font-medium text-slate-200">{group.title}</h4>
-          <p className="text-xs text-slate-500">{group.category}</p>
+          {group.category.trim() && group.category !== '—' ? (
+            <p className="text-xs text-slate-500">{group.category}</p>
+          ) : null}
           <p className="mt-1 text-xs text-slate-400">
             ยอดสะสมในระบบ {Math.round(group.raisedAmount).toLocaleString('th-TH')} บาท · {group.donationCount.toLocaleString('th-TH')}{' '}
             รายการโอน (รวมทุกรายการในโครงการ)
@@ -443,7 +445,9 @@ function ActivityDonorSection(props: { group: ActivityDonorGroup; generatedAt?: 
         <div className="mt-3 overflow-x-auto rounded-lg">
           <div ref={capRef} className="min-w-[18rem] rounded-lg border border-slate-700 bg-[#0f172a] p-4 text-left">
             <p className="text-base font-semibold leading-snug text-white">{group.title}</p>
-            <p className="text-sm text-slate-400">{group.category}</p>
+            {group.category.trim() && group.category !== '—' ? (
+              <p className="text-sm text-slate-400">{group.category}</p>
+            ) : null}
             <p className="mt-2 text-sm text-fuchsia-200">
               ยอดสะสม {Math.round(group.raisedAmount).toLocaleString('th-TH')} บาท · {group.donors.length.toLocaleString('th-TH')} รายการในภาพนี้
             </p>

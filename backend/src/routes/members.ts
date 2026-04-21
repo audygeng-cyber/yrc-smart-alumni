@@ -773,7 +773,6 @@ membersRouter.get('/donations/yupparaj-stats', async (_req, res) => {
       .select('id, title, category, target_amount')
       .eq('fund_scope', 'yupparaj_school')
       .eq('active', true)
-      .order('category', { ascending: true })
       .order('title', { ascending: true })
     if (aErr) {
       res.status(500).json({ error: 'โหลดกิจกรรมไม่สำเร็จ', details: aErr })
@@ -798,7 +797,7 @@ membersRouter.get('/donations/yupparaj-stats', async (_req, res) => {
       const id = String((a as { id: string }).id)
       titleById.set(id, {
         title: String((a as { title?: string | null }).title ?? '').trim() || '—',
-        category: String((a as { category?: string | null }).category ?? '').trim() || 'ทั่วไป',
+        category: String((a as { category?: string | null }).category ?? '').trim(),
       })
     }
 
@@ -819,7 +818,7 @@ membersRouter.get('/donations/yupparaj-stats', async (_req, res) => {
         if (!titleById.has(id)) {
           titleById.set(id, {
             title: String((a as { title?: string | null }).title ?? '').trim() || '—',
-            category: String((a as { category?: string | null }).category ?? '').trim() || 'ทั่วไป',
+            category: String((a as { category?: string | null }).category ?? '').trim(),
           })
         }
       }
@@ -871,7 +870,7 @@ membersRouter.get('/donations/yupparaj-stats', async (_req, res) => {
         targetAmount != null && targetAmount > 0 && Number.isFinite(st.raised)
           ? Math.min(100, Math.round((st.raised / targetAmount) * 100))
           : null
-      const meta = titleById.get(id) ?? { title: '—', category: 'ทั่วไป' }
+      const meta = titleById.get(id) ?? { title: '—', category: '' }
       return {
         activityId: id,
         title: meta.title,
@@ -918,7 +917,7 @@ membersRouter.get('/donations/yupparaj-stats', async (_req, res) => {
             r.donor_batch_name != null && String(r.donor_batch_name).trim() ? String(r.donor_batch_name).trim() : null,
           amount: Math.round(raw * 100) / 100,
           activityTitle: act?.title ?? '—',
-          activityCategory: act?.category ?? null,
+          activityCategory: act?.category && String(act.category).trim() ? String(act.category).trim() : null,
           createdAt: r.created_at ?? null,
         }
       })
@@ -983,7 +982,7 @@ membersRouter.post('/donations/history', async (req, res) => {
         const row = a as { id: string; title?: string | null; category?: string | null }
         titleById.set(String(row.id), {
           title: String(row.title ?? '').trim() || '—',
-          category: String(row.category ?? '').trim() || 'ทั่วไป',
+          category: String(row.category ?? '').trim(),
         })
       }
     }
@@ -999,7 +998,7 @@ membersRouter.post('/donations/history', async (req, res) => {
         transferAt: (r as { transfer_at?: string | null }).transfer_at ?? null,
         activityId: aid || null,
         activityTitle: act?.title ?? null,
-        activityCategory: act?.category ?? null,
+        activityCategory: act?.category && String(act.category).trim() ? String(act.category).trim() : null,
         fundScope: r.fund_scope != null && String(r.fund_scope).trim() ? String(r.fund_scope) : null,
         slipFileUrl: r.slip_file_url ?? null,
         note: r.note ?? null,

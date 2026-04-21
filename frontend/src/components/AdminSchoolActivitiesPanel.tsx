@@ -25,14 +25,12 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
   const [activities, setActivities] = useState<Activity[]>([])
 
   const [newTitle, setNewTitle] = useState('')
-  const [newCategory, setNewCategory] = useState('')
   const [newDescription, setNewDescription] = useState('')
   const [newFundScope, setNewFundScope] = useState<'yupparaj_school' | 'association' | 'cram_school'>('association')
   const [newTargetAmount, setNewTargetAmount] = useState('')
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
-  const [editCategory, setEditCategory] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editFundScope, setEditFundScope] = useState<'yupparaj_school' | 'association' | 'cram_school'>('association')
   const [editTargetAmount, setEditTargetAmount] = useState('')
@@ -130,8 +128,8 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
       setMsg('ใส่ Admin key ก่อน')
       return
     }
-    if (!newTitle.trim() || !newCategory.trim()) {
-      setMsg('กรอกชื่อคอร์สและหมวด')
+    if (!newTitle.trim()) {
+      setMsg('กรอกชื่อกิจกรรม')
       return
     }
     setLoading(true)
@@ -139,7 +137,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
     try {
       const body: Record<string, unknown> = {
         title: newTitle.trim(),
-        category: newCategory.trim(),
+        category: '',
         fund_scope: newFundScope,
       }
       if (newDescription.trim()) body.description = newDescription.trim()
@@ -158,7 +156,6 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
         return
       }
       setNewTitle('')
-      setNewCategory('')
       setNewDescription('')
       setNewTargetAmount('')
       await loadActivities()
@@ -173,7 +170,6 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
   function startEdit(a: Activity) {
     setEditingId(a.id)
     setEditTitle(a.title)
-    setEditCategory(a.category)
     setEditDescription(a.description ?? '')
     const fs = a.fund_scope === 'yupparaj_school' || a.fund_scope === 'cram_school' ? a.fund_scope : 'association'
     setEditFundScope(fs)
@@ -186,8 +182,8 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
 
   async function saveEdit(id: string) {
     if (!adminKey.trim()) return
-    if (!editTitle.trim() || !editCategory.trim()) {
-      setMsg('กรอกชื่อและหมวด')
+    if (!editTitle.trim()) {
+      setMsg('กรอกชื่อกิจกรรม')
       return
     }
     setLoading(true)
@@ -195,7 +191,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
     try {
       const body: Record<string, unknown> = {
         title: editTitle.trim(),
-        category: editCategory.trim(),
+        category: '',
         description: editDescription.trim() ? editDescription.trim() : null,
         fund_scope: editFundScope,
       }
@@ -274,9 +270,9 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
 
   return (
     <section className="mt-8 rounded-xl border border-amber-900/40 bg-amber-950/10 p-6" aria-busy={loading}>
-      <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200">Admin — คอร์ส / กิจกรรม (ตาราง school_activities)</h2>
+      <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200">Admin — กิจกรรมโรงเรียน (ตาราง school_activities)</h2>
       <p className="mt-2 text-xs text-slate-400">
-        ตั้งค่าชื่อ หมวด รายละเอียด เป้ายอด และ &quot;กองเงิน&quot; ที่นี่ — ข้อมูลจะถูกส่งต่อไปยังพอร์ทัลอัตโนมัติเมื่อสถานะเป็น &quot;เปิด&quot;
+        ตั้งค่าชื่อกิจกรรม รายละเอียด เป้ายอด และกลุ่มบัญชีที่นี่ — ข้อมูลจะถูกส่งต่อไปยังพอร์ทัลสมาชิกอัตโนมัติเมื่อสถานะเป็น &quot;เปิด&quot;
       </p>
       <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-slate-500">
         <li>
@@ -294,18 +290,18 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           autoComplete="off"
           value={adminKey}
           onChange={(e) => setAdminKey(e.target.value)}
-          aria-label="Admin key สำหรับจัดการคอร์สและกิจกรรม"
+          aria-label="Admin key สำหรับจัดการกิจกรรมโรงเรียน"
           className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-amber-600 ${portalFocusRing}`}
           placeholder="ค่า ADMIN_UPLOAD_KEY"
         />
       </label>
 
-      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="เครื่องมือโหลดข้อมูลคอร์สและกิจกรรม">
+      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="เครื่องมือโหลดข้อมูลกิจกรรม">
         <button
           type="button"
           disabled={loading}
           onClick={() => void loadActivities()}
-          aria-label="โหลดรายการคอร์สและกิจกรรมทั้งหมด"
+          aria-label="โหลดรายการกิจกรรมทั้งหมด"
           className={`tap-target rounded-lg bg-amber-800 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
         >
           โหลดรายการ
@@ -337,35 +333,32 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
         </pre>
       ) : null}
 
-      <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950/50 p-4" role="group" aria-label="ฟอร์มเพิ่มคอร์สหรือกิจกรรมใหม่">
-        <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">เพิ่มคอร์ส/กิจกรรม</h3>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <input
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            aria-label="หมวดของคอร์สหรือกิจกรรมใหม่"
-            placeholder="หมวด (เช่น วิชาหลัก)"
-            className={`rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm ${portalFocusRing}`}
-          />
+      <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950/50 p-4" role="group" aria-label="ฟอร์มเพิ่มกิจกรรมใหม่">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">เพิ่มกิจกรรม</h3>
+        <label className="mt-3 block text-xs text-slate-400">
+          กิจกรรม
           <input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            aria-label="ชื่อคอร์สหรือกิจกรรมใหม่"
-            placeholder="ชื่อคอร์ส / กิจกรรม"
-            className={`rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm ${portalFocusRing}`}
+            aria-label="ชื่อกิจกรรม"
+            placeholder="เช่น ทุนการศึกษา ประจำปี 2569"
+            className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100 ${portalFocusRing}`}
           />
-        </div>
-        <textarea
-          value={newDescription}
-          onChange={(e) => setNewDescription(e.target.value)}
-          aria-label="รายละเอียดคอร์สหรือกิจกรรมใหม่"
-          placeholder="รายละเอียด (ถ้ามี)"
-          rows={2}
-          className={`mt-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-200 ${portalFocusRing}`}
-        />
+        </label>
+        <label className="mt-2 block text-xs text-slate-400">
+          รายละเอียด (ถ้ามี)
+          <textarea
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            aria-label="รายละเอียดกิจกรรม"
+            placeholder="อธิบายโครงการให้สมาชิกเห็นบนพอร์ทัล"
+            rows={3}
+            className={`mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-200 ${portalFocusRing}`}
+          />
+        </label>
         <div className="mt-2 flex flex-wrap gap-2">
           <label className="text-xs text-slate-400">
-            กองเงิน
+            กลุ่มบัญชี
             <select
               value={newFundScope}
               onChange={(e) => setNewFundScope(e.target.value as typeof newFundScope)}
@@ -391,30 +384,41 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
           type="button"
           disabled={loading}
           onClick={() => void addActivity()}
-          aria-label="เพิ่มคอร์สหรือกิจกรรมใหม่"
+          aria-label="เพิ่มกิจกรรมใหม่"
           className={`tap-target mt-2 rounded px-3 py-1.5 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
         >
           เพิ่ม
         </button>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/50" role="group" aria-label="ตารางจัดการคอร์สและกิจกรรม">
-        <table className="w-full min-w-[720px] text-left text-sm" aria-label="ตารางคอร์สและกิจกรรมโรงเรียนกวดวิชา">
+      <div className="mt-6 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/50" role="group" aria-label="ตารางจัดการกิจกรรม">
+        <table className="w-full min-w-[56rem] text-left text-sm" aria-label="ตารางกิจกรรมโรงเรียน">
           <thead>
             <tr className="border-b border-slate-800 text-xs uppercase text-slate-400">
-              <th scope="col" className="px-3 py-2">หมวด</th>
-              <th scope="col" className="px-3 py-2">ชื่อ</th>
-              <th scope="col" className="px-3 py-2">กอง</th>
-              <th scope="col" className="px-3 py-2">เป้า</th>
-              <th scope="col" className="px-3 py-2">รายละเอียด</th>
-              <th scope="col" className="px-3 py-2">สถานะ</th>
-              <th scope="col" className="px-3 py-2"> </th>
+              <th scope="col" className="min-w-[12rem] px-3 py-2">
+                กิจกรรม
+              </th>
+              <th scope="col" className="px-3 py-2">
+                กลุ่มบัญชี
+              </th>
+              <th scope="col" className="px-3 py-2">
+                เป้า (บาท)
+              </th>
+              <th scope="col" className="min-w-[14rem] px-3 py-2">
+                รายละเอียด
+              </th>
+              <th scope="col" className="px-3 py-2">
+                สถานะ
+              </th>
+              <th scope="col" className="px-3 py-2">
+                {' '}
+              </th>
             </tr>
           </thead>
           <tbody>
             {activities.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+                <td colSpan={6} className="px-3 py-6 text-center text-slate-400" role="status" aria-live="polite" aria-atomic="true">
                   ยังไม่มีข้อมูล — กดโหลดรายการ
                 </td>
               </tr>
@@ -422,50 +426,54 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
               activities.map((a) =>
                 editingId === a.id ? (
                   <tr key={a.id} className="border-b border-slate-800/80 bg-slate-900/40">
-                    <td className="px-3 py-2 align-top" colSpan={5}>
+                    <td className="px-3 py-2 align-top" colSpan={4}>
                       <div id={`school-activity-edit-${a.id}`} role="region" aria-label={`ฟอร์มแก้ไขกิจกรรม ${a.title}`}>
-                        <div className="flex flex-col gap-2 sm:flex-row">
-                          <input
-                            value={editCategory}
-                            onChange={(e) => setEditCategory(e.target.value)}
-                            className={`flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                            aria-label="หมวด"
-                          />
+                        <label className="block text-xs text-slate-400">
+                          กิจกรรม
                           <input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
-                            className={`flex-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                            aria-label="ชื่อ"
+                            className={`mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm text-slate-100 ${portalFocusRing}`}
+                            aria-label="ชื่อกิจกรรม"
                           />
-                        </div>
+                        </label>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <select
-                            value={editFundScope}
-                            onChange={(e) => setEditFundScope(e.target.value as typeof editFundScope)}
-                            className={`rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                            aria-label="กองเงิน"
-                          >
-                            <option value="yupparaj_school">ยุพราช</option>
-                            <option value="association">สมาคม</option>
-                            <option value="cram_school">กวดวิชา</option>
-                          </select>
-                          <input
-                            value={editTargetAmount}
-                            onChange={(e) => setEditTargetAmount(e.target.value)}
-                            type="number"
-                            min={0}
-                            placeholder="เป้ายอด"
-                            className={`w-32 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                            aria-label="เป้ายอดบาท"
-                          />
+                          <label className="text-xs text-slate-400">
+                            กลุ่มบัญชี
+                            <select
+                              value={editFundScope}
+                              onChange={(e) => setEditFundScope(e.target.value as typeof editFundScope)}
+                              className={`ml-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
+                              aria-label="กลุ่มบัญชี"
+                            >
+                              <option value="yupparaj_school">ยุพราช</option>
+                              <option value="association">สมาคม</option>
+                              <option value="cram_school">กวดวิชา</option>
+                            </select>
+                          </label>
+                          <label className="text-xs text-slate-400">
+                            เป้ายอด
+                            <input
+                              value={editTargetAmount}
+                              onChange={(e) => setEditTargetAmount(e.target.value)}
+                              type="number"
+                              min={0}
+                              placeholder="บาท"
+                              className={`ml-1 w-32 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
+                              aria-label="เป้ายอดบาท"
+                            />
+                          </label>
                         </div>
-                        <textarea
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          rows={2}
-                          className={`mt-2 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                          aria-label="รายละเอียด"
-                        />
+                        <label className="mt-2 block text-xs text-slate-400">
+                          รายละเอียด
+                          <textarea
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            rows={3}
+                            className={`mt-1 w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm text-slate-200 ${portalFocusRing}`}
+                            aria-label="รายละเอียดกิจกรรม"
+                          />
+                        </label>
                       </div>
                     </td>
                     <td className="px-3 py-2 align-middle text-slate-400">—</td>
@@ -492,7 +500,6 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                   </tr>
                 ) : (
                   <tr key={a.id} className="border-b border-slate-800/80">
-                    <td className="px-3 py-2 text-slate-400">{a.category}</td>
                     <td className="px-3 py-2 font-medium text-slate-100">{a.title}</td>
                     <td className="px-3 py-2 text-xs text-slate-400">
                       {a.fund_scope === 'yupparaj_school'
@@ -504,8 +511,12 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                     <td className="px-3 py-2 text-xs text-slate-400">
                       {a.target_amount != null && a.target_amount !== '' ? String(a.target_amount) : '—'}
                     </td>
-                    <td className="max-w-xs truncate px-3 py-2 text-slate-400" title={a.description ?? undefined}>
-                      {a.description ?? '—'}
+                    <td className="max-w-md px-3 py-2 align-top text-sm text-slate-300">
+                      {a.description != null && String(a.description).trim() ? (
+                        <p className="whitespace-pre-wrap break-words leading-snug">{String(a.description).trim()}</p>
+                      ) : (
+                        <span className="text-slate-500">—</span>
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       <button
@@ -560,7 +571,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
       ) : null}
       {loading ? (
         <p className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
-          กำลังโหลดรายการคอร์สและกิจกรรม...
+          กำลังโหลดรายการกิจกรรม...
         </p>
       ) : null}
     </section>
