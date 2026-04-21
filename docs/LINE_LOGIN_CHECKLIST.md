@@ -1,5 +1,7 @@
 # LINE Login — ขั้นตอนเจาะจง (ให้ URL ตรงกันทุกที่)
 
+**อ้างอิงโค้ดที่ทำงานได้ (ลำดับ flow + ไฟล์ + invariant):** [`LINE_LOGIN_CODE_REFERENCE.md`](./LINE_LOGIN_CODE_REFERENCE.md) — ใช้เมื่อแก้ flow ล็อกอิน LINE หรือ restore พฤติกรรมเดิม
+
 ฝั่ง API เปรียบเทียบ `redirect_uri` กับ `LINE_REDIRECT_URIS` แบบ **ไม่สนท้าย slash และไม่สนตัวพิมพ์** — ค่าที่ส่งต่อ LINE ยังเป็นสตริงเดิมจากเบราว์เซอร์ (ต้องตรงกับที่ใช้ตอนขอ authorize)  
 ใน LINE Developers กับ Callback URL ยังควรใช้สตริงเดียวกันทุกที่เพื่อลดความสับสน
 
