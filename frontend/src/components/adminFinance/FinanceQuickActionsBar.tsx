@@ -1,4 +1,4 @@
-import { portalAccent, portalFocusRing } from '../../portal/portalLabels'
+import { portalFocusRing } from '../../portal/portalLabels'
 
 export type FinanceQuickActionsBarProps = {
   loading: boolean
@@ -36,7 +36,7 @@ export function FinanceQuickActionsBar({
         disabled={loading}
         onClick={onLoadOverviewAndAccounts}
         aria-label="โหลดภาพรวมและบัญชีธนาคาร"
-        className={`${btnBase} ${portalAccent.buttonStrong}`}
+        className={`${btnBase} bg-emerald-700 hover:bg-emerald-600`}
       >
         โหลดภาพรวม + บัญชีธนาคาร
       </button>
@@ -72,7 +72,7 @@ export function FinanceQuickActionsBar({
         disabled={loading}
         onClick={onLoadAllReports}
         aria-label="โหลดรายงานทั้งหมด"
-        className={`${btnBase} ${portalAccent.buttonStrong}`}
+        className={`${btnBase} bg-emerald-700 hover:bg-emerald-600`}
       >
         โหลดรายงานทั้งหมด
       </button>
