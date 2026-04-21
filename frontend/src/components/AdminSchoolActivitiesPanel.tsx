@@ -17,6 +17,24 @@ type Activity = {
 
 type Props = { apiBase: string }
 
+type SchoolActivityApiErr = { error?: string; details?: unknown; hint?: string }
+
+function formatSchoolActivityApiMessage(status: number, j: SchoolActivityApiErr): string {
+  const parts: string[] = []
+  if (j.error) parts.push(j.error)
+  const det = j.details
+  if (det && typeof det === 'object' && det !== null && 'message' in det) {
+    const m = String((det as { message?: unknown }).message ?? '').trim()
+    if (m) parts.push(m)
+  }
+  if (j.hint) parts.push(j.hint)
+  const base = parts.join(' — ') || `HTTP ${status}`
+  if (status === 400 && /category|หมวด/i.test(base)) {
+    return `${base} — ถ้าใช้หน้าระบบใหม่แล้ว: อัปเดต backend (Cloud Run / API) เป็นเวอร์ชันล่าสุด (ไม่บังคับหมวดแล้ว)`
+  }
+  return base
+}
+
 export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
   const base = normalizeApiBase(apiBase)
   const [adminKey, setAdminKey] = useState('')
@@ -150,9 +168,9 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
         headers: headers(),
         body: JSON.stringify(body),
       })
-      const j = (await r.json().catch(() => ({}))) as { error?: string }
+      const j = (await r.json().catch(() => ({}))) as SchoolActivityApiErr
       if (!r.ok) {
-        setMsg(j.error ?? `HTTP ${r.status}`)
+        setMsg(formatSchoolActivityApiMessage(r.status, j))
         return
       }
       setNewTitle('')
@@ -206,9 +224,9 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
         headers: headers(),
         body: JSON.stringify(body),
       })
-      const j = (await r.json().catch(() => ({}))) as { error?: string }
+      const j = (await r.json().catch(() => ({}))) as SchoolActivityApiErr
       if (!r.ok) {
-        setMsg(j.error ?? `HTTP ${r.status}`)
+        setMsg(formatSchoolActivityApiMessage(r.status, j))
         return
       }
       setEditingId(null)

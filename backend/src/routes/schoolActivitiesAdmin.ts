@@ -163,13 +163,15 @@ schoolActivitiesAdminRouter.get('/', async (req, res) => {
   }
 })
 
-/** POST / — body: { title, category?, description?, active?, created_by?, fund_scope?, target_amount? } — category ไม่บังคับ (ค่าว่าง) */
+/** POST / — body: { title, category?, description?, active?, created_by?, fund_scope?, target_amount? } — category ไม่บังคับ (ส่งว่างหรือไม่ส่งได้) */
 schoolActivitiesAdminRouter.post('/', async (req, res) => {
   try {
     const title = typeof req.body?.title === 'string' ? req.body.title.trim() : ''
-    const category = typeof req.body?.category === 'string' ? req.body.category.trim() : ''
+    const categoryRaw = req.body?.category
+    const category =
+      typeof categoryRaw === 'string' ? categoryRaw.trim() : categoryRaw != null ? String(categoryRaw).trim() : ''
     if (!title) {
-      res.status(400).json({ error: 'ต้องระบุ title (ชื่อกิจกรรม)' })
+      res.status(400).json({ error: 'ต้องระบุชื่อกิจกรรม (title)' })
       return
     }
     const description =
@@ -190,13 +192,26 @@ schoolActivitiesAdminRouter.post('/', async (req, res) => {
     }
 
     const supabase = getServiceSupabase()
-    const { data, error } = await supabase
-      .from('school_activities')
-      .insert({ title, category: category || '', description, active, created_by, fund_scope, target_amount })
-      .select('*')
-      .single()
+    const insertRow = {
+      title,
+      category,
+      description,
+      active,
+      created_by,
+      fund_scope,
+      target_amount,
+    }
+    const { data, error } = await supabase.from('school_activities').insert(insertRow).select('*').single()
     if (error) {
-      res.status(500).json({ error: 'เพิ่มข้อมูลไม่สำเร็จ', details: error })
+      res.status(500).json({
+        error: 'เพิ่มข้อมูลไม่สำเร็จ',
+        details: error,
+        hint:
+          String((error as { message?: string }).message ?? '').includes('category') ||
+          String((error as { message?: string }).message ?? '').includes('null value')
+            ? 'ตรวจสอบว่ารัน migration school_activities (default category) แล้ว และ deploy API เวอร์ชันล่าสุด'
+            : undefined,
+      })
       return
     }
     res.status(201).json({ ok: true, activity: data })
