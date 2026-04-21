@@ -457,6 +457,7 @@ function AppChrome(props: AppChromeProps) {
           ? 'เฉพาะคณะกรรมการ'
           : 'เฉพาะโรงเรียนกวดวิชา'
   const visiblePortalCount = Number(showMemberNav) + Number(showCommitteeNav) + Number(showAcademyNav)
+  const onMemberPortal = location.pathname.startsWith('/member')
 
   const portalWidthClass = useMemo(() => {
     if (location.pathname.startsWith('/member')) return 'max-w-5xl'
@@ -478,37 +479,39 @@ function AppChrome(props: AppChromeProps) {
       <header className="border-b border-slate-800 bg-slate-900/80 pb-3 backdrop-blur sm:pb-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pt-[max(1rem,env(safe-area-inset-top,0px))]">
         <h1 className="text-lg font-semibold tracking-tight sm:text-xl">YRC Smart Alumni</h1>
         <p className="mt-1 line-clamp-2 text-sm text-slate-400 sm:line-clamp-none">
-          พอร์ทัลสมาชิก · คณะกรรมการ · Academy
+          {onMemberPortal ? 'พอร์ทัลสมาชิก' : 'พอร์ทัลสมาชิก · คณะกรรมการ · Academy'}
         </p>
-        <div
-          className="mt-3 min-w-0 rounded-lg border border-slate-800/80 bg-slate-950/40 p-2 sm:border-0 sm:bg-transparent sm:p-0"
-          aria-label="มุมมองบทบาทและเมนูพอร์ทัล"
-        >
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
-            <select
-              value={props.roleView}
-              onChange={(e) => props.setRoleView(e.target.value as RoleView)}
-              aria-label="เลือกมุมมองบทบาทของพอร์ทัล"
-              aria-describedby={roleViewSummaryId}
-              className={`${themeTapTarget} min-w-0 w-full max-w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 sm:w-auto sm:max-w-md sm:py-1.5 sm:text-xs ${themeAccent.focusRing}`}
-            >
-              <option value="all">ทุกพอร์ทัล</option>
-              <option value="member">เฉพาะสมาชิก</option>
-              <option value="committee">เฉพาะคณะกรรมการ</option>
-              <option value="academy">เฉพาะโรงเรียนกวดวิชา (Academy)</option>
-            </select>
-            <span className="hidden text-xs text-slate-500 sm:inline">จำลองการมองเห็นเมนูตามสิทธิ์</span>
+        {!onMemberPortal ? (
+          <div
+            className="mt-3 min-w-0 rounded-lg border border-slate-800/80 bg-slate-950/40 p-2 sm:border-0 sm:bg-transparent sm:p-0"
+            aria-label="มุมมองบทบาทและเมนูพอร์ทัล"
+          >
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
+              <select
+                value={props.roleView}
+                onChange={(e) => props.setRoleView(e.target.value as RoleView)}
+                aria-label="เลือกมุมมองบทบาทของพอร์ทัล"
+                aria-describedby={roleViewSummaryId}
+                className={`${themeTapTarget} min-w-0 w-full max-w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 sm:w-auto sm:max-w-md sm:py-1.5 sm:text-xs ${themeAccent.focusRing}`}
+              >
+                <option value="all">ทุกพอร์ทัล</option>
+                <option value="member">เฉพาะสมาชิก</option>
+                <option value="committee">เฉพาะคณะกรรมการ</option>
+                <option value="academy">เฉพาะโรงเรียนกวดวิชา (Academy)</option>
+              </select>
+              <span className="hidden text-xs text-slate-500 sm:inline">จำลองการมองเห็นเมนูตามสิทธิ์</span>
+            </div>
+            <p id={roleViewSummaryId} className="mt-2 min-w-0 text-xs leading-snug text-slate-400 sm:mt-1" role="status" aria-live="polite" aria-atomic="true">
+              <span className="sm:hidden">
+                {roleViewLabel} · {visiblePortalCount.toLocaleString('th-TH')} หมวด
+              </span>
+              <span className="hidden sm:inline">
+                มุมมองปัจจุบัน: {roleViewLabel} · พอร์ทัลที่แสดง {visiblePortalCount.toLocaleString('th-TH')} หมวด
+              </span>
+            </p>
           </div>
-          <p id={roleViewSummaryId} className="mt-2 min-w-0 text-xs leading-snug text-slate-400 sm:mt-1" role="status" aria-live="polite" aria-atomic="true">
-            <span className="sm:hidden">
-              {roleViewLabel} · {visiblePortalCount.toLocaleString('th-TH')} หมวด
-            </span>
-            <span className="hidden sm:inline">
-              มุมมองปัจจุบัน: {roleViewLabel} · พอร์ทัลที่แสดง {visiblePortalCount.toLocaleString('th-TH')} หมวด
-            </span>
-          </p>
-        </div>
+        ) : null}
         {import.meta.env.DEV && !rbac.enforced ? (
           <p className="mt-2 text-xs text-slate-400">
             RBAC ปิดอยู่ — ตั้ง <code className="text-slate-400">VITE_ENFORCE_APP_RBAC=true</code> เพื่อกันเส้นทางตามบทบาทใน DB
@@ -531,28 +534,49 @@ function AppChrome(props: AppChromeProps) {
           aria-label="เมนูหลัก (เลื่อนแนวนอนบนจอแคบ)"
         >
           <div className="flex w-max min-w-full flex-nowrap gap-2">
-            <NavPill
-              to="/"
-              label="เข้าสู่ระบบ / ผูกบัญชี"
-              shortLabel="หลัก"
-              active={location.pathname === '/' || location.pathname.startsWith('/auth/link')}
-            />
-            {showMemberNav ? <NavPill to="/member/dashboard" label="สมาชิก" active={location.pathname.startsWith('/member')} /> : null}
-            {showCommitteeNav ? (
-              <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} />
-            ) : null}
-            {showAcademyNav ? (
-              <NavPill
-                to="/academy/dashboard"
-                label="โรงเรียนกวดวิชา"
-                shortLabel="Academy"
-                active={location.pathname.startsWith('/academy')}
-              />
-            ) : null}
-            {canRequests ? <NavPill to="/requests" label="คำร้อง" active={location.pathname.startsWith('/requests')} /> : null}
-            {canAdmin ? (
-              <NavPill to="/admin" label="ผู้ดูแล (Admin)" shortLabel="Admin" active={location.pathname.startsWith('/admin')} />
-            ) : null}
+            {onMemberPortal ? (
+              <>
+                <NavPill
+                  to="/"
+                  label="เข้าสู่ระบบ/ผูกบัญชี"
+                  matchLabelOnNarrow
+                  active={location.pathname === '/' || location.pathname.startsWith('/auth/link')}
+                />
+                {showMemberNav ? (
+                  <NavPill
+                    to="/member/dashboard"
+                    label="สมาชิก"
+                    matchLabelOnNarrow
+                    active={location.pathname.startsWith('/member')}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <>
+                <NavPill
+                  to="/"
+                  label="เข้าสู่ระบบ / ผูกบัญชี"
+                  shortLabel="หลัก"
+                  active={location.pathname === '/' || location.pathname.startsWith('/auth/link')}
+                />
+                {showMemberNav ? <NavPill to="/member/dashboard" label="สมาชิก" active={location.pathname.startsWith('/member')} /> : null}
+                {showCommitteeNav ? (
+                  <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} />
+                ) : null}
+                {showAcademyNav ? (
+                  <NavPill
+                    to="/academy/dashboard"
+                    label="โรงเรียนกวดวิชา"
+                    shortLabel="Academy"
+                    active={location.pathname.startsWith('/academy')}
+                  />
+                ) : null}
+                {canRequests ? <NavPill to="/requests" label="คำร้อง" active={location.pathname.startsWith('/requests')} /> : null}
+                {canAdmin ? (
+                  <NavPill to="/admin" label="ผู้ดูแล (Admin)" shortLabel="Admin" active={location.pathname.startsWith('/admin')} />
+                ) : null}
+              </>
+            )}
           </div>
         </nav>
       </header>
@@ -705,8 +729,15 @@ function AppChrome(props: AppChromeProps) {
   )
 }
 
-function NavPill(props: { to: string; label: string; shortLabel?: string; active: boolean }) {
-  const { to, label, shortLabel, active } = props
+function NavPill(props: {
+  to: string
+  label: string
+  shortLabel?: string
+  active: boolean
+  /** บนจอแคบให้ข้อความเหมือนจอใหญ่ (พอร์ทัลสมาชิก) */
+  matchLabelOnNarrow?: boolean
+}) {
+  const { to, label, shortLabel, active, matchLabelOnNarrow } = props
   return (
     <Link
       to={to}
@@ -716,8 +747,14 @@ function NavPill(props: { to: string; label: string; shortLabel?: string; active
         active ? themeAccent.navItemActive : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
       }`}
     >
-      <span className="sm:hidden">{shortLabel ?? label}</span>
-      <span className="hidden sm:inline">{label}</span>
+      {matchLabelOnNarrow ? (
+        <span>{label}</span>
+      ) : (
+        <>
+          <span className="sm:hidden">{shortLabel ?? label}</span>
+          <span className="hidden sm:inline">{label}</span>
+        </>
+      )}
     </Link>
   )
 }

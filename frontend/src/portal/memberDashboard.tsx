@@ -1,13 +1,7 @@
 import { Link } from 'react-router-dom'
 import { themeAccent, themeTapTarget } from '../lib/themeTokens'
 import { portalFocusRing } from './portalLabels'
-import {
-  MetricCards,
-  PortalContentLoading,
-  PortalSectionHeader,
-  PortalSnapshotStatusRow,
-  TrendBars,
-} from './ui'
+import { MetricCards, PortalContentLoading, PortalSnapshotStatusRow, TrendBars } from './ui'
 import { MemberYupparajPublicStats } from './memberDonationStats'
 import type { MemberPortalData, PortalDataState } from './dataAdapter'
 import type { MemberRoleView } from './dataAdapter'
@@ -36,15 +30,6 @@ export function MemberDashboardPage(props: {
         <>
           <MetricCards items={data.statsCards} />
           <MetricCards items={data.roleCards[props.roleView]} />
-          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
-            <PortalSectionHeader loading={loading} source={source} className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">คำร้องใหม่ 7 วัน (UTC)</h3>
-            </PortalSectionHeader>
-            <p className="mt-2 text-sm text-slate-400">
-              จำนวนคำร้องต่อวันจาก <code className="text-slate-400">member_update_requests</code>
-            </p>
-            <TrendBars items={data.requestTrend} color="cyan" />
-          </section>
           <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">จำนวนสมาชิกตามรุ่น</h3>
             <p className="mt-2 text-sm text-slate-400">สัดส่วนจากทะเบียนสมาชิกในระบบ (สแนปช็อต)</p>

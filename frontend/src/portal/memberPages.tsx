@@ -36,11 +36,11 @@ export function MemberArea(props: {
   onMemberUpdated: (member: Record<string, unknown>) => void
 }) {
   const { onMemberUpdated: parentOnMemberUpdated } = props
-  const [roleView, setRoleView] = useState<MemberRoleView>('member')
+  /** แดชบอร์ดยังแยกการ์ดตามบทบาท mock — ไม่มีตัวเลือกมุมมองบทบาทบน UI แล้ว */
+  const memberDashboardRole: MemberRoleView = 'member'
   /** เพิ่มทุกครั้งที่บันทึกโปรไฟล์สำเร็จ — ให้หน้าประวัติ refetch แม้ไม่ได้ใช้ data router (`useRevalidator` ใช้ได้กับ loader เท่านั้น) */
   const [profileVersionsRefresh, setProfileVersionsRefresh] = useState(0)
   const portalData = useMemberPortalData(props.apiBase)
-  const roleViewSummaryId = 'member-role-view-summary'
   const onMemberUpdated = useCallback(
     (member: Record<string, unknown>) => {
       parentOnMemberUpdated(member)
@@ -79,9 +79,8 @@ export function MemberArea(props: {
     },
   ]
   const visibleNavItems = memberNav
-    .filter((item) => item.roles.includes(roleView))
+    .filter((item) => item.roles.includes('member') || item.roles.includes('staff'))
     .map((item) => ({ to: item.to, label: item.label, shortLabel: item.shortLabel }))
-  const roleViewLabel = roleView === 'member' ? 'สมาชิกทั่วไป' : 'เจ้าหน้าที่สมาคม'
 
   return (
     <PortalShell
@@ -90,38 +89,8 @@ export function MemberArea(props: {
       navItems={visibleNavItems}
     >
       <section className="mb-3 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-2.5 text-sm sm:mb-4 sm:p-3" aria-busy={portalData.loading}>
-        <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
-            <select
-              value={roleView}
-              onChange={(e) => setRoleView(e.target.value as MemberRoleView)}
-              aria-label="เลือกมุมมองบทบาทในพอร์ทัลสมาชิก"
-              aria-describedby={roleViewSummaryId}
-              className={`min-w-0 max-w-full flex-1 rounded border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-200 sm:flex-none sm:py-1 sm:text-xs ${portalFocusRing}`}
-            >
-              <option value="member">สมาชิกทั่วไป</option>
-              <option value="staff">เจ้าหน้าที่สมาคม</option>
-            </select>
-          </div>
-          <span className="hidden text-xs text-slate-500 md:inline">จำลองสิทธิ์เมนูภายในพอร์ทัลสมาชิก</span>
-          <span
-            id={roleViewSummaryId}
-            className="min-w-0 text-xs leading-snug text-slate-400 sm:max-w-[min(100%,28rem)]"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className="sm:hidden">
-              {roleViewLabel} · {visibleNavItems.length.toLocaleString('th-TH')} เมนู
-            </span>
-            <span className="hidden sm:inline">
-              บทบาทปัจจุบัน: {roleViewLabel} · เมนูที่เข้าถึงได้ {visibleNavItems.length.toLocaleString('th-TH')} รายการ
-            </span>
-          </span>
-          <div className="shrink-0 sm:ml-auto">
-            <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
-          </div>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <PortalSnapshotToolbar loading={portalData.loading} source={portalData.source} onRefresh={portalData.refetch} />
         </div>
       </section>
       <Routes>
@@ -129,7 +98,7 @@ export function MemberArea(props: {
         <Route
           path="dashboard"
           element={
-            <MemberDashboardPage portalState={portalData} roleView={roleView} apiBase={props.apiBase} />
+            <MemberDashboardPage portalState={portalData} roleView={memberDashboardRole} apiBase={props.apiBase} />
           }
         />
         <Route path="card" element={<MemberCardPage member={props.member} />} />
@@ -285,12 +254,7 @@ export function MemberArea(props: {
             }
           />
         </Route>
-        <Route
-          path="documents"
-          element={
-            roleView === 'staff' ? <MemberStaffDocumentsPage /> : <PortalNotFound scopeLabel={portalNotFoundScopeLabel.member} />
-          }
-        />
+        <Route path="documents" element={<MemberStaffDocumentsPage />} />
         <Route path="*" element={<PortalNotFound scopeLabel={portalNotFoundScopeLabel.member} />} />
       </Routes>
     </PortalShell>
