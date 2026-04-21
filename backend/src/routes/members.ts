@@ -911,6 +911,7 @@ membersRouter.get('/donations/yupparaj-stats', async (_req, res) => {
         const donorName = [r.donor_first_name, r.donor_last_name].filter(Boolean).join(' ').trim() || '—'
         return {
           id: String(r.id),
+          activityId: aid || null,
           donorName,
           batch: r.donor_batch != null && String(r.donor_batch).trim() ? String(r.donor_batch).trim() : null,
           batchName:

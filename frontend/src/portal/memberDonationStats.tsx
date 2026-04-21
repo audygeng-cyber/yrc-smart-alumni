@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toPng } from 'html-to-image'
 import { portalFocusRing } from './portalLabels'
 
 export type YupparajPublicStats = {
@@ -23,6 +24,8 @@ export type YupparajPublicStats = {
   }>
   donors: Array<{
     id: string
+    /** จาก API — ใช้จัดกลุ่มตามกิจกรรม */
+    activityId: string | null
     donorName: string
     batch: string | null
     batchName: string | null
@@ -70,6 +73,7 @@ const MOCK_STATS: YupparajPublicStats = {
   donors: [
     {
       id: 'd1',
+      activityId: 'mock-1',
       donorName: 'ตัวอย่าง หนึ่ง',
       batch: '45',
       batchName: 'รุ่นตัวอย่าง',
@@ -80,6 +84,7 @@ const MOCK_STATS: YupparajPublicStats = {
     },
     {
       id: 'd2',
+      activityId: 'mock-2',
       donorName: 'ตัวอย่าง สอง',
       batch: '52',
       batchName: null,
@@ -159,6 +164,222 @@ function ActivityStatCard(props: {
   )
 }
 
+type DonorRow = YupparajPublicStats['donors'][number]
+
+type ActivityDonorGroup = {
+  activityId: string
+  title: string
+  category: string
+  raisedAmount: number
+  donationCount: number
+  donors: DonorRow[]
+}
+
+function sumDonorAmounts(rows: DonorRow[]) {
+  return Math.round(rows.reduce((s, d) => s + d.amount, 0) * 100) / 100
+}
+
+function sortDonorsByDateDesc(rows: DonorRow[]) {
+  return [...rows].sort((a, b) => {
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
+    return tb - ta
+  })
+}
+
+/** จัดกลุ่มตามกิจกรรมที่ admin เปิดใช้ (byActivity) แล้วต่อด้วยกลุ่มพิเศษ (ไม่ระบุโครงการ / โครงการปิดแล้ว) */
+function buildActivityDonorGroups(stats: YupparajPublicStats): ActivityDonorGroup[] {
+  const donorsByKey = new Map<string, DonorRow[]>()
+  for (const d of stats.donors) {
+    const rawId = d.activityId != null && String(d.activityId).trim() ? String(d.activityId).trim() : ''
+    const key = rawId || '_none_'
+    const arr = donorsByKey.get(key) ?? []
+    arr.push(d)
+    donorsByKey.set(key, arr)
+  }
+
+  const activeIdSet = new Set(stats.byActivity.map((a) => a.activityId))
+  const groups: ActivityDonorGroup[] = []
+
+  for (const a of stats.byActivity) {
+    const raw = donorsByKey.get(a.activityId) ?? []
+    groups.push({
+      activityId: a.activityId,
+      title: a.title,
+      category: a.category,
+      raisedAmount: a.raisedAmount,
+      donationCount: a.donationCount,
+      donors: sortDonorsByDateDesc(raw),
+    })
+  }
+
+  for (const [key, raw] of donorsByKey) {
+    if (key === '_none_') {
+      if (raw.length === 0) continue
+      groups.push({
+        activityId: '_none_',
+        title: 'ไม่ระบุโครงการ',
+        category: '—',
+        raisedAmount: sumDonorAmounts(raw),
+        donationCount: raw.length,
+        donors: sortDonorsByDateDesc(raw),
+      })
+      continue
+    }
+    if (activeIdSet.has(key)) continue
+    const first = raw[0]
+    groups.push({
+      activityId: key,
+      title: first?.activityTitle ?? '—',
+      category: first?.activityCategory ?? 'ทั่วไป',
+      raisedAmount: sumDonorAmounts(raw),
+      donationCount: raw.length,
+      donors: sortDonorsByDateDesc(raw),
+    })
+  }
+
+  return groups
+}
+
+function normalizeDonorRows(raw: unknown[]): DonorRow[] {
+  const out: DonorRow[] = []
+  for (const row of raw) {
+    const d = row as Record<string, unknown>
+    const id = d.id != null ? String(d.id) : ''
+    if (!id) continue
+    const aidRaw = d.activityId ?? d.activity_id
+    const activityId =
+      typeof aidRaw === 'string' && aidRaw.trim()
+        ? aidRaw.trim()
+        : typeof aidRaw === 'number' && Number.isFinite(aidRaw)
+          ? String(aidRaw)
+          : null
+    const amount = typeof d.amount === 'number' ? d.amount : parseFloat(String(d.amount ?? 0))
+    if (!Number.isFinite(amount)) continue
+    out.push({
+      id,
+      activityId,
+      donorName: typeof d.donorName === 'string' ? d.donorName : '—',
+      batch: d.batch != null && String(d.batch).trim() ? String(d.batch).trim() : null,
+      batchName: d.batchName != null && String(d.batchName).trim() ? String(d.batchName).trim() : null,
+      amount: Math.round(amount * 100) / 100,
+      activityTitle: typeof d.activityTitle === 'string' ? d.activityTitle : '—',
+      activityCategory: d.activityCategory != null && String(d.activityCategory).trim() ? String(d.activityCategory).trim() : null,
+      createdAt: d.createdAt != null && String(d.createdAt).trim() ? String(d.createdAt) : null,
+    })
+  }
+  return out
+}
+
+function downloadFilenameForActivity(activityId: string) {
+  const safe = activityId.replace(/[^\w.-]+/g, '_').replace(/_+/g, '_').slice(0, 64) || 'activity'
+  return `yupparaj-donors-${safe}.png`
+}
+
+function ActivityDonorSection(props: { group: ActivityDonorGroup; generatedAt?: string }) {
+  const { group, generatedAt } = props
+  const capRef = useRef<HTMLDivElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [imgErr, setImgErr] = useState<string | null>(null)
+
+  const downloadPng = async () => {
+    setImgErr(null)
+    const node = capRef.current
+    if (!node || group.donors.length === 0) return
+    setBusy(true)
+    try {
+      const dataUrl = await toPng(node, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: '#0f172a',
+      })
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = downloadFilenameForActivity(group.activityId)
+      a.rel = 'noopener'
+      a.click()
+    } catch {
+      setImgErr('สร้างภาพไม่สำเร็จ — ลองอีกครั้งหรืออัปเดตเบราว์เซอร์')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="border-t border-slate-800/80 pt-6 first:border-t-0 first:pt-0">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="text-sm font-medium text-slate-200">{group.title}</h4>
+          <p className="text-xs text-slate-500">{group.category}</p>
+          <p className="mt-1 text-xs text-slate-400">
+            ยอดสะสมในระบบ {Math.round(group.raisedAmount).toLocaleString('th-TH')} บาท · {group.donationCount.toLocaleString('th-TH')}{' '}
+            รายการโอน (รวมทุกรายการในโครงการ)
+          </p>
+        </div>
+        {group.donors.length > 0 ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void downloadPng()}
+            className={`shrink-0 rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-800 disabled:opacity-50 ${portalFocusRing}`}
+            aria-label={`บันทึกรายชื่อผู้บริจาคเป็นไฟล์ภาพ — ${group.title}`}
+          >
+            {busy ? 'กำลังสร้างภาพ…' : 'บันทึกเป็นภาพ (LINE)'}
+          </button>
+        ) : null}
+      </div>
+      {imgErr ? (
+        <p className="mt-2 text-xs text-amber-200/90" role="alert">
+          {imgErr}
+        </p>
+      ) : null}
+
+      {group.donors.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-500">ยังไม่มีผู้บริจาคในโครงการนี้</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto rounded-lg">
+          <div ref={capRef} className="min-w-[18rem] rounded-lg border border-slate-700 bg-[#0f172a] p-4 text-left">
+            <p className="text-base font-semibold leading-snug text-white">{group.title}</p>
+            <p className="text-sm text-slate-400">{group.category}</p>
+            <p className="mt-2 text-sm text-fuchsia-200">
+              ยอดสะสม {Math.round(group.raisedAmount).toLocaleString('th-TH')} บาท · {group.donors.length.toLocaleString('th-TH')} รายการในภาพนี้
+            </p>
+            <table className="mt-4 w-full border-collapse text-left text-sm text-slate-200">
+              <thead>
+                <tr className="border-b border-slate-600 text-xs uppercase tracking-wide text-slate-400">
+                  <th className="py-2 pr-3 font-medium">วันที่บันทึก</th>
+                  <th className="py-2 pr-3 font-medium">ผู้บริจาค</th>
+                  <th className="py-2 pr-3 font-medium">รุ่น</th>
+                  <th className="py-2 pl-2 text-right font-medium">จำนวน</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.donors.map((d) => (
+                  <tr key={d.id} className="border-b border-slate-700/90">
+                    <td className="whitespace-nowrap py-2 pr-3 text-slate-400">{formatThShort(d.createdAt)}</td>
+                    <td className="py-2 pr-3">{d.donorName}</td>
+                    <td className="py-2 pr-3 text-slate-300">
+                      {d.batch ?? '—'}
+                      {d.batchName ? <span className="block text-[11px] text-slate-500">{d.batchName}</span> : null}
+                    </td>
+                    <td className="whitespace-nowrap py-2 pl-2 text-right tabular-nums text-fuchsia-200">
+                      {Math.round(d.amount).toLocaleString('th-TH')} ฿
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
+              โรงเรียนยุพราชวิทยาลัย · กิจกรรมโรงเรียน (กองแยกจากนิติบุคคลสมาคม)
+              {generatedAt ? ` · อัปเดต ${formatThShort(generatedAt)}` : null}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function MemberYupparajPublicStats(props: {
   apiBase: string
   /** เพิ่มเมื่อบันทึกบริจาคสำเร็จหรือกดรีเฟรช */
@@ -194,7 +415,7 @@ export function MemberYupparajPublicStats(props: {
         donationCount: j.donationCount ?? 0,
         byActivity: Array.isArray(j.byActivity) ? j.byActivity : [],
         byBatch: Array.isArray(j.byBatch) ? j.byBatch : [],
-        donors: Array.isArray(j.donors) ? j.donors : [],
+        donors: Array.isArray(j.donors) ? normalizeDonorRows(j.donors) : [],
         generatedAt: j.generatedAt,
       })
     } catch {
@@ -215,6 +436,8 @@ export function MemberYupparajPublicStats(props: {
     for (const b of rows) m = Math.max(m, b.totalAmount)
     return m > 0 ? m : 1
   }, [stats?.byBatch])
+
+  const donorGroups = useMemo(() => (stats ? buildActivityDonorGroups(stats) : []), [stats])
 
   if (loading && !stats) {
     return (
@@ -332,43 +555,17 @@ export function MemberYupparajPublicStats(props: {
 
       {stats.donors.length > 0 ? (
         <div className="mt-8">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายชื่อผู้บริจาคทั้งหมด</h4>
-          <div className="mt-2 max-h-[28rem] overflow-auto rounded-lg border border-slate-800/80">
-            <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-950/95 backdrop-blur-sm">
-                <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
-                  <th className="px-3 py-2 font-medium">วันที่บันทึก</th>
-                  <th className="px-3 py-2 font-medium">ผู้บริจาค</th>
-                  <th className="px-3 py-2 font-medium">รุ่น</th>
-                  <th className="px-3 py-2 font-medium">โครงการ</th>
-                  <th className="px-3 py-2 text-right font-medium">จำนวน</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.donors.map((d) => (
-                  <tr key={d.id} className="border-b border-slate-800/70">
-                    <td className="whitespace-nowrap px-3 py-2 text-slate-500">{formatThShort(d.createdAt)}</td>
-                    <td className="px-3 py-2 text-slate-200">{d.donorName}</td>
-                    <td className="px-3 py-2 text-slate-400">
-                      {d.batch ?? '—'}
-                      {d.batchName ? <span className="block text-[11px] text-slate-500">{d.batchName}</span> : null}
-                    </td>
-                    <td className="max-w-[14rem] px-3 py-2 text-slate-300">
-                      <span className="line-clamp-2">{d.activityTitle}</span>
-                      {d.activityCategory ? (
-                        <span className="block text-[11px] text-slate-500">{d.activityCategory}</span>
-                      ) : null}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-fuchsia-200/95">
-                      {Math.round(d.amount).toLocaleString('th-TH')} ฿
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายชื่อผู้บริจาคตามโครงการ</h4>
+          <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+            แยกตามกิจกรรมที่ผู้ดูแลระบบตั้งค่าไว้ — กด «บันทึกเป็นภาพ» เพื่อดาวน์โหลด PNG ส่งแจ้งใน LINE (ยอดอัปเดตเมื่อเปิดหน้านี้หรือรีเฟรชสถิติ)
+          </p>
+          <div className="mt-4 space-y-0">
+            {donorGroups.map((g) => (
+              <ActivityDonorSection key={g.activityId} group={g} generatedAt={stats.generatedAt} />
+            ))}
           </div>
           {stats.donors.length >= 5000 ? (
-            <p className="mt-2 text-xs text-amber-200/80">แสดงสูงสุด 5,000 รายการล่าสุด</p>
+            <p className="mt-4 text-xs text-amber-200/80">แสดงสูงสุด 5,000 รายการโอนล่าสุดทั้งกอง — แบ่งตามโครงการด้านบน</p>
           ) : null}
         </div>
       ) : (
