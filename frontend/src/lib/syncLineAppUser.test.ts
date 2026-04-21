@@ -32,6 +32,7 @@ describe('syncLineAppUser', () => {
       expect(r.line_uid).toBe('Uxxx')
       expect(r.app_user_id).toBe('au-1')
       expect(r.roles).toEqual(['member'])
+      expect(r.trace).toContain('"http":200')
     }
   })
 

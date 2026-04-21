@@ -46,6 +46,8 @@ import {
   setMemberSnapshot,
 } from './lineSession'
 import { normalizeApiBase } from './lib/adminApi'
+import { fetchLineOauthState } from './lib/fetchLineOauthState'
+import { fetchSessionMember } from './lib/fetchSessionMember'
 import { themeAccent, themeTapTarget } from './lib/themeTokens'
 import { syncLineAppUser } from './lib/syncLineAppUser'
 
@@ -143,6 +145,8 @@ export default function App() {
   const [lineIdentitySyncMessage, setLineIdentitySyncMessage] = useState<{
     kind: 'ok' | 'err'
     text: string
+    /** สรุป JSON จาก app-roles / session-member — ไล่บั๊กบนมือถือ */
+    detail?: string
   } | null>(null)
 
   useEffect(() => {
@@ -193,16 +197,10 @@ export default function App() {
     ;(async () => {
       setRestoringMemberSession(true)
       try {
-        const r = await fetch(`${apiBase}/api/members/session-member`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ line_uid: lineUid.trim() }),
-          signal: controller.signal,
-        })
-        const j = (await r.json().catch(() => ({}))) as { member?: Record<string, unknown> }
-        if (cancelled || !r.ok || !j.member) return
-        setMemberSnapshot(j.member)
-        setVerifiedMember(j.member)
+        const result = await fetchSessionMember(apiBase, lineUid.trim(), controller.signal)
+        if (cancelled || !result.ok) return
+        setMemberSnapshot(result.member)
+        setVerifiedMember(result.member)
         setLinkedMemberVersion((n) => n + 1)
         navigate('/member', { replace: true })
       } catch (e) {
@@ -226,6 +224,10 @@ export default function App() {
     const state = params.get('state')
     const redirectUri = getLineRedirectUri()
     if (!code || !state || !redirectUri) return
+
+    // authorization code ใช้ได้ครั้งเดียว — ลบ query ก่อน async กัน React Strict / remount แลกซ้ำจน LINE ตอบ invalid_grant (มักเห็นบนมือถือหรือ dev)
+    const pathOnly = window.location.pathname + window.location.hash
+    window.history.replaceState({}, '', pathOnly)
 
     ;(async () => {
       try {
@@ -259,37 +261,50 @@ export default function App() {
           return
         }
         const persisted = await syncLineAppUser(apiBase, j.line_uid)
+        // โหลดสมาชิกที่ผูกแล้วก่อนตั้ง lineUid ใน state — กัน race กับ effect กู้เซสชัน (มือถือช้า / remount)
+        const session = await fetchSessionMember(apiBase, j.line_uid)
+
+        const detail = [
+          'สรุปคำตอบจริงจาก API (ใช้ไล่บั๊ก):',
+          '',
+          'POST /api/members/app-roles',
+          persisted.trace,
+          '',
+          'POST /api/members/session-member',
+          session.trace,
+        ].join('\n')
+
         if (persisted.ok === false) {
           setLineIdentitySyncMessage({
             kind: 'err',
-            text: `บันทึก LINE UID ในระบบไม่สำเร็จ: ${persisted.error} — ตรวจ VITE_API_URL และ CORS`,
+            text: `บันทึก LINE UID ในระบบไม่สำเร็จ: ${persisted.error}${persisted.status != null ? ` (HTTP ${persisted.status})` : ''} — ตรวจ VITE_API_URL และ CORS`,
+            detail,
           })
         } else {
+          const sessionHint = session.ok
+            ? 'พบแถวสมาชิกที่ผูก LINE แล้ว — เปิดหน้าสมาชิกได้'
+            : 'ยังไม่พบสมาชิกที่ผูก LINE นี้ในระบบ — ใช้ฟอร์มด้านล่างเพื่อตรวจและผูก (session-member อาจเป็น 404)'
           setLineIdentitySyncMessage({
             kind: 'ok',
-            text:
-              'ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว (ใช้เป็นตัวตนในแอป — ผูกข้อมูลสมาชิกทำที่ขั้นตอนถัดไป)',
+            text: `ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว — ${sessionHint}`,
+            detail,
           })
+        }
+        if (session.ok) {
+          setMemberSnapshot(session.member)
+          setVerifiedMember(session.member)
+          setLinkedMemberVersion((n) => n + 1)
         }
         setLineSessionFromOAuth(j.line_uid, j.name ?? undefined)
         setLineUid(j.line_uid)
         setLineUidFromOAuth(true)
-        const snap = readMemberSnapshot()
-        if (snap && String(snap.line_uid ?? '') === j.line_uid) {
-          setVerifiedMember(snap)
-          setLinkedMemberVersion((n) => n + 1)
-          navigate('/member', { replace: true })
-        } else {
-          navigate('/member', { replace: true })
-        }
+        navigate('/member', { replace: true })
       } catch (e) {
         console.error(e)
         setLineIdentitySyncMessage({
           kind: 'err',
           text: `แลก LINE token ผิดพลาด — ${e instanceof Error ? e.message : 'unknown'}`,
         })
-      } finally {
-        window.history.replaceState({}, '', window.location.pathname + window.location.hash)
       }
     })()
   }, [navigate])
@@ -306,28 +321,18 @@ export default function App() {
       return
     }
     try {
-      const url = `${apiBase.replace(/\/$/, '')}/api/auth/line/oauth-state`
-      const sr = await fetch(url, { method: 'GET', cache: 'no-store', mode: 'cors' })
-      const raw = await sr.text()
-      let sj: { state?: string; error?: string } = {}
-      try {
-        sj = JSON.parse(raw) as { state?: string; error?: string }
-      } catch {
-        /* บาง reverse proxy คืน HTML เมื่อ 404/502 */
-      }
-      const detail =
-        (typeof sj.error === 'string' && sj.error.trim()) ||
-        (raw.trim().slice(0, 160) || sr.statusText || 'ไม่ทราบสาเหตุ')
-      if (!sr.ok || !sj.state?.trim()) {
+      const oauth = await fetchLineOauthState(apiBase)
+      if (oauth.ok === false) {
+        const detail = oauth.detail
         const deployHint =
-          sr.status === 404
-            ? ' (น่าจะยังไม่ได้ deploy API เวอร์ชันใหม่ที่มี /api/auth/line/oauth-state บน Cloud Run)'
-            : sr.status === 500 && detail.includes('LINE_CHANNEL_SECRET')
+          oauth.status === 404
+            ? ` (น่าจะยังไม่ได้ deploy API เวอร์ชันใหม่ที่มี /api/auth/line/oauth-state บน Cloud Run)${oauth.triedPost ? ' — ลอง POST แล้วยังไม่ได้' : ''}`
+            : oauth.status === 500 && detail.includes('LINE_CHANNEL_SECRET')
               ? ' (ตรวจ env LINE_CHANNEL_SECRET บน Cloud Run)'
               : ''
         setLineIdentitySyncMessage({
           kind: 'err',
-          text: `ไม่สามารถเริ่มล็อกอิน LINE — HTTP ${sr.status}: ${detail}${deployHint}`,
+          text: `ไม่สามารถเริ่มล็อกอิน LINE — HTTP ${oauth.status}: ${detail}${deployHint}`,
         })
         return
       }
@@ -335,7 +340,7 @@ export default function App() {
       u.searchParams.set('response_type', 'code')
       u.searchParams.set('client_id', lineChannelId)
       u.searchParams.set('redirect_uri', redirectUri)
-      u.searchParams.set('state', sj.state.trim())
+      u.searchParams.set('state', oauth.state)
       u.searchParams.set('scope', 'openid profile')
       window.location.href = u.toString()
     } catch (e) {
@@ -424,7 +429,7 @@ type AppChromeProps = {
   onStartLineLogin: () => void
   onMemberVerified: (m: Record<string, unknown>) => void
   onMemberUpdated: (m: Record<string, unknown>) => void
-  lineIdentitySyncMessage: { kind: 'ok' | 'err'; text: string } | null
+  lineIdentitySyncMessage: { kind: 'ok' | 'err'; text: string; detail?: string } | null
   onDismissLineIdentityMessage: () => void
 }
 
@@ -830,7 +835,7 @@ function LinkPage(props: {
   onClearLineSession: () => void
   onStartLineLogin: () => void
   onMemberVerified: (m: Record<string, unknown>) => void
-  lineIdentitySyncMessage: { kind: 'ok' | 'err'; text: string } | null
+  lineIdentitySyncMessage: { kind: 'ok' | 'err'; text: string; detail?: string } | null
   onDismissLineIdentityMessage: () => void
 }) {
   const hasMember = Boolean(props.verifiedMember && props.lineUid)
@@ -848,7 +853,14 @@ function LinkPage(props: {
           aria-live="polite"
         >
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-            <p className="min-w-0 break-words">{props.lineIdentitySyncMessage.text}</p>
+            <div className="min-w-0 flex-1 space-y-2">
+              <p className="min-w-0 break-words">{props.lineIdentitySyncMessage.text}</p>
+              {props.lineIdentitySyncMessage.detail ? (
+                <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-700/80 bg-slate-950/70 p-2 text-[11px] leading-snug text-slate-300">
+                  {props.lineIdentitySyncMessage.detail}
+                </pre>
+              ) : null}
+            </div>
             <button
               type="button"
               onClick={() => props.onDismissLineIdentityMessage()}
