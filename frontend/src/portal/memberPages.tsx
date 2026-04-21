@@ -874,6 +874,7 @@ function MemberDonationsPage(props: {
                 apiBase={props.apiBase}
                 refreshTrigger={yupparajStatsRefresh}
                 mockMode={portalMockMode}
+                linkedActivities={data.yupparajDonationActivities}
               />
             </div>
             <div className="mt-6 space-y-3 rounded-lg border border-fuchsia-900/40 bg-fuchsia-950/15 p-4" aria-label="ฟอร์มบันทึกการบริจาค">

@@ -34,13 +34,16 @@ export function MemberDashboardPage(props: {
           </section>
           <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-label="สถิติการสนับสนุนกิจกรรมโรงเรียนยุพราชวิทยาลัย">
             <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สถิติการสนับสนุนกิจกรรมโรงเรียนยุพราชวิทยาลัย</h3>
-            <p className="mt-1 text-sm text-slate-400">ยอดรวม แยกตามโครงการและรุ่น — อัปเดตจากเซิร์ฟเวอร์</p>
+            <p className="mt-1 text-sm text-slate-400">
+              โครงการและลำดับเดียวกับที่ Admin ตั้งในระบบและในหน้า «สนับสนุนกิจกรรม» (สแนปช็อตพอร์ทัล) — ยอดและรายชื่อผู้บริจาคจาก API แบบสด
+            </p>
             <div className="mt-4">
               <MemberYupparajPublicStats
                 apiBase={props.apiBase}
                 refreshTrigger={0}
                 mockMode={portalMockMode}
                 embedded
+                linkedActivities={data.yupparajDonationActivities}
               />
             </div>
           </section>

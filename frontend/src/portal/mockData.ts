@@ -65,14 +65,14 @@ export const memberDonationCampaigns: DonationCampaign[] = [
   { title: 'พัฒนาห้องเรียนอัจฉริยะ', progress: 41, target: '800,000', raised: '328,000' },
 ]
 
-/** ประวัติบริจาคตัวอย่าง — `activityId` สอดคล้องกับ mock-yup-1 ใน `memberPortalMockData` (dataAdapter) */
+/** ประวัติบริจาคตัวอย่าง — `activityId` สอดคล้องกับ `mock-yup-lunch-2569` ใน `memberPortalMockData` (dataAdapter) */
 export const memberDonationHistoryMock = [
   {
     id: 'mock-don-1',
     amount: 500,
     createdAt: '2026-04-10T08:30:00.000Z',
     transferAt: '2026-04-10T07:15:00.000Z',
-    activityId: 'mock-yup-1',
+    activityId: 'mock-yup-lunch-2569',
     activityTitle: 'ทุนอาหารกลางวัน',
     activityCategory: 'สวัสดิการนักเรียน',
     fundScope: 'yupparaj_school',

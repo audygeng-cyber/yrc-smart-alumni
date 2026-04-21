@@ -280,7 +280,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
       </p>
       <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-slate-500">
         <li>
-          <span className="text-slate-400">กองโรงเรียนยุพราช</span> → พอร์ทัลสมาชิก หน้า &quot;สนับสนุนกิจกรรม&quot; (เลือกโครงการ / การ์ดความคืบหน้า / รายละเอียดใต้ dropdown)
+          <span className="text-slate-400">กองโรงเรียนยุพราช</span> → พอร์ทัลสมาชิก: แดชบอร์ดและหน้า &quot;สนับสนุนกิจกรรม&quot; ใช้รายการเดียวกัน (สแนปช็อต + สถิติสด) — ลำดับและชื่อโครงการตามที่ตั้งที่นี่เมื่อสถานะเปิด
         </li>
         <li>
           <span className="text-slate-400">สมาคม / กวดวิชา</span> → พอร์ทัล Academy หน้า &quot;คอร์สเรียน / กิจกรรม&quot; (ไม่รวมกองยุพราช)

@@ -61,7 +61,7 @@ export type MemberPortalData = {
   roleCards: Record<MemberRoleView, MetricItem[]>
   batchDistribution: TrendItem[]
   donationCampaigns: DonationCampaign[]
-  /** กิจกรรมโรงเรียนยุพราช — บริจาคไม่นับเป็นรายรับสมาคม/กวดวิชา */
+  /** กิจกรรมโรงเรียนยุพราช (school_activities เปิด + fund_scope นี้) — แชร์ลำดับกับแดชบอร์ด/สถิติสดเมื่อส่งเป็น linkedActivities */
   yupparajDonationActivities: YupparajDonationActivityItem[]
   financeCards: MetricItem[]
   meetingReports: MeetingReportItem[]

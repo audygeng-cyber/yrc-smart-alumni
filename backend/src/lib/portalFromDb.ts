@@ -363,6 +363,7 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
       .from('donations')
       .select('activity_id,amount')
       .in('activity_id', ids)
+      .eq('fund_scope', 'yupparaj_school')
     const raisedByActivity = new Map<string, number>()
     if (!amtErr && amtRows) {
       for (const r of amtRows as { activity_id?: string | null; amount?: string | number | null }[]) {

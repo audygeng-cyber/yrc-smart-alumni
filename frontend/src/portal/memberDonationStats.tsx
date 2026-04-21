@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 import { portalFocusRing } from './portalLabels'
+import type { YupparajDonationActivityItem } from './dataAdapter'
 
 export type YupparajPublicStats = {
   ok?: boolean
@@ -47,7 +48,7 @@ const MOCK_STATS: YupparajPublicStats = {
   donationCount: 12,
   byActivity: [
     {
-      activityId: 'mock-1',
+      activityId: 'mock-yup-scholarship-2569',
       title: 'กิจกรรมทุนการศึกษาประจำปี 2569',
       category: 'ทุนการศึกษา',
       targetAmount: 500_000,
@@ -56,7 +57,7 @@ const MOCK_STATS: YupparajPublicStats = {
       progressPercent: 24,
     },
     {
-      activityId: 'mock-2',
+      activityId: 'mock-yup-lunch-2569',
       title: 'กิจกรรมทุนอาหารกลางวันประจำปี 2569',
       category: 'ทุนอาหารกลางวัน',
       targetAmount: 300_000,
@@ -73,7 +74,7 @@ const MOCK_STATS: YupparajPublicStats = {
   donors: [
     {
       id: 'd1',
-      activityId: 'mock-1',
+      activityId: 'mock-yup-scholarship-2569',
       donorName: 'ตัวอย่าง หนึ่ง',
       batch: '45',
       batchName: 'รุ่นตัวอย่าง',
@@ -84,7 +85,7 @@ const MOCK_STATS: YupparajPublicStats = {
     },
     {
       id: 'd2',
-      activityId: 'mock-2',
+      activityId: 'mock-yup-lunch-2569',
       donorName: 'ตัวอย่าง สอง',
       batch: '52',
       batchName: null,
@@ -187,8 +188,14 @@ function sortDonorsByDateDesc(rows: DonorRow[]) {
   })
 }
 
-/** จัดกลุ่มตามกิจกรรมที่ admin เปิดใช้ (byActivity) แล้วต่อด้วยกลุ่มพิเศษ (ไม่ระบุโครงการ / โครงการปิดแล้ว) */
-function buildActivityDonorGroups(stats: YupparajPublicStats): ActivityDonorGroup[] {
+/**
+ * จัดกลุ่มผู้บริจาค — ถ้ามี `linkedActivities` (จากสแนปช็อตพอร์ทัล = รายการที่ Admin เปิดใน school_activities)
+ * จะใช้ลำดับและชื่อโครงการให้ตรงกับหน้าสนับสนุน/แดชบอร์ด แล้วผูกยอดจาก API yupparaj-stats
+ */
+function buildActivityDonorGroups(
+  stats: YupparajPublicStats,
+  linkedActivities?: YupparajDonationActivityItem[] | null,
+): ActivityDonorGroup[] {
   const donorsByKey = new Map<string, DonorRow[]>()
   for (const d of stats.donors) {
     const rawId = d.activityId != null && String(d.activityId).trim() ? String(d.activityId).trim() : ''
@@ -196,6 +203,52 @@ function buildActivityDonorGroups(stats: YupparajPublicStats): ActivityDonorGrou
     const arr = donorsByKey.get(key) ?? []
     arr.push(d)
     donorsByKey.set(key, arr)
+  }
+
+  const fromStatsById = new Map(stats.byActivity.map((a) => [a.activityId, a]))
+  const useLinked = linkedActivities != null && linkedActivities.length > 0
+
+  if (useLinked) {
+    const linkedIds = new Set(linkedActivities.map((a) => a.id))
+    const groups: ActivityDonorGroup[] = []
+    for (const act of linkedActivities) {
+      const id = act.id
+      const st = fromStatsById.get(id)
+      const raw = donorsByKey.get(id) ?? []
+      groups.push({
+        activityId: id,
+        title: act.title,
+        category: act.category,
+        raisedAmount: st?.raisedAmount ?? act.raisedAmount ?? 0,
+        donationCount: st?.donationCount ?? raw.length,
+        donors: sortDonorsByDateDesc(raw),
+      })
+    }
+    for (const [key, raw] of donorsByKey) {
+      if (key === '_none_') {
+        if (raw.length === 0) continue
+        groups.push({
+          activityId: '_none_',
+          title: 'ไม่ระบุโครงการ',
+          category: '—',
+          raisedAmount: sumDonorAmounts(raw),
+          donationCount: raw.length,
+          donors: sortDonorsByDateDesc(raw),
+        })
+        continue
+      }
+      if (linkedIds.has(key)) continue
+      const first = raw[0]
+      groups.push({
+        activityId: key,
+        title: first?.activityTitle ?? '—',
+        category: first?.activityCategory ?? 'ทั่วไป',
+        raisedAmount: sumDonorAmounts(raw),
+        donationCount: raw.length,
+        donors: sortDonorsByDateDesc(raw),
+      })
+    }
+    return groups
   }
 
   const activeIdSet = new Set(stats.byActivity.map((a) => a.activityId))
@@ -239,6 +292,56 @@ function buildActivityDonorGroups(stats: YupparajPublicStats): ActivityDonorGrou
   }
 
   return groups
+}
+
+type MergedActivityCard = {
+  activityId: string
+  title: string
+  category: string
+  raised: number
+  target: number | null
+  count: number
+  progressPercent: number | null
+}
+
+function mergeActivityCards(
+  stats: YupparajPublicStats,
+  linkedActivities?: YupparajDonationActivityItem[] | null,
+): MergedActivityCard[] {
+  if (linkedActivities != null && linkedActivities.length > 0) {
+    const byId = new Map(stats.byActivity.map((a) => [a.activityId, a]))
+    return linkedActivities.map((act) => {
+      const st = byId.get(act.id)
+      const raised = st?.raisedAmount ?? act.raisedAmount ?? 0
+      const tgtRaw = st?.targetAmount != null ? st.targetAmount : act.targetAmount
+      const target = tgtRaw != null && Number.isFinite(tgtRaw) && tgtRaw >= 0 ? tgtRaw : null
+      const count = st?.donationCount ?? 0
+      const progressPercent =
+        st?.progressPercent != null
+          ? st.progressPercent
+          : target != null && target > 0 && Number.isFinite(raised)
+            ? Math.min(100, Math.round((raised / target) * 100))
+            : null
+      return {
+        activityId: act.id,
+        title: act.title,
+        category: act.category,
+        raised,
+        target,
+        count,
+        progressPercent,
+      }
+    })
+  }
+  return stats.byActivity.map((a) => ({
+    activityId: a.activityId,
+    title: a.title,
+    category: a.category,
+    raised: a.raisedAmount,
+    target: a.targetAmount,
+    count: a.donationCount,
+    progressPercent: a.progressPercent,
+  }))
 }
 
 function normalizeDonorRows(raw: unknown[]): DonorRow[] {
@@ -387,6 +490,11 @@ export function MemberYupparajPublicStats(props: {
   mockMode: boolean
   /** ซ่อนหัวข้อ «สถิติการบริจาค (กองโรงเรียนยุพราช)» — ใช้บนแดชบอร์ดที่มีหัวข้อภายนอกแล้ว */
   embedded?: boolean
+  /**
+   * รายการกิจกรรมจากสแนปช็อตพอร์ทัล (เดียวกับที่ Admin เปิดใน school_activities + หน้าสนับสนุน)
+   * ถ้าส่งมา การ์ดและกลุ่มรายชื่อผู้บริจาคจะใช้ลำดับ/ชื่อจากที่นี่ และผูกยอดจาก API yupparaj-stats
+   */
+  linkedActivities?: YupparajDonationActivityItem[] | null
 }) {
   const embedded = Boolean(props.embedded)
   const [loading, setLoading] = useState(!props.mockMode)
@@ -437,7 +545,15 @@ export function MemberYupparajPublicStats(props: {
     return m > 0 ? m : 1
   }, [stats?.byBatch])
 
-  const donorGroups = useMemo(() => (stats ? buildActivityDonorGroups(stats) : []), [stats])
+  const donorGroups = useMemo(
+    () => (stats ? buildActivityDonorGroups(stats, props.linkedActivities) : []),
+    [stats, props.linkedActivities],
+  )
+
+  const activityCards = useMemo(
+    () => (stats ? mergeActivityCards(stats, props.linkedActivities) : []),
+    [stats, props.linkedActivities],
+  )
 
   if (loading && !stats) {
     return (
@@ -514,18 +630,23 @@ export function MemberYupparajPublicStats(props: {
         </div>
       </div>
 
-      {stats.byActivity.length > 0 ? (
+      {activityCards.length > 0 ? (
         <div className="mt-8">
           <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">แต่ละโครงการ</h4>
+          {props.linkedActivities != null && props.linkedActivities.length > 0 ? (
+            <p className="mt-1 text-[11px] text-slate-500">
+              ลำดับและชื่อโครงการตรงกับที่ Admin ตั้งในระบบและที่แสดงในหน้า «สนับสนุนกิจกรรม» — ยอดสะสมจาก API แบบสด
+            </p>
+          ) : null}
           <div className="mt-3 grid gap-4 md:grid-cols-2">
-            {stats.byActivity.map((a) => (
+            {activityCards.map((a) => (
               <ActivityStatCard
                 key={a.activityId}
                 title={a.title}
                 category={a.category}
-                raised={a.raisedAmount}
-                target={a.targetAmount}
-                count={a.donationCount}
+                raised={a.raised}
+                target={a.target}
+                count={a.count}
                 progressPercent={a.progressPercent}
               />
             ))}
@@ -557,7 +678,7 @@ export function MemberYupparajPublicStats(props: {
         <div className="mt-8">
           <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายชื่อผู้บริจาคตามโครงการ</h4>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-            แยกตามกิจกรรมที่ผู้ดูแลระบบตั้งค่าไว้ — กด «บันทึกเป็นภาพ» เพื่อดาวน์โหลด PNG ส่งแจ้งใน LINE (ยอดอัปเดตเมื่อเปิดหน้านี้หรือรีเฟรชสถิติ)
+            แยกตามโครงการเดียวกับที่แสดงด้านบน (จาก Admin / school_activities) — กด «บันทึกเป็นภาพ» เพื่อดาวน์โหลด PNG ส่งแจ้งใน LINE (ยอดอัปเดตเมื่อเปิดหน้านี้หรือรีเฟรชสถิติ)
           </p>
           <div className="mt-4 space-y-0">
             {donorGroups.map((g) => (
