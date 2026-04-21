@@ -397,14 +397,11 @@ function AcademyCoursesPage(props: { portalState: PortalDataState<AcademyPortalD
           <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายการคอร์สทั้งหมด</h4>
           <div className="mt-3 overflow-x-auto">
             <div className={schoolCourses.length > 6 ? academyPortalScrollList : undefined}>
-              <table className="w-full min-w-[480px] text-left text-sm" aria-label="ตารางคอร์สและกิจกรรมที่เปิดใช้งาน">
+              <table className="w-full min-w-[480px] text-left text-sm" aria-label="ตารางกิจกรรมที่เปิดใช้งาน">
                 <thead>
                   <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-400">
                     <th scope="col" className="py-2 pr-3">
-                      หมวด
-                    </th>
-                    <th scope="col" className="py-2 pr-3">
-                      ชื่อคอร์ส
+                      กิจกรรม
                     </th>
                     <th scope="col" className="py-2">
                       รายละเอียด
@@ -414,11 +411,12 @@ function AcademyCoursesPage(props: { portalState: PortalDataState<AcademyPortalD
                 <tbody>
                   {schoolCourses.map((c) => (
                     <tr key={c.id} className="border-b border-slate-800/90">
-                      <td className="whitespace-nowrap py-2.5 pr-3 text-slate-400">{c.category}</td>
-                      <td className="py-2.5 pr-3 font-medium text-slate-100">{c.title}</td>
-                      <td className="max-w-md py-2.5 text-slate-400">
+                      <td className="py-2.5 pr-3 font-medium text-slate-100">
+                        {c.category.trim() ? `${c.title} (${c.category})` : c.title}
+                      </td>
+                      <td className="max-w-md py-2.5 text-slate-300">
                         {c.description ? (
-                          <span className="line-clamp-2">{c.description}</span>
+                          <span className="whitespace-pre-wrap break-words text-sm leading-snug">{c.description}</span>
                         ) : (
                           <span className="text-slate-600">—</span>
                         )}
