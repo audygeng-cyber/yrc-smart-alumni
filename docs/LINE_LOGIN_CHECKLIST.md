@@ -4,8 +4,9 @@
 
 โค้ดอ้างอิง:
 
-- ฝั่งเว็บส่ง `redirect_uri` จาก `VITE_LINE_REDIRECT_URI` ไปทั้งตอนขอ code และตอนแลก token — ดู `frontend/src/App.tsx`
+- ฝั่งเว็บส่ง `redirect_uri` จาก **`window.location.origin + '/'`** ใน production (และ dev ใช้ origin ปัจจุบัน) — ถ้าไม่มี `window` จึง fallback `VITE_LINE_REDIRECT_URI` — ดู `getLineRedirectUri()` ใน `frontend/src/App.tsx`
 - ฝั่ง API อนุญาตเฉพาะค่าที่อยู่ใน `LINE_REDIRECT_URIS` (คั่นด้วย comma) — ดู `backend/src/routes/lineAuth.ts`
+- **OAuth `state`:** ไม่เก็บใน `sessionStorage` แล้ว — เรียก `GET /api/auth/line/oauth-state` แล้วส่ง `state` ตอนแลก `POST /api/auth/line/token` (ลงนาม HMAC บนเซิร์ฟเวอร์) เพื่อรองรับมือถือที่ LINE ส่งกลับมาในเบราว์เซอร์คนละตัวกับที่เริ่ม flow
 
 ---
 
@@ -93,3 +94,18 @@ vercel env ls
 
 **ผลตรวจตัวอย่าง (รันโดย agent):** `vercel env ls` แสดงเฉพาะ `VITE_API_URL` ใน Production/Preview — ยังขาด `VITE_LINE_*` จึงต้องเพิ่มใน Dashboard แล้ว redeploy  
 **ผล `npm run verify:vercel-line-cors` ต่อ Cloud Run จริง:** CORS กับ Origin `https://yrc-smart-alumni-frontend.vercel.app` **ผ่าน** — แต่ probe LINE ได้ `500` + `LINE_CHANNEL_ID / LINE_CHANNEL_SECRET not configured` จนกว่าจะตั้งคู่ Channel บน Cloud Run ให้ครบ
+
+---
+
+## 7) มือถือ — สรุปปัญหาเดิมและแผนแก้ (ให้ตรงกับโค้ดปัจจุบัน)
+
+| ปัญหา | สาเหตุ | แนวทางแก้ในระบบ |
+|--------|--------|------------------|
+| ล็อกอินแล้วเงียบ / กลับมาแล้วไม่เข้า | LINE เปิด OAuth แล้ว redirect กลับมาใน **Safari/Chrome** คนละ context กับ **WebView ใน LINE** → `sessionStorage` ไม่ตรงกัน ตรวจ `state` ไม่ผ่าน | ใช้ **`state` ลงนามบน API** (`GET` หรือ `POST /api/auth/line/oauth-state`) แล้วส่ง `state` ใน body ตอน `POST /api/auth/line/token` — ไม่พึ่ง `sessionStorage` สำหรับ CSRF/state |
+| มือถือล็อกอินไม่ได้ แต่คอมได้ | **`redirect_uri`** ที่ส่งไป LINE ไม่ตรงกับที่ลงใน LINE Console / ไม่ตรง `LINE_REDIRECT_URIS` | Production ใช้ **`${window.location.origin}/`** ให้ตรงกับ URL ที่ผู้ใช้เปิดจริง; บน Cloud Run ต้องมีสตริง **ตัวต่อตัว** ใน `LINE_REDIRECT_URIS` และ Callback URL ใน LINE Developers |
+| ข้อความ HTTP 404 + `Cannot GET /api/auth/line/oauth-state` | **Cloud Run ยังรัน image เก่า** ไม่มี route ใหม่ | **Deploy API** จาก `master` ล่าสุด แล้วรัน `npm run verify:deploy -- <API> [Origin]` — สคริปต์จะโหลด `GET /api/auth/line/oauth-state` ตรวจว่าไม่ใช่ 404 |
+| fetch จากมือถือล้ม (CORS) | **Origin** เป็น URL preview (`*.vercel.app` คนละ subdomain) ไม่อยู่ใน `FRONTEND_ORIGINS` | API ใช้ CORS แบบ normalize origin และ **ถ้า `FRONTEND_ORIGINS` มีโดเมน `.vercel.app` อยู่แล้ว จะยอมรับทุก `https://*.vercel.app` อัตโนมัติ** (ปิดได้ด้วย `FRONTEND_CORS_ALLOW_VERCEL=0`) — ดู `backend/src/app.ts` |
+
+**สิ่งที่ต้องมีบน Cloud Run หลังแผนนี้:** `LINE_CHANNEL_SECRET` (ใช้ลงนาม `state`; หรือตั้ง `LINE_OAUTH_STATE_SECRET` แยกได้), `LINE_REDIRECT_URIS`, `FRONTEND_ORIGINS` (และทำความเข้าใจกับกฎ CORS/Vercel ด้านบน)
+
+**คัดลอกจากเทอร์มินัล Cursor (Windows):** ถ้า Ctrl+C ไม่หยุด process — ใช้ **Ctrl+Shift+C** คัดลอกจากเทอร์มินัล; รัน `npm run cursor:terminal-fix` จากราก repo เพื่อใส่ keybinding ให้ Ctrl+C ส่ง SIGINT เข้าเชลล์ แล้ว Reload Window
