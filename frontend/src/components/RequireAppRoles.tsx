@@ -89,7 +89,7 @@ export function RequireAppRoles({ lineUid, allow, children }: Props) {
   }
 
   if (!lineUid.trim()) {
-    return <Navigate to="/auth/link" replace />
+    return <Navigate to="/" replace />
   }
 
   if (loading) {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MEMBER_REGISTER_EXTRA_HEADERS } from '../memberImportMap'
 import { themeAccent, themeTapTarget } from '../lib/themeTokens'
 import { portalFocusRing } from '../portal/portalLabels'
@@ -38,6 +39,7 @@ export function MemberLinkPanel({
   onStartLineLogin,
   onMemberVerified,
 }: Props) {
+  const navigate = useNavigate()
   const manualUidPanelId = 'member-link-manual-uid-panel'
   const requestStatusSummaryId = 'member-link-request-status-summary'
   const verificationHintId = 'member-link-verification-hint'
@@ -71,6 +73,17 @@ export function MemberLinkPanel({
       lastName: lastNameValue,
     }
   }, [requestStatus])
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('yrc_link_open_register') === '1') {
+        sessionStorage.removeItem('yrc_link_open_register')
+        setShowRegister(true)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   useEffect(() => {
     if (!lineUid.trim()) {
@@ -156,8 +169,14 @@ export function MemberLinkPanel({
         error?: string
       }
       if (r.status === 404 && j.code === 'NOT_IN_REGISTRY') {
-        setMsg('ไม่พบในทะเบียน — กรอกแบบฟอร์มสมัครใหม่ด้านล่าง')
+        setMsg('ไม่พบในทะเบียน — กรอกแบบฟอร์มสมัครสมาชิกด้านล่าง (หน้าพอร์ทัลสมาชิก)')
         setShowRegister(true)
+        try {
+          sessionStorage.setItem('yrc_link_open_register', '1')
+        } catch {
+          /* ignore */
+        }
+        navigate('/member', { replace: true })
         return
       }
       if (!r.ok) {
@@ -242,6 +261,15 @@ export function MemberLinkPanel({
   return (
     <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6" aria-busy={loading || requestStatusLoading}>
       <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ผูกบัญชีสมาชิก</h2>
+      <p className="mt-2 text-xs text-slate-400">
+        กรอกรุ่น · ชื่อ · นามสกุล ให้ตรงทะเบียน แล้วกด &quot;เข้าสู่ระบบด้วย LINE&quot; ด้านล่างเพื่อดึง LINE UID
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Field label="รุ่น" value={batch} onChange={setBatch} />
+        <Field label="ชื่อ" value={firstName} onChange={setFirstName} />
+        <Field label="นามสกุล" value={lastName} onChange={setLastName} className="sm:col-span-2" />
+      </div>
 
       {lineLoginAvailable ? (
         <div className="mt-4 space-y-3">
@@ -280,7 +308,7 @@ export function MemberLinkPanel({
           </button>
         </div>
       ) : (
-        <p className="mt-2 text-xs text-amber-200/80">
+        <p className="mt-4 text-xs text-amber-200/80">
           ยังไม่ได้ตั้งค่า VITE_LINE_CHANNEL_ID / VITE_LINE_REDIRECT_URI — ใช้การใส่ LINE UID ด้านล่างได้
         </p>
       )}
@@ -370,12 +398,6 @@ export function MemberLinkPanel({
           )}
         </section>
       ) : null}
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Field label="รุ่น" value={batch} onChange={setBatch} />
-        <Field label="ชื่อ" value={firstName} onChange={setFirstName} />
-        <Field label="นามสกุล" value={lastName} onChange={setLastName} className="sm:col-span-2" />
-      </div>
       <button
         type="button"
         disabled={loading || !lineUid.trim()}

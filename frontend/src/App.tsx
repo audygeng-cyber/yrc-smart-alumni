@@ -65,7 +65,9 @@ const lineChannelId = import.meta.env.VITE_LINE_CHANNEL_ID ?? ''
 
 /**
  * Callback URL สำหรับ LINE OAuth ต้องตรงกับที่ลงทะเบียนใน LINE Developers และกับ body `redirect_uri` ตอนแลก token
- * ใน dev ใช้ origin ปัจจุบันเสมอ — กันปัญหา `VITE_LINE_REDIRECT_URI` ชี้ Vercel แล้วหลังล็อกอินเบราว์เซอร์ไปโผล่ที่ production
+ * - dev: origin ปัจจุบัน (หรือ localhost)
+ * - production: ใช้ `window.location.origin` เมื่อมี window — ลดปัญหามือถือ / โดเมนย่อยไม่ตรงกับค่า env
+ * - fallback: `VITE_LINE_REDIRECT_URI` (เช่น build แบบไม่มี DOM)
  */
 function getLineRedirectUri(): string {
   if (import.meta.env.DEV) {
@@ -73,6 +75,9 @@ function getLineRedirectUri(): string {
       return `${window.location.origin}/`
     }
     return 'http://localhost:5173/'
+  }
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/`
   }
   return (import.meta.env.VITE_LINE_REDIRECT_URI ?? '').trim()
 }
@@ -240,7 +245,7 @@ export default function App() {
           setLinkedMemberVersion((n) => n + 1)
           navigate('/member', { replace: true })
         } else {
-          navigate('/auth/link', { replace: true })
+          navigate('/member', { replace: true })
         }
       } catch (e) {
         console.error(e)
@@ -444,8 +449,12 @@ function AppChrome(props: AppChromeProps) {
           aria-label="เมนูหลัก (เลื่อนแนวนอนบนจอแคบ)"
         >
           <div className="flex w-max min-w-full flex-nowrap gap-2">
-            <NavPill to="/" label="หน้าหลัก" active={location.pathname === '/'} />
-            <NavPill to="/auth/link" label="ผูกบัญชี" active={location.pathname.startsWith('/auth/link')} />
+            <NavPill
+              to="/"
+              label="เข้าสู่ระบบ / ผูกบัญชี"
+              shortLabel="หลัก"
+              active={location.pathname === '/' || location.pathname.startsWith('/auth/link')}
+            />
             {showMemberNav ? <NavPill to="/member/dashboard" label="สมาชิก" active={location.pathname.startsWith('/member')} /> : null}
             {showCommitteeNav ? (
               <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} />
@@ -475,13 +484,6 @@ function AppChrome(props: AppChromeProps) {
           <Route
             path="/"
             element={
-              <HomePage health={props.health} apiBase={props.apiBase} />
-            }
-          />
-          <Route path="/entry/cram-qr" element={<CramQrEntryPage />} />
-          <Route
-            path="/auth/link"
-            element={
               <LinkPage
                 apiBase={props.apiBase}
                 lineUid={props.lineUid}
@@ -499,21 +501,42 @@ function AppChrome(props: AppChromeProps) {
               />
             }
           />
+          <Route path="/auth/link" element={<Navigate to="/" replace />} />
+          {import.meta.env.DEV ? (
+            <Route path="/dev" element={<HomePage health={props.health} apiBase={props.apiBase} />} />
+          ) : null}
+          <Route path="/entry/cram-qr" element={<CramQrEntryPage />} />
           <Route
             path="/member/*"
             element={
-              props.showMemberPortal ? (
+              !props.lineUid.trim() ? (
+                <Navigate to="/" replace />
+              ) : props.verifiedMember ? (
                 <RequireAppRoles lineUid={props.lineUid} allow={RBAC_NAV.member}>
                   <MemberArea
                     apiBase={props.apiBase}
                     lineUid={props.lineUid}
-                    member={props.verifiedMember!}
+                    member={props.verifiedMember}
                     onMemberUpdated={props.onMemberUpdated}
                     lineDisplayName={readLineName()}
                   />
                 </RequireAppRoles>
               ) : (
-                <MissingMemberSession />
+                <LinkPage
+                  apiBase={props.apiBase}
+                  lineUid={props.lineUid}
+                  lineUidFromOAuth={props.lineUidFromOAuth}
+                  restoringMemberSession={props.restoringMemberSession}
+                  verifiedMember={props.verifiedMember}
+                  verifiedMemberName={props.verifiedMemberName}
+                  onLineUidChange={props.onLineUidChange}
+                  onClearLineSession={props.onClearLineSession}
+                  onStartLineLogin={props.onStartLineLogin}
+                  lineLoginAvailable={Boolean(props.lineChannelId && props.lineRedirectUri)}
+                  onMemberVerified={props.onMemberVerified}
+                  lineIdentitySyncMessage={props.lineIdentitySyncMessage}
+                  onDismissLineIdentityMessage={props.onDismissLineIdentityMessage}
+                />
               )
             }
           />
@@ -627,7 +650,7 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
           และบันทึกแถวใน <code className="text-slate-300">app_users</code> ผ่าน API — จากนั้นจึงผูกกับทะเบียนสมาชิกได้ที่หน้าผูกบัญชี
         </p>
         <Link
-          to="/auth/link"
+          to="/"
           className={`${themeTapTarget} mt-4 inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium ${themeAccent.buttonPrimaryStrong} ${themeAccent.focusRing}`}
         >
           ไปล็อกอิน LINE / ผูกบัญชี
@@ -686,7 +709,7 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
           </li>
           <li role="listitem">
             <Link
-              to="/auth/link"
+              to="/"
               aria-label="ไปหน้าผูกบัญชีสมาชิก"
               className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${themeAccent.focusRing}`}
             >
@@ -772,11 +795,11 @@ function LinkPage(props: {
               </p>
             ) : props.lineUid ? (
               <p className="mt-1 text-amber-200">
-                มี LINE UID แล้ว แต่ยังไม่ได้ผูกสมาชิกในรอบนี้ — กรอกข้อมูลด้านล่างแล้วกด &quot;ตรวจสอบและผูก&quot;
+                มี LINE UID แล้ว แต่ยังไม่ได้ผูกสมาชิกในรอบนี้ — ตรวจสอบว่ากรอกรุ่น · ชื่อ · นามสกุล ตรงทะเบียน แล้วกด &quot;ตรวจสอบและผูก&quot;
               </p>
             ) : (
               <p className="mt-1 text-slate-400">
-                ยังไม่มี LINE เซสชัน หรือเซสชันสมาชิก — ล็อกอินด้านล่างหรือใส่ LINE UID แล้วผูกบัญชี
+                ยังไม่มี LINE เซสชัน หรือเซสชันสมาชิก — กรอกรุ่น · ชื่อ · นามสกุล แล้วกดเข้าสู่ระบบ LINE ด้านล่างฟอร์ม
               </p>
             )}
           </div>
@@ -812,21 +835,6 @@ function LinkPage(props: {
         onMemberVerified={props.onMemberVerified}
       />
     </div>
-  )
-}
-
-function MissingMemberSession() {
-  return (
-    <section className="rounded-xl border border-amber-900/40 bg-amber-950/20 p-6 text-sm text-amber-100/90">
-      <p>ยังไม่มีข้อมูลสมาชิกในวาระนี้ — ไปที่หน้า &quot;ผูกบัญชี&quot; แล้วกด &quot;ตรวจสอบและผูก&quot; เมื่อพบในทะเบียน</p>
-      <Link
-        to="/auth/link"
-        aria-label="ไปหน้าผูกบัญชีเพื่อผูกสมาชิก"
-        className={`${themeTapTarget} mt-4 inline-flex items-center rounded-lg px-4 py-2 text-sm ${themeAccent.buttonPrimary} ${themeAccent.focusRing}`}
-      >
-        ไปหน้าผูกบัญชี
-      </Link>
-    </section>
   )
 }
 
