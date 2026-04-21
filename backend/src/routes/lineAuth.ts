@@ -21,6 +21,16 @@ function allowedRedirectUris(): string[] {
   return DEFAULT_DEV_LINE_REDIRECT_URIS
 }
 
+/** เปรียบเทียบ redirect_uri กับ allow-list แบบไม่สนท้าย slash / ตัวพิมพ์ — ลดล็อกอินล้มบนมือถือเมื่อ env กับเบราว์เซอร์ต่างแค่ `/` */
+function normalizeRedirectUriForAllowlist(uri: string): string {
+  return uri.trim().replace(/\/+$/, '').toLowerCase()
+}
+
+function redirectUriAllowed(requestUri: string, allow: string[]): boolean {
+  const key = normalizeRedirectUriForAllowlist(requestUri)
+  return allow.some((a) => normalizeRedirectUriForAllowlist(a) === key)
+}
+
 export const lineAuthRouter = Router()
 
 function sendOauthStateJson(res: Response) {
@@ -74,10 +84,11 @@ lineAuthRouter.post('/token', async (req, res) => {
       return
     }
 
-    if (!allow.includes(redirect_uri)) {
+    if (!redirectUriAllowed(redirect_uri, allow)) {
       res.status(400).json({
         error: 'redirect_uri ไม่ได้รับอนุญาต',
         allowed: allow,
+        hint: 'เทียบแบบไม่สนท้าย slash — ตรวจให้โดเมนและโปรโตคอลตรงกับ LINE_REDIRECT_URIS และ Callback URL',
       })
       return
     }

@@ -81,6 +81,38 @@ function getLineRedirectUri(): string {
   return (import.meta.env.VITE_LINE_REDIRECT_URI ?? '').trim()
 }
 
+/** มือถือบล็อก mixed content ถ้าเว็บ HTTPS แต่ API เป็น http:// (ยกเว้น localhost) */
+function isInsecureApiOnHttpsPage(api: string): boolean {
+  if (typeof window === 'undefined') return false
+  if (window.location.protocol !== 'https:') return false
+  const b = api.trim().toLowerCase()
+  if (b.startsWith('https://')) return false
+  if (b.startsWith('http://localhost') || b.startsWith('http://127.0.0.1')) return false
+  return b.startsWith('http://')
+}
+
+function formatLineOAuthApiError(j: Record<string, unknown>): string {
+  const err = typeof j.error === 'string' ? j.error.trim() : ''
+  if (err) {
+    let out = err
+    const allowed = j.allowed
+    if (Array.isArray(allowed) && allowed.length && err.includes('redirect_uri')) {
+      out += ` — อนุญาตบน API: ${allowed.map(String).join(', ')}`
+    }
+    const hint = typeof j.hint === 'string' ? j.hint.trim() : ''
+    if (hint) out += ` (${hint})`
+    const details = j.details as Record<string, unknown> | undefined
+    if (details && typeof details === 'object') {
+      const lineMsg =
+        (typeof details.error_description === 'string' && details.error_description) ||
+        (typeof details.error === 'string' && details.error)
+      if (lineMsg) out += ` — LINE: ${String(lineMsg)}`
+    }
+    return out
+  }
+  return 'ล็อกอิน LINE ไม่สำเร็จ — ตรวจ redirect_uri / LINE_REDIRECT_URIS และ Callback URL ใน LINE Console'
+}
+
 type RoleView = 'all' | 'member' | 'committee' | 'academy'
 
 function getInitialVerifiedMember(): Record<string, unknown> | null {
@@ -197,6 +229,14 @@ export default function App() {
 
     ;(async () => {
       try {
+        if (isInsecureApiOnHttpsPage(apiBase)) {
+          setLineIdentitySyncMessage({
+            kind: 'err',
+            text:
+              'เว็บเปิดแบบ HTTPS แต่ VITE_API_URL ชี้ HTTP — มือถือบล็อก mixed content ตั้ง VITE_API_URL เป็น https://... ของ Cloud Run แล้ว build ใหม่',
+          })
+          return
+        }
         const r = await fetch(`${apiBase}/api/auth/line/token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -206,19 +246,15 @@ export default function App() {
             state,
           }),
         })
-        const j = (await r.json().catch(() => ({}))) as {
+        const j = (await r.json().catch(() => ({}))) as Record<string, unknown> & {
           line_uid?: string
           name?: string | null
-          error?: string
         }
         if (!r.ok || !j.line_uid) {
           console.error('LINE token exchange failed', j)
           setLineIdentitySyncMessage({
             kind: 'err',
-            text:
-              typeof j.error === 'string' && j.error
-                ? `ล็อกอิน LINE ไม่สำเร็จ: ${j.error}`
-                : 'ล็อกอิน LINE ไม่สำเร็จ — ตรวจ redirect_uri / LINE_REDIRECT_URIS และ Callback URL ใน LINE Console',
+            text: `ล็อกอิน LINE ไม่สำเร็จ: ${formatLineOAuthApiError(j)}`,
           })
           return
         }
@@ -261,6 +297,14 @@ export default function App() {
   async function startLineLogin() {
     const redirectUri = getLineRedirectUri()
     if (!lineChannelId || !redirectUri) return
+    if (isInsecureApiOnHttpsPage(apiBase)) {
+      setLineIdentitySyncMessage({
+        kind: 'err',
+        text:
+          'เว็บเปิดแบบ HTTPS แต่ VITE_API_URL ชี้ HTTP — มือถือบล็อก mixed content ตั้ง VITE_API_URL เป็น https://... ของ Cloud Run แล้ว build ใหม่',
+      })
+      return
+    }
     try {
       const url = `${apiBase.replace(/\/$/, '')}/api/auth/line/oauth-state`
       const sr = await fetch(url, { method: 'GET', cache: 'no-store', mode: 'cors' })
