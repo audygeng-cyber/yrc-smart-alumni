@@ -1,19 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { MemberPortal } from '../components/MemberPortal'
-import { themeAccent } from '../lib/themeTokens'
+import { safeHttpImageUrl } from '../lib/safeHttpUrl'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { MemberProfileSection } from '../components/MemberProfileSection'
+import { themeAccent, themeTapTarget } from '../lib/themeTokens'
 import { portalFocusRing, portalNotFoundScopeLabel } from './portalLabels'
 import {
   DonationCampaignCard,
-  MeetingReportRow,
-  MetricCards,
   PortalContentLoading,
   PortalNotFound,
   PortalSectionHeader,
   PortalShell,
-  PortalSnapshotStatusRow,
   PortalSnapshotToolbar,
-  TrendBars,
 } from './ui'
 import {
   type MemberPortalData,
@@ -23,6 +20,13 @@ import {
 } from './dataAdapter'
 import { memberDonationHistoryMock } from './mockData'
 import { MemberYupparajPublicStats } from './memberDonationStats'
+import { MemberDashboardPage } from './memberDashboard'
+import {
+  MemberAssociationLayout,
+  MemberCramSchoolLayout,
+  MemberPortalPlaceholderPage,
+} from './memberGroupLayouts'
+import { HEADER_TO_MEMBER_KEY, MEMBER_SELF_EDIT_HEADERS } from '../memberImportMap'
 
 export function MemberArea(props: {
   apiBase: string
@@ -31,16 +35,31 @@ export function MemberArea(props: {
   lineDisplayName: string
   onMemberUpdated: (member: Record<string, unknown>) => void
 }) {
+  const { onMemberUpdated: parentOnMemberUpdated } = props
   const [roleView, setRoleView] = useState<MemberRoleView>('member')
+  /** เพิ่มทุกครั้งที่บันทึกโปรไฟล์สำเร็จ — ให้หน้าประวัติ refetch แม้ไม่ได้ใช้ data router (`useRevalidator` ใช้ได้กับ loader เท่านั้น) */
+  const [profileVersionsRefresh, setProfileVersionsRefresh] = useState(0)
   const portalData = useMemberPortalData(props.apiBase)
   const roleViewSummaryId = 'member-role-view-summary'
+  const onMemberUpdated = useCallback(
+    (member: Record<string, unknown>) => {
+      parentOnMemberUpdated(member)
+      setProfileVersionsRefresh((n) => n + 1)
+    },
+    [parentOnMemberUpdated],
+  )
   const memberNav = [
     { to: '/member/dashboard', label: 'แดชบอร์ด', roles: ['member', 'staff'] as MemberRoleView[] },
     { to: '/member/card', label: 'บัตรสมาชิก', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/profile', label: 'ข้อมูลส่วนตัว', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/statistics', label: 'สถิติสมาชิก', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/donations', label: 'สนับสนุนกิจกรรม', roles: ['member', 'staff'] as MemberRoleView[] },
-    { to: '/member/meetings', label: 'ประชุมและการเงิน', roles: ['member', 'staff'] as MemberRoleView[] },
+    { to: '/member/profile-edit', label: 'เปลี่ยนแปลงข้อมูลสมาชิก', roles: ['member', 'staff'] as MemberRoleView[] },
+    { to: '/member/last-update', label: 'ข้อมูลอัปเดตล่าสุด', roles: ['member', 'staff'] as MemberRoleView[] },
+    {
+      to: '/member/donations',
+      label: 'สนับสนุนกิจกรรมยุพราช',
+      roles: ['member', 'staff'] as MemberRoleView[],
+    },
+    { to: '/member/association', label: 'สมาคมศิษย์เก่า', roles: ['member', 'staff'] as MemberRoleView[] },
+    { to: '/member/cram-school', label: 'โรงเรียนกวดวิชา', roles: ['member', 'staff'] as MemberRoleView[] },
     { to: '/member/documents', label: 'ข้อมูลเชิงกำกับดูแล', roles: ['staff'] as MemberRoleView[] },
   ]
   const visibleNavItems = memberNav.filter((item) => item.roles.includes(roleView)).map((item) => ({ to: item.to, label: item.label }))
@@ -49,7 +68,7 @@ export function MemberArea(props: {
   return (
     <PortalShell
       title="พอร์ทัลสมาชิก"
-      subtitle="เมนูสมาชิก · บัตรสมาชิก · ข้อมูลส่วนตัว · สถิติ · การสนับสนุน"
+      subtitle="แดชบอร์ด · บัตร · แก้ไขข้อมูล · สนับสนุนยุพราช · สมาคม · กวดวิชา"
       navItems={visibleNavItems}
     >
       <section className="mb-4 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm" aria-busy={portalData.loading}>
@@ -79,21 +98,35 @@ export function MemberArea(props: {
         <Route
           path="dashboard"
           element={
-            <>
-              <MemberDashboardSnapshotBar portalState={portalData} />
-              <MemberPortal
-                apiBase={props.apiBase}
-                lineUid={props.lineUid}
-                member={props.member}
-                onMemberUpdated={props.onMemberUpdated}
-                lineDisplayName={props.lineDisplayName}
-              />
-            </>
+            <MemberDashboardPage portalState={portalData} roleView={roleView} apiBase={props.apiBase} />
           }
         />
         <Route path="card" element={<MemberCardPage member={props.member} />} />
-        <Route path="profile" element={<MemberProfilePage member={props.member} />} />
-        <Route path="statistics" element={<MemberStatisticsPage roleView={roleView} portalState={portalData} />} />
+        <Route
+          path="profile-edit"
+          element={
+            <MemberProfileEditPage
+              apiBase={props.apiBase}
+              lineUid={props.lineUid}
+              member={props.member}
+              onMemberUpdated={onMemberUpdated}
+            />
+          }
+        />
+        <Route
+          path="last-update"
+          element={
+            <MemberLastUpdatePage
+              apiBase={props.apiBase}
+              lineUid={props.lineUid}
+              member={props.member}
+              profileVersionsRefresh={profileVersionsRefresh}
+            />
+          }
+        />
+        <Route path="profile" element={<Navigate to="/member/profile-edit" replace />} />
+        <Route path="statistics" element={<Navigate to="/member/dashboard" replace />} />
+        <Route path="meetings" element={<Navigate to="/member/association/meeting-reports" replace />} />
         <Route
           path="donations"
           element={
@@ -105,7 +138,122 @@ export function MemberArea(props: {
             />
           }
         />
-        <Route path="meetings" element={<MemberMeetingsPage portalState={portalData} />} />
+        <Route path="association" element={<MemberAssociationLayout />}>
+          <Route index element={<Navigate to="agendas" replace />} />
+          <Route
+            path="agendas"
+            element={
+              <MemberPortalPlaceholderPage
+                title="วาระการประชุมทั้งหมด"
+                description="รวมวาระการประชุมที่ผู้ดูแลบันทึกไว้ — สอดคล้องกับบันทึกการประชุมคณะกรรมการ/ที่ประชุมใหญ่"
+                committeeLink="/committee/meetings"
+              />
+            }
+          />
+          <Route
+            path="meeting-reports"
+            element={
+              <MemberPortalPlaceholderPage
+                title="รายงานการประชุมทั้งหมด"
+                description="รายงานการประชุมฉบับสรุปที่เผยแพร่ให้สมาชิก — เอกสารต้นฉบับจัดเก็บโดยผู้ดูแล"
+                committeeLink="/committee/meetings"
+              />
+            }
+          />
+          <Route
+            path="finance-by-month"
+            element={
+              <MemberPortalPlaceholderPage
+                title="รายงานรายรับ-รายจ่ายทั้งหมด (แยกเดือน)"
+                description="งบรายรับรายจ่ายสะสมของสมาคมฯ แยกตามเดือน — สอดคล้องบัญชีแยกประเภทในระบบหลังบ้าน"
+                committeeLink="/committee/dashboard"
+              />
+            }
+          />
+          <Route
+            path="finance-current"
+            element={
+              <MemberPortalPlaceholderPage
+                title="รายงานรายรับ-รายจ่ายปัจจุบัน"
+                description="งวดบัญชีปัจจุบันที่ปิดหรือกำลังดำเนินการ — ดูรายละเอียดเชิงลึกที่พอร์ทัลคณะกรรมการ"
+                committeeLink="/committee/dashboard"
+              />
+            }
+          />
+          <Route
+            path="statements"
+            element={
+              <MemberPortalPlaceholderPage
+                title="Statement ทั้งหมด (แยกเดือน)"
+                description="รายงานทางการเงินแบบ Statement ตามเดือน — จัดทำและเผยแพร่โดยผู้ดูแล"
+                committeeLink="/committee/dashboard"
+              />
+            }
+          />
+        </Route>
+        <Route path="cram-school" element={<MemberCramSchoolLayout />}>
+          <Route index element={<Navigate to="student-stats" replace />} />
+          <Route
+            path="student-stats"
+            element={
+              <MemberPortalPlaceholderPage
+                title="สถิตินักเรียน · วิชาที่เปิดสอน · จำนวนต่อห้อง"
+                description="สรุปจำนวนนักเรียน คอร์สที่เปิด และห้องเรียน — ดึงจากโมดูลโรงเรียนกวดวิชาเมื่อผู้ดูแลบันทึกข้อมูล"
+                academyLink="/academy/dashboard"
+              />
+            }
+          />
+          <Route
+            path="agendas"
+            element={
+              <MemberPortalPlaceholderPage
+                title="วาระการประชุมทั้งหมด (กวดวิชา)"
+                description="วาระการประชุมของโรงเรียนกวดวิชา — แยกจากสมาคมศิษย์เก่า"
+                academyLink="/academy/dashboard"
+              />
+            }
+          />
+          <Route
+            path="meeting-reports"
+            element={
+              <MemberPortalPlaceholderPage
+                title="รายงานการประชุมทั้งหมด (กวดวิชา)"
+                description="รายงานการประชุมฉบับสรุปของโรงเรียนกวดวิชา"
+                academyLink="/academy/dashboard"
+              />
+            }
+          />
+          <Route
+            path="finance-by-month"
+            element={
+              <MemberPortalPlaceholderPage
+                title="รายรับ-รายจ่ายทั้งหมด (แยกเดือน) — กวดวิชา"
+                description="งบกวดวิชาแยกตามเดือน — บัญชีไม่ปนกับสมาคมศิษย์เก่า"
+                academyLink="/academy/dashboard"
+              />
+            }
+          />
+          <Route
+            path="finance-current"
+            element={
+              <MemberPortalPlaceholderPage
+                title="รายรับ-รายจ่ายปัจจุบัน — กวดวิชา"
+                description="งวดบัญชีปัจจุบันของโรงเรียนกวดวิชา"
+                academyLink="/academy/dashboard"
+              />
+            }
+          />
+          <Route
+            path="statements"
+            element={
+              <MemberPortalPlaceholderPage
+                title="Statement ทั้งหมด (แยกเดือน) — กวดวิชา"
+                description="รายงาน Statement รายเดือนของโรงเรียนกวดวิชา"
+                academyLink="/academy/dashboard"
+              />
+            }
+          />
+        </Route>
         <Route
           path="documents"
           element={
@@ -115,32 +263,6 @@ export function MemberArea(props: {
         <Route path="*" element={<PortalNotFound scopeLabel={portalNotFoundScopeLabel.member} />} />
       </Routes>
     </PortalShell>
-  )
-}
-
-function MemberDashboardSnapshotBar(props: { portalState: PortalDataState<MemberPortalData> }) {
-  const { loading, source } = props.portalState
-  return (
-    <section className="mb-4 rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm" aria-busy={loading}>
-      <PortalSnapshotStatusRow
-        loading={loading}
-        source={source}
-        showBadge={false}
-        endExtra={
-          <Link
-            to="/member/statistics"
-            aria-label="ไปหน้า สถิติสมาชิก"
-            className={`tap-target inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium ${themeAccent.buttonSoft} ${portalFocusRing}`}
-          >
-            ไปสถิติสมาชิก
-          </Link>
-        }
-      >
-        <p className="text-xs text-slate-400">
-          สถิติสมาคมจากสแนปช็อต — กราฟคำร้อง 7 วันและสัดส่วนรุ่นอยู่ที่เมนูสถิติ (แหล่งข้อมูล: แถบบทบาทด้านบน)
-        </p>
-      </PortalSnapshotStatusRow>
-    </section>
   )
 }
 
@@ -205,11 +327,39 @@ function memberStr(m: Record<string, unknown>, key: string): string {
   return String(v).trim()
 }
 
+/** รูปบัตร — key จาก URL ด้านนอกเพื่อรีเซ็ตสถานะเมื่อ URL เปลี่ยน */
+function MemberCardPhoto(props: { imageUrl: string }) {
+  const [broken, setBroken] = useState(false)
+  if (!props.imageUrl || broken) {
+    return (
+      <div className="flex h-28 w-28 items-center justify-center rounded-xl border border-dashed border-slate-600 bg-slate-900/80 text-[10px] text-slate-400">
+        ยังไม่มีรูป
+      </div>
+    )
+  }
+  return (
+    <img
+      src={props.imageUrl}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setBroken(true)}
+      className="h-28 w-28 rounded-xl border border-slate-600 object-cover"
+    />
+  )
+}
+
 function MemberCardPage(props: { member: Record<string, unknown> }) {
   const fullName = [props.member.first_name, props.member.last_name].filter(Boolean).join(' ').trim() || 'สมาชิก'
   const batch = memberStr(props.member, 'batch') || '—'
+  const batchName = memberStr(props.member, 'batch_name') || '—'
+  const batchYear = memberStr(props.member, 'batch_year') || '—'
   const code = memberStr(props.member, 'member_code')
   const status = memberStr(props.member, 'membership_status') || '—'
+  const photoUrl =
+    safeHttpImageUrl(props.member.photo_url) ??
+    safeHttpImageUrl(props.member.profile_photo_url) ??
+    ''
   return (
     <div className="space-y-4">
       <div className="mx-auto max-w-md">
@@ -219,10 +369,17 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
             <p className="mt-1 text-xs text-slate-400">บัตรสมาชิกดิจิทัล</p>
           </div>
           <div className="px-6 py-8 text-center">
-            <p className="text-xl font-semibold text-white">{fullName}</p>
-            <p className="mt-2 text-sm text-slate-400">รุ่น {batch}</p>
+            <div className="mt-2 flex justify-center">
+              <MemberCardPhoto key={photoUrl || 'none'} imageUrl={photoUrl} />
+            </div>
+            <p className="mt-4 text-xl font-semibold text-white">{fullName}</p>
+            <p className="mt-2 text-sm text-slate-400">
+              รุ่น {batch}
+              {batchName !== '—' ? <span className="text-slate-300"> · {batchName}</span> : null}
+            </p>
+            {batchYear !== '—' ? <p className="mt-1 text-xs text-slate-500">ปีรุ่น {batchYear}</p> : null}
             <div className="mt-6 flex justify-center">
-              <div className="flex h-28 w-28 items-center justify-center rounded-xl border border-dashed border-slate-600 bg-slate-900/80 text-[10px] text-slate-400">
+              <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-slate-600 bg-slate-900/80 text-[10px] text-slate-500">
                 QR
               </div>
             </div>
@@ -239,18 +396,28 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
           </div>
         </div>
       </div>
+      <p className="mx-auto max-w-md text-center text-xs text-slate-500">
+        ตั้งค่ารูปบัตรได้ที่ «เปลี่ยนแปลงข้อมูลสมาชิก» — ใส่ลิงก์ URL รูป (https) ในช่องรูปโปรไฟล์ หรือให้ผู้ดูแลอัปเดตจากไฟล์นำเข้า
+      </p>
       <div className="flex flex-wrap justify-center gap-2">
         <Link
-          to="/member/profile"
-          aria-label="ไปหน้า ข้อมูลส่วนตัวสมาชิก"
-          className={`tap-target inline-flex items-center rounded-lg px-4 py-2 text-sm text-white ${themeAccent.buttonPrimary} ${portalFocusRing}`}
+          to="/member/profile-edit"
+          aria-label="ไปหน้า เปลี่ยนแปลงข้อมูลสมาชิก"
+          className={`${themeTapTarget} inline-flex items-center rounded-lg px-4 py-2 text-sm text-white ${themeAccent.buttonPrimary} ${portalFocusRing}`}
         >
-          ข้อมูลส่วนตัว
+          เปลี่ยนแปลงข้อมูลสมาชิก
+        </Link>
+        <Link
+          to="/member/last-update"
+          aria-label="ไปหน้า ข้อมูลอัปเดตล่าสุดและประวัติการบันทึก"
+          className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+        >
+          ประวัติการแก้ไข
         </Link>
         <Link
           to="/member/dashboard"
           aria-label="กลับไปหน้า แดชบอร์ดสมาชิก"
-          className={`tap-target inline-flex items-center rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
+          className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 ${portalFocusRing}`}
         >
           แดชบอร์ด
         </Link>
@@ -259,69 +426,247 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
   )
 }
 
-function MemberProfilePage(props: { member: Record<string, unknown> }) {
-  const rows: Array<{ label: string; value: string }> = [
-    { label: 'ชื่อ', value: [memberStr(props.member, 'first_name'), memberStr(props.member, 'last_name')].filter(Boolean).join(' ') || '—' },
-    { label: 'รุ่น', value: memberStr(props.member, 'batch') || '—' },
-    { label: 'รหัสสมาชิก', value: memberStr(props.member, 'member_code') || '—' },
-    { label: 'สถานะสมาชิก', value: memberStr(props.member, 'membership_status') || '—' },
-    { label: 'อีเมล', value: memberStr(props.member, 'email') || '—' },
-    { label: 'โทรศัพท์', value: memberStr(props.member, 'phone') || '—' },
-    { label: 'จังหวัด', value: memberStr(props.member, 'province') || '—' },
-  ]
+function MemberProfileEditPage(props: {
+  apiBase: string
+  lineUid: string
+  member: Record<string, unknown>
+  onMemberUpdated: (member: Record<string, unknown>) => void
+}) {
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-label="ข้อมูลส่วนตัวสมาชิกแบบอ่านอย่างเดียว">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ข้อมูลส่วนตัว</h3>
-        <p className="mt-2 text-sm text-slate-400">ข้อมูลจากบัญชีที่ลงทะเบียนแล้ว — แก้ไขผ่านคำร้องอัปเดตข้อมูล</p>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2" role="list" aria-label="รายการข้อมูลส่วนตัวสมาชิก">
-          {rows.map((r) => (
-            <div key={r.label} className="rounded border border-slate-800/80 bg-slate-900/30 px-3 py-2" role="listitem">
-              <dt className="text-xs text-slate-400">{r.label}</dt>
-              <dd className="mt-0.5 text-sm text-slate-100">{r.value}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="mt-4 text-xs text-slate-600">
-          หากข้อมูลไม่ครบหรือต้องแก้ไข ใช้ flow คำร้องในแอปหลักหลังเชื่อม LINE
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-label="เปลี่ยนแปลงข้อมูลสมาชิก">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">เปลี่ยนแปลงข้อมูลสมาชิก</h3>
+          <Link
+            to="/member/last-update"
+            className={`${themeTapTarget} shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium ${themeAccent.buttonSoft} ${portalFocusRing}`}
+          >
+            ประวัติการบันทึกชุดข้อมูล
+          </Link>
+        </div>
+        <p className="mt-2 text-sm text-slate-400">
+          ข้อมูลที่แสดงมาจากทะเบียนปัจจุบัน — บันทึกแล้วระบบจะอัปเดตเวลา <strong className="text-slate-300">ข้อมูลอัปเดตล่าสุด</strong> อัตโนมัติ
         </p>
+        <div className="mt-3 rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-100/90">
+          ทุกครั้งที่บันทึก ระบบจะเก็บ snapshot ใน <code className="text-amber-200/90">member_profile_versions</code> (ชุดเก่าเป็น
+          inactive ชุดล่าสุดเป็น active) — รูปโปรไฟล์อัปโหลดจากช่องด้านล่างได้โดยตรง (bucket{' '}
+          <code className="text-amber-200/90">member-profile-photos</code>) หรือใส่ URL เอง / ให้ผู้ดูแลนำเข้า
+        </div>
+        <MemberProfileSection
+          apiBase={props.apiBase}
+          lineUid={props.lineUid}
+          member={props.member}
+          onMemberUpdated={props.onMemberUpdated}
+        />
       </section>
     </div>
   )
 }
 
-function MemberStatisticsPage(props: { roleView: MemberRoleView; portalState: PortalDataState<MemberPortalData> }) {
-  const { data, loading, source } = props.portalState
+function formatMemberTs(iso: unknown): string {
+  if (iso == null || String(iso).trim() === '') return '—'
+  const d = new Date(String(iso))
+  return Number.isFinite(d.getTime())
+    ? d.toLocaleString('th-TH', { dateStyle: 'full', timeStyle: 'short' })
+    : '—'
+}
+
+/** รายการฟิลด์ในฟอร์มแก้ไข — ใช้แสดง snapshot เต็มใน `<details>` */
+function MemberSnapshotFieldList({ snap }: { snap: Record<string, unknown> }) {
+  return (
+    <dl className="mt-2 space-y-2 border-t border-slate-800/60 pt-2 text-left">
+      {MEMBER_SELF_EDIT_HEADERS.map((h) => {
+        const k = HEADER_TO_MEMBER_KEY[h]
+        if (!k) return null
+        const raw = snap[k]
+        const display = raw == null || String(raw).trim() === '' ? '—' : String(raw).trim()
+        return (
+          <div key={h} className="grid gap-1 sm:grid-cols-[minmax(8rem,1fr)_minmax(0,2fr)] sm:gap-3">
+            <dt className="text-slate-500">{h}</dt>
+            <dd className="min-w-0 break-words text-slate-200">{display}</dd>
+          </div>
+        )
+      })}
+    </dl>
+  )
+}
+
+/** สรุป snapshot ประวัติ (ฟิลด์แก้ได้ตามลำดับในฟอร์ม — สูงสุด 4 ค่า) */
+function summarizeMemberProfileSnapshot(snap: Record<string, unknown>): string {
+  const parts: string[] = []
+  for (const header of MEMBER_SELF_EDIT_HEADERS) {
+    const k = HEADER_TO_MEMBER_KEY[header]
+    if (!k) continue
+    const raw = snap[k]
+    if (raw == null || String(raw).trim() === '') continue
+    let s = String(raw).trim()
+    if (s.length > 40) s = `${s.slice(0, 37)}…`
+    parts.push(`${header}: ${s}`)
+    if (parts.length >= 4) break
+  }
+  return parts.length > 0 ? parts.join(' · ') : '—'
+}
+
+type ProfileVersionRow = {
+  id: string
+  created_at: string
+  is_active: boolean
+  snapshot: Record<string, unknown>
+}
+
+function MemberLastUpdatePage(props: {
+  member: Record<string, unknown>
+  apiBase: string
+  lineUid: string
+  /** นับขึ้นเมื่อบันทึกโปรไฟล์สำเร็จ (พอร์ทัล) — กระตุ้นโหลดตารางประวัติใหม่ */
+  profileVersionsRefresh: number
+}) {
+  const location = useLocation()
+  const updatedAt = formatMemberTs(props.member.updated_at)
+  const createdAt = formatMemberTs(props.member.created_at)
+  const [versions, setVersions] = useState<ProfileVersionRow[]>([])
+  const [vLoading, setVLoading] = useState(false)
+  const [vErr, setVErr] = useState<string | null>(null)
+
+  const displayVersions = props.lineUid.trim() ? versions : []
+  const memberUpdatedSignal = String(props.member.updated_at ?? '')
+
+  useEffect(() => {
+    if (!props.lineUid.trim()) {
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      setVLoading(true)
+      setVErr(null)
+      const u = new URL(`${props.apiBase.replace(/\/$/, '')}/api/members/profile-versions`)
+      u.searchParams.set('line_uid', props.lineUid.trim())
+      try {
+        const r = await fetch(u.toString())
+        const j = (await r.json().catch(() => ({}))) as {
+          error?: string
+          ok?: boolean
+          versions?: ProfileVersionRow[]
+        }
+        if (cancelled) return
+        if (!r.ok) {
+          setVErr(j.error ?? `HTTP ${r.status}`)
+          setVersions([])
+          return
+        }
+        setVersions(Array.isArray(j.versions) ? j.versions : [])
+      } catch {
+        if (!cancelled) {
+          setVErr('โหลดประวัติไม่สำเร็จ')
+          setVersions([])
+        }
+      } finally {
+        if (!cancelled) setVLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    props.apiBase,
+    props.lineUid,
+    props.profileVersionsRefresh,
+    memberUpdatedSignal,
+    location.key,
+  ])
+
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4" aria-busy={loading}>
-        <PortalSectionHeader
-          loading={loading}
-          source={source}
-          className="flex flex-wrap items-center justify-between gap-2"
-        >
-          <p className="text-xs uppercase tracking-wide text-slate-400">ข้อมูลสแนปช็อต</p>
-        </PortalSectionHeader>
-      </section>
-      {loading ? (
-        <PortalContentLoading className="text-sm text-slate-400" />
-      ) : (
-        <>
-          <MetricCards items={data.statsCards} />
-          <MetricCards items={data.roleCards[props.roleView]} />
-          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">คำร้องใหม่ 7 วัน (UTC)</h3>
-            <p className="mt-2 text-sm text-slate-400">
-              จำนวนคำร้องต่อวันจาก <code className="text-slate-400">member_update_requests</code> — เทียบกับแนวโน้มในพอร์ทัลคณะกรรมการ
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-label="ข้อมูลสมาชิกที่อัปเดตล่าสุด">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ข้อมูลสมาชิกที่อัปเดตล่าสุด</h3>
+        <p className="mt-2 text-sm text-slate-400">
+          เวลาที่ทะเบียนสมาชิกถูกบันทึกล่าสุด (<code className="text-slate-500">updated_at</code>) และประวัติชุดข้อมูลจากการแก้ไขในพอร์ทัล
+        </p>
+        <dl className="mt-4 space-y-3 rounded-lg border border-slate-800/80 bg-slate-900/30 p-4 text-sm">
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-slate-400">อัปเดตล่าสุด (ทะเบียน)</dt>
+            <dd className="font-medium text-fuchsia-200">{updatedAt}</dd>
+          </div>
+          <div className="flex flex-wrap justify-between gap-2 border-t border-slate-800/60 pt-3">
+            <dt className="text-slate-400">สร้างระเบียนเมื่อ</dt>
+            <dd className="text-slate-200">{createdAt}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-6" aria-busy={vLoading}>
+          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">ประวัติการบันทึกชุดข้อมูล (พอร์ทัล)</h4>
+          {vErr ? (
+            <p className="mt-2 text-sm text-amber-300" role="status">
+              {vErr} — ลองรีเฟรชหน้า หรือลองใหม่ภายหลัง ถ้ายังไม่หายให้ติดต่อผู้ดูแลระบบ
             </p>
-            <TrendBars items={data.requestTrend} color="cyan" />
-          </section>
-          <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สัดส่วนสมาชิกตามรุ่น</h3>
-            <TrendBars items={data.batchDistribution} color="fuchsia" />
-          </section>
-        </>
-      )}
+          ) : null}
+          {vLoading ? (
+            <p className="mt-2 text-sm text-slate-500">กำลังโหลดประวัติ…</p>
+          ) : displayVersions.length === 0 && !vErr ? (
+            <p className="mt-2 text-sm text-slate-500">ยังไม่มีประวัติ — จะบันทึกหลังบันทึกการแก้ไขข้อมูลครั้งแรก</p>
+          ) : (
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full min-w-[min(100%,42rem)] border-collapse text-left text-xs text-slate-200">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400">
+                    <th className="py-2 pr-2 font-medium">บันทึกเมื่อ</th>
+                    <th className="py-2 pr-2 font-medium">สถานะ</th>
+                    <th className="py-2 pr-2 font-medium">สรุปชุดข้อมูล (ตัวอย่าง)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayVersions.map((v) => (
+                    <tr key={v.id} className="border-b border-slate-800/60">
+                      <td className="py-2 pr-2 align-top text-slate-300 whitespace-nowrap">
+                        {formatThDateTime(v.created_at)}
+                      </td>
+                      <td className="py-2 pr-2 align-top whitespace-nowrap">
+                        {v.is_active ? (
+                          <span className="rounded bg-emerald-950/50 px-2 py-0.5 text-emerald-200">ชุดปัจจุบัน</span>
+                        ) : (
+                          <span className="rounded bg-slate-800 px-2 py-0.5 text-slate-400">เก็บเป็นประวัติ</span>
+                        )}
+                      </td>
+                      <td className="max-w-[min(100vw-2rem,28rem)] py-2 align-top break-words text-slate-400">
+                        <p>
+                          {summarizeMemberProfileSnapshot(
+                            v.snapshot && typeof v.snapshot === 'object' && !Array.isArray(v.snapshot)
+                              ? (v.snapshot as Record<string, unknown>)
+                              : {},
+                          )}
+                        </p>
+                        <details className="mt-2">
+                          <summary
+                            className={`cursor-pointer text-xs text-fuchsia-400/95 underline decoration-fuchsia-500/40 underline-offset-2 hover:text-fuchsia-300 ${portalFocusRing} rounded-sm`}
+                          >
+                            ดูทุกฟิลด์ที่บันทึก
+                          </summary>
+                          <MemberSnapshotFieldList
+                            snap={
+                              v.snapshot && typeof v.snapshot === 'object' && !Array.isArray(v.snapshot)
+                                ? (v.snapshot as Record<string, unknown>)
+                                : {}
+                            }
+                          />
+                        </details>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <Link
+            to="/member/profile-edit"
+            className={`${themeTapTarget} inline-flex rounded-lg px-3 py-2 text-sm ${themeAccent.buttonSoft} ${portalFocusRing}`}
+          >
+            ไปแก้ไขข้อมูล
+          </Link>
+        </div>
+      </section>
     </div>
   )
 }
@@ -604,6 +949,10 @@ function MemberDonationsPage(props: {
                   placeholder="https://..."
                 />
               </label>
+              <p className="text-xs text-slate-500">
+                แนะนำตั้งชื่อไฟล์สลิปเป็นรูปแบบ <span className="font-mono text-slate-400">ชื่อ-นามสกุล-รุ่น_ชื่อกิจกรรม</span>{' '}
+                ก่อนอัปโหลดไปยังที่เก็บขององค์กร — โฟลเดอร์และการอัปโหลดตรงๆ จะเชื่อมจากแผงผู้ดูแลในรอบถัดไป
+              </p>
               <label className="block text-xs text-slate-400">
                 หมายเหตุ (ถ้ามี)
                 <input
@@ -622,7 +971,7 @@ function MemberDonationsPage(props: {
                 disabled={submitting || data.yupparajDonationActivities.length === 0}
                 onClick={() => void submitDonation()}
                 aria-label="ส่งข้อมูลการบริจาค"
-                className={`tap-target rounded px-4 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
+                className={`${themeTapTarget} rounded px-4 py-2 text-sm text-white disabled:opacity-50 ${themeAccent.buttonPrimary} ${portalFocusRing}`}
               >
                 {submitting ? 'กำลังส่ง…' : 'ยืนยันการบริจาค'}
               </button>
@@ -638,7 +987,7 @@ function MemberDonationsPage(props: {
                   type="button"
                   onClick={() => void loadDonationHistory()}
                   disabled={historyLoading || !props.lineUid.trim()}
-                  className={`tap-target rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50 ${portalFocusRing}`}
+                  className={`${themeTapTarget} rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50 ${portalFocusRing}`}
                 >
                   {historyLoading ? 'กำลังโหลด…' : 'รีเฟรช'}
                 </button>
@@ -717,32 +1066,6 @@ function MemberDonationsPage(props: {
           </>
         )}
       </section>
-    </div>
-  )
-}
-
-function MemberMeetingsPage(props: { portalState: PortalDataState<MemberPortalData> }) {
-  const { data, loading, source } = props.portalState
-  return (
-    <div className="space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
-        <PortalSectionHeader loading={loading} source={source}>
-          <div>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">สาระประชุมและรายรับรายจ่าย</h3>
-            <p className="mt-2 text-sm text-slate-400">ข้อมูลที่สมาชิกเข้าถึงได้: สรุปรายงานประชุมและภาพรวมทางการเงิน</p>
-          </div>
-        </PortalSectionHeader>
-        {loading ? (
-          <PortalContentLoading />
-        ) : (
-          <div className="mt-4 space-y-2 text-sm" role="list" aria-label="รายการรายงานประชุมล่าสุด">
-            {data.meetingReports.map((meeting) => (
-              <MeetingReportRow key={meeting.title} title={meeting.title} date={meeting.date} />
-            ))}
-          </div>
-        )}
-      </section>
-      {!loading ? <MetricCards items={data.financeCards} /> : null}
     </div>
   )
 }

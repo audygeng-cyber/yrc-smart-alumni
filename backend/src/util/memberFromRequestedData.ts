@@ -26,6 +26,7 @@ const MEMBER_KEYS: (keyof MemberRow)[] = [
   'email',
   'line_display_id',
   'membership_status',
+  'photo_url',
 ]
 
 function pickString(d: Record<string, unknown>, key: string): string | null {

@@ -54,6 +54,45 @@ describe.sequential('createApp', () => {
     expect(Array.isArray(res.body.donors)).toBe(true)
   })
 
+  it('POST /api/members/profile-photo returns 400 without line_uid', async () => {
+    const app = createApp()
+    const buf = Buffer.from([0xff, 0xd8, 0xff, 0xe0])
+    const res = await request(app)
+      .post('/api/members/profile-photo')
+      .attach('photo', buf, { filename: 'x.jpg', contentType: 'image/jpeg' })
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBeDefined()
+  })
+
+  it('POST /api/members/profile-photo returns 400 without file', async () => {
+    const app = createApp()
+    const res = await request(app).post('/api/members/profile-photo').field('line_uid', 'Utest_line')
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBeDefined()
+  })
+
+  it('GET /api/members/profile-versions returns 400 without line_uid', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/members/profile-versions')
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBeDefined()
+  })
+
+  it('GET /api/members/profile-versions returns payload or error when Supabase configured', async () => {
+    const app = createApp()
+    const res = await request(app).get('/api/members/profile-versions').query({ line_uid: 'Utest_not_linked' })
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      expect(res.status).toBe(500)
+      expect(res.body.error).toBeDefined()
+      return
+    }
+    expect([403, 200]).toContain(res.status)
+    if (res.status === 200) {
+      expect(res.body.ok).toBe(true)
+      expect(Array.isArray(res.body.versions)).toBe(true)
+    }
+  })
+
   it('POST /api/members/app-roles returns 400 without line_uid', async () => {
     const app = createApp()
     const res = await request(app).post('/api/members/app-roles').send({})

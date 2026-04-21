@@ -29,6 +29,7 @@ export const IMPORT_TEMPLATE_HEADERS: readonly string[] = [
   'อีเมล์',
   'ID Line',
   'สถานะสมาชิก',
+  'รูปโปรไฟล์ (URL)',
 ]
 
 /** หัวตารางภาษาไทย (ใน Excel) → คีย์ในฐานข้อมูล members */
@@ -59,6 +60,7 @@ export const HEADER_TO_DB: Record<string, keyof MemberRow> = {
   อีเมล์: 'email',
   'ID Line': 'line_display_id',
   สถานะสมาชิก: 'membership_status',
+  'รูปโปรไฟล์ (URL)': 'photo_url',
 }
 
 export type MemberRow = {
@@ -88,6 +90,7 @@ export type MemberRow = {
   email: string | null
   line_display_id: string | null
   membership_status: string | null
+  photo_url: string | null
   organization: string
   import_batch_id: string | null
 }
@@ -120,6 +123,7 @@ export function emptyMemberRow(): MemberRow {
     email: null,
     line_display_id: null,
     membership_status: 'Active',
+    photo_url: null,
     organization: 'alumni',
     import_batch_id: null,
   }

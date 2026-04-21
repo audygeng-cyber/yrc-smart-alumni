@@ -15,6 +15,11 @@ const ALLOWED_DB_KEYS = new Set(
   Object.values(HEADER_TO_DB).filter((k) => !LOCKED.has(k)),
 ) as Set<keyof MemberRow>
 
+/** ฟิลด์ที่เก็บใน snapshot ประวัติการแก้ไข (สอดคล้องฟิลด์ที่สมาชิกแก้ได้) */
+export const MEMBER_VERSION_SNAPSHOT_KEYS: readonly (keyof MemberRow)[] = (
+  [...ALLOWED_DB_KEYS] as (keyof MemberRow)[]
+).filter((k) => k !== 'organization')
+
 function trimOrNull(v: unknown): string | null {
   if (v === null || v === undefined) return null
   const s = String(v).trim()
@@ -39,5 +44,23 @@ export function parseMemberSelfUpdates(raw: Record<string, unknown>): Partial<Me
     ;(out as Record<string, unknown>)[dbKey] = s
   }
 
+  return out
+}
+
+/**
+ * สร้าง snapshot หลัง merge สำหรับบันทึก member_profile_versions (ชุดใหม่ = active)
+ */
+export function mergeMemberProfileSnapshot(
+  current: Record<string, unknown>,
+  updates: Partial<MemberRow>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const key of MEMBER_VERSION_SNAPSHOT_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(updates, key) && updates[key] !== undefined) {
+      out[key as string] = updates[key] ?? null
+    } else {
+      out[key as string] = current[key] ?? null
+    }
+  }
   return out
 }

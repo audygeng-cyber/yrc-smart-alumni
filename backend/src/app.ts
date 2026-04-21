@@ -62,7 +62,8 @@ export function createApp(): express.Express {
         membersDonations:
           'POST /api/members/donations (line_uid + activity_id + amount — บริจาคกิจกรรม) | POST /api/members/donations/history (line_uid — ประวัติการบริจาค) | GET /api/members/donations/yupparaj-stats (สถิติกองยุพราชสาธารณะ)',
         membersRequestStatus: 'POST /api/members/request-status (line_uid — ดูคำร้องล่าสุดของสมาชิก)',
-        membersUpdateSelf: 'POST /api/members/update-self (line_uid + updates — หลังผูกแล้ว)',
+        membersUpdateSelf:
+          'POST /api/members/update-self (line_uid + updates — หลังผูกแล้ว; บันทึก member_profile_versions) | POST /api/members/profile-photo (multipart: line_uid + photo) | GET /api/members/profile-versions?line_uid=…',
         membersRegister: 'POST /api/members/register-request',
         importTemplates:
           'GET /api/admin/members/import-template.csv | import-template.xlsx (ไม่ต้องมี key)',

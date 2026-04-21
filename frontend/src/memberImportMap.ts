@@ -24,6 +24,7 @@ export const MEMBER_SELF_EDIT_HEADERS: readonly string[] = [
   'อีเมล์',
   'ID Line',
   'สถานะสมาชิก',
+  'รูปโปรไฟล์ (URL)',
 ]
 
 /** หัวภาษาไทย → คีย์ JSON จาก API (members row) */
@@ -49,6 +50,7 @@ export const HEADER_TO_MEMBER_KEY: Record<string, string> = {
   อีเมล์: 'email',
   'ID Line': 'line_display_id',
   สถานะสมาชิก: 'membership_status',
+  'รูปโปรไฟล์ (URL)': 'photo_url',
 }
 
 /** ฟิลด์เพิ่มสำหรับคำร้องสมัครใหม่ (นอกจาก รุ่น ชื่อ นามสกุล) — ชุดเดียวกับแก้ไขตัวเอง */

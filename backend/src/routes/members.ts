@@ -1,11 +1,22 @@
+import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
+import multer from 'multer'
 import { getServiceSupabase } from '../lib/supabase.js'
 import { notifyNewMemberRequest } from '../lib/webPush.js'
-import { parseMemberSelfUpdates } from '../util/memberSelfUpdate.js'
+import type { MemberRow } from '../util/memberImportMap.js'
+import { parseStoragePublicObjectPath } from '../util/memberProfilePhotoStorage.js'
+import { mergeMemberProfileSnapshot, parseMemberSelfUpdates } from '../util/memberSelfUpdate.js'
 import { normalizeWhitespace } from '../util/normalize.js'
 
 /** ช่องทางเข้าระบบ (สอดคล้อง frontend `lineEntrySource.ts`) — ใช้ประกอบบันทึก/audit ภายหลัง */
 const APP_ENTRY_SOURCES = new Set(['alumni_url', 'cram_qr', 'cram_alumni_url'])
+
+const MEMBER_PROFILE_PHOTO_BUCKET = 'member-profile-photos'
+
+const profilePhotoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+})
 
 export const membersRouter = Router()
 
@@ -13,6 +24,44 @@ async function fetchMemberRowById(supabase: ReturnType<typeof getServiceSupabase
   const { data, error } = await supabase.from('members').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data
+}
+
+/** อัปเดตทะเบียน + บันทึก member_profile_versions (ใช้ทั้ง update-self และอัปโหลดรูป) */
+async function persistMemberSelfUpdateWithVersions(
+  supabase: ReturnType<typeof getServiceSupabase>,
+  row: Record<string, unknown>,
+  updates: Partial<MemberRow>,
+): Promise<{ ok: true } | { ok: false; step: string; details: unknown }> {
+  const now = new Date().toISOString()
+  const snapshot = mergeMemberProfileSnapshot(row, updates)
+  const { error: upErr } = await supabase
+    .from('members')
+    .update({ ...updates, updated_at: now })
+    .eq('id', row.id as string)
+  if (upErr) return { ok: false, step: 'update', details: upErr }
+
+  const { error: deactErr } = await supabase
+    .from('member_profile_versions')
+    .update({ is_active: false })
+    .eq('member_id', row.id as string)
+  if (deactErr) return { ok: false, step: 'deactivate', details: deactErr }
+
+  const { error: insErr } = await supabase.from('member_profile_versions').insert({
+    member_id: row.id as string,
+    snapshot,
+    is_active: true,
+  })
+  if (insErr) return { ok: false, step: 'insert', details: insErr }
+  return { ok: true }
+}
+
+function extFromImageMime(mime: string): string {
+  const m = mime.toLowerCase()
+  if (m === 'image/jpeg') return 'jpg'
+  if (m === 'image/png') return 'png'
+  if (m === 'image/webp') return 'webp'
+  if (m === 'image/gif') return 'gif'
+  return 'bin'
 }
 
 /**
@@ -456,7 +505,7 @@ membersRouter.post('/update-self', async (req, res) => {
     const supabase = getServiceSupabase()
     const { data: row, error: qErr } = await supabase
       .from('members')
-      .select('id, line_uid')
+      .select('*')
       .eq('line_uid', line_uid)
       .maybeSingle()
 
@@ -471,18 +520,164 @@ membersRouter.post('/update-self', async (req, res) => {
       return
     }
 
-    const { error: upErr } = await supabase
-      .from('members')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', row.id)
-
-    if (upErr) {
-      res.status(500).json({ error: 'อัปเดตข้อมูลไม่สำเร็จ', details: upErr })
+    const persisted = await persistMemberSelfUpdateWithVersions(supabase, row as Record<string, unknown>, updates)
+    if (!persisted.ok) {
+      const label =
+        persisted.step === 'update'
+          ? 'อัปเดตข้อมูลไม่สำเร็จ'
+          : persisted.step === 'deactivate'
+            ? 'บันทึกประวัติไม่สำเร็จ (deactivate)'
+            : 'บันทึกประวัติไม่สำเร็จ (insert)'
+      res.status(500).json({ error: label, details: persisted.details })
       return
     }
 
     const full = await fetchMemberRowById(supabase, row.id as string)
     res.json({ ok: true, memberId: row.id, member: full })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})
+
+/**
+ * อัปโหลดรูปโปรไฟล์ไป Supabase Storage แล้วตั้ง members.photo_url + บันทึก member_profile_versions
+ * multipart: line_uid (text), photo (ไฟล์ — ฟิลด์ชื่อ photo)
+ */
+membersRouter.post('/profile-photo', profilePhotoUpload.single('photo'), async (req, res) => {
+  try {
+    const line_uid = typeof req.body?.line_uid === 'string' ? req.body.line_uid.trim() : ''
+    if (!line_uid) {
+      res.status(400).json({ error: 'ต้องระบุ line_uid' })
+      return
+    }
+
+    const file = req.file
+    if (!file?.buffer?.length) {
+      res.status(400).json({ error: 'ต้องแนบไฟล์รูป (ฟิลด์ photo)' })
+      return
+    }
+
+    const mime = String(file.mimetype || '').toLowerCase()
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(mime)) {
+      res.status(415).json({ error: 'รองรับเฉพาะ JPEG, PNG, WebP, GIF' })
+      return
+    }
+
+    let supabase: ReturnType<typeof getServiceSupabase>
+    try {
+      supabase = getServiceSupabase()
+    } catch {
+      res.status(500).json({ error: 'เซิร์ฟเวอร์ยังไม่ตั้งค่า Supabase' })
+      return
+    }
+
+    const { data: row, error: qErr } = await supabase
+      .from('members')
+      .select('*')
+      .eq('line_uid', line_uid)
+      .maybeSingle()
+
+    if (qErr) {
+      res.status(500).json({ error: 'ค้นหาข้อมูลไม่สำเร็จ', details: qErr })
+      return
+    }
+    if (!row) {
+      res.status(403).json({
+        error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้ — ใช้ "ตรวจสอบและผูก" ก่อน',
+      })
+      return
+    }
+
+    const memberId = String(row.id)
+    const objectPath = `${memberId}/${randomUUID()}.${extFromImageMime(mime)}`
+    const previousPhotoUrl = typeof row.photo_url === 'string' ? row.photo_url.trim() : ''
+    const oldObjectPath = previousPhotoUrl
+      ? parseStoragePublicObjectPath(previousPhotoUrl, MEMBER_PROFILE_PHOTO_BUCKET)
+      : null
+
+    const { error: upStorage } = await supabase.storage
+      .from(MEMBER_PROFILE_PHOTO_BUCKET)
+      .upload(objectPath, file.buffer, {
+        contentType: mime,
+        upsert: false,
+      })
+
+    if (upStorage) {
+      res.status(500).json({ error: 'อัปโหลดไฟล์ไม่สำเร็จ', details: upStorage })
+      return
+    }
+
+    const { data: pub } = supabase.storage.from(MEMBER_PROFILE_PHOTO_BUCKET).getPublicUrl(objectPath)
+    const publicUrl = pub?.publicUrl
+    if (!publicUrl) {
+      res.status(500).json({ error: 'สร้าง URL รูปไม่สำเร็จ' })
+      return
+    }
+
+    const persisted = await persistMemberSelfUpdateWithVersions(supabase, row as Record<string, unknown>, {
+      photo_url: publicUrl,
+    })
+    if (!persisted.ok) {
+      await supabase.storage.from(MEMBER_PROFILE_PHOTO_BUCKET).remove([objectPath])
+      const label =
+        persisted.step === 'update'
+          ? 'อัปเดตข้อมูลไม่สำเร็จ'
+          : persisted.step === 'deactivate'
+            ? 'บันทึกประวัติไม่สำเร็จ (deactivate)'
+            : 'บันทึกประวัติไม่สำเร็จ (insert)'
+      res.status(500).json({ error: label, details: persisted.details })
+      return
+    }
+
+    if (oldObjectPath && oldObjectPath !== objectPath) {
+      await supabase.storage.from(MEMBER_PROFILE_PHOTO_BUCKET).remove([oldObjectPath])
+    }
+
+    const full = await fetchMemberRowById(supabase, memberId)
+    res.json({ ok: true, memberId, photoUrl: publicUrl, member: full })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+    res.status(500).json({ error: message })
+  }
+})
+
+/**
+ * ประวัติชุดข้อมูลที่สมาชิกแก้ผ่านพอร์ทัล (ชุด active ล่าสุด — query: line_uid)
+ */
+membersRouter.get('/profile-versions', async (req, res) => {
+  try {
+    const line_uid = typeof req.query.line_uid === 'string' ? req.query.line_uid.trim() : ''
+    if (!line_uid) {
+      res.status(400).json({ error: 'ต้องระบุ line_uid' })
+      return
+    }
+
+    const supabase = getServiceSupabase()
+    const { data: row, error: qErr } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
+
+    if (qErr) {
+      res.status(500).json({ error: 'ค้นหาข้อมูลไม่สำเร็จ', details: qErr })
+      return
+    }
+    if (!row) {
+      res.status(403).json({ error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้' })
+      return
+    }
+
+    const { data: versions, error: vErr } = await supabase
+      .from('member_profile_versions')
+      .select('id, created_at, is_active, snapshot')
+      .eq('member_id', row.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (vErr) {
+      res.status(500).json({ error: 'โหลดประวัติไม่สำเร็จ', details: vErr })
+      return
+    }
+
+    res.json({ ok: true, versions: versions ?? [] })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
