@@ -103,6 +103,18 @@ async function main() {
   }
   console.log('OK: admin import summary route exists (no-key probe → HTTP', `${rSum.status})`)
 
+  const lineOAuthStateUrl = `${base}/api/auth/line/oauth-state`
+  const rOAuthStateProbe = await fetchOk(lineOAuthStateUrl, { method: 'GET', cache: 'no-store' })
+  if (rOAuthStateProbe.status === 404) {
+    throw new Error(
+      'GET /api/auth/line/oauth-state → HTTP 404 — Cloud Run ยังรัน image เก่า (ไม่มี route นี้). docker build + gcloud run deploy จาก repo ล่าสุด',
+    )
+  }
+  if (rOAuthStateProbe.status !== 200 && rOAuthStateProbe.status !== 500) {
+    throw new Error(`GET /api/auth/line/oauth-state → unexpected HTTP ${rOAuthStateProbe.status}`)
+  }
+  console.log('OK: LINE oauth-state route present (HTTP', rOAuthStateProbe.status + ')')
+
   if (!frontendOrigin?.trim()) {
     console.log('Skip: CORS check (pass 2nd arg or VERIFY_FRONTEND_ORIGIN)')
     if (deep) {
