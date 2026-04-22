@@ -1,0 +1,15 @@
+---
+description: YRC deploy/push — ใช้ docs/DEPLOY_INVENTORY.md เป็นแหล่ง URL และลำดับขั้น (Vercel vs Cloud Run)
+alwaysApply: true
+---
+
+# Deploy / push สำหรับ YRC Smart Alumni
+
+เมื่อผู้ใช้ขอ **deploy, push, Vercel, Cloud Run** หลังแก้โค้ด:
+
+1. เปิดและทำตาม **`docs/DEPLOY_INVENTORY.md`** (ลิงก์ GitHub / Vercel / GCP / Supabase, URL production, flow ลำดับ)
+2. **Frontend:** commit แล้ว push branch หลักที่เชื่อม Vercel (มักเป็น `master`) — Vercel build จาก monorepo ตาม `README.md`
+3. **Backend:** การแก้ใน `backend/` ต้อง **deploy revision ใหม่บน Cloud Run** แยกจากการ push — อย่าสมมติว่า push แล้ว API อัปเดตเอง
+4. หลังแก้ `VITE_*` บน Vercel ต้อง **redeploy** เว็บ (ค่าถูกฝังตอน build)
+
+ถ้า URL ใน inventory ไม่ตรงความจริง ให้ถามผู้ใช้ครั้งเดียวแล้วแก้ `docs/DEPLOY_INVENTORY.md` ให้เป็นปัจจุบัน

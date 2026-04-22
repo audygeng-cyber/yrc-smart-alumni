@@ -1,5 +1,7 @@
 # เช็คลิสต์: ตรวจระบบหลัง deploy (Cloud Run + Vercel + Supabase)
 
+ลิงก์แดชบอร์ดและ URL production ของทีม (GitHub / Vercel / GCP / Supabase): [`DEPLOY_INVENTORY.md`](./DEPLOY_INVENTORY.md)
+
 ทำตามลำดับ — ถ้าข้อใดล้มเหลว แก้ก่อนไปข้อถัดไป
 
 ---

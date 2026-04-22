@@ -33,10 +33,12 @@ npm run doctor           # ตรวจว่า backend/.env และ API /hea
 npm run ci               # ก่อน push
 ```
 
-## URL ที่ deploy แล้ว (อัปเดตใน skill ถ้าเปลี่ยน)
+## URL ที่ deploy แล้ว (แหล่งเดียวใน repo)
 
-- API (Cloud Run): ตั้ง `VITE_API_URL` บน Vercel ให้ชี้มาที่ URL นี้ (ไม่ใส่ path `/api` เป็นท้าย base ถ้าโค้ดต่อ path เอง)
-- Frontend (Vercel): ตั้ง `FRONTEND_ORIGINS` บน Cloud Run = URL Vercel เต็ม `https://...`
+ใช้ **`docs/DEPLOY_INVENTORY.md`** — มีลิงก์ GitHub / Vercel / Google Cloud / Supabase, URL production (frontend + API base สำหรับ `VITE_API_URL`), และ **flow deploy ทีละขั้น** (push → Vercel; แก้ backend → Cloud Run แยก). อัปเดตไฟล์นั้นเมื่อ URL หรือโปรเจกต์เปลี่ยน
+
+- API (Cloud Run): `VITE_API_URL` = ฐาน URL จาก inventory (**ไม่** ลงท้ายด้วย `/api` ถ้าโค้ดต่อ path เอง)
+- Frontend (Vercel): `FRONTEND_ORIGINS` บน Cloud Run = origin เว็บเต็มจาก inventory
 
 ## ความลับ / env
 
