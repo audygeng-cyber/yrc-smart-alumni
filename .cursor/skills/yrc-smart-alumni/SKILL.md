@@ -90,3 +90,4 @@ Skill อื่นที่เข้ากับสแต็ก (ยังไม
 - `README.md` — setup, API, LINE, VAPID, deploy
 - `SECURITY.md` — นโยบายความปลอดภัยและ git-secret
 - `docs/LINE_LOGIN_CODE_REFERENCE.md` — **baseline โค้ดล็อกอิน LINE** (ลำดับ flow, ไฟล์, invariant) — อ่านก่อนแก้ส่วนนี้หรือเมื่อต้อง restore พฤติกรรมเดิม; คู่กับ `docs/LINE_LOGIN_CHECKLIST.md` (URL / env)
+- `docs/MEMBER_IDENTITY_QR_FLOW.md` — QR บัตรสมาชิก (`member_identity_qr_token`), ลิงก์สแกน `/open/member-identity`, แนวขยายงานรับบัตรเลือกตั้ง/สถิติตามรุ่น

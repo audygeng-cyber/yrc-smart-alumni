@@ -31,3 +31,7 @@
 
 - `update-self` อนุญาตเฉพาะฟิลด์รอง — **ไม่แก้ รุ่น / ชื่อ / นามสกุล** จากฟอร์มนี้  
 - การแก้ข้อมูลต้องใช้ `line_uid` ที่ตรงกับแถวในฐานข้อมูลแล้ว
+
+## ดูเพิ่ม: QR บัตรสมาชิก
+
+- [`docs/MEMBER_IDENTITY_QR_FLOW.md`](./MEMBER_IDENTITY_QR_FLOW.md) — โทเคนต่อคน (`member_identity_qr_token`), ลิงก์สแกน, หน้า `/open/member-identity`, แนวขยายงานรับบัตรเลือกตั้ง

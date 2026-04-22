@@ -1,3 +1,4 @@
+import QRCodeLib from 'qrcode'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { safeHttpImageUrl } from '../lib/safeHttpUrl'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
@@ -318,6 +319,64 @@ function memberDistinctionLabels(m: Record<string, unknown>): string[] {
     .map((s) => s.trim())
 }
 
+/** ลิงก์ฝังใน QR บัตร — สอดคล้อง backend `member_identity_scan_url` + docs/MEMBER_IDENTITY_QR_FLOW.md */
+function memberIdentityScanUrlForQr(m: Record<string, unknown>): string {
+  const direct = m.member_identity_scan_url
+  if (typeof direct === 'string' && /^https?:\/\//i.test(direct.trim())) return direct.trim()
+  const tok = m.member_identity_qr_token
+  if (typeof tok === 'string' && tok.trim().length > 0 && typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/open/member-identity?t=${encodeURIComponent(tok.trim())}`
+  }
+  return ''
+}
+
+function MemberCardQr(props: { value: string }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null)
+  const [err, setErr] = useState(false)
+
+  useEffect(() => {
+    if (!props.value) {
+      setDataUrl(null)
+      setErr(false)
+      return
+    }
+    let cancelled = false
+    setErr(false)
+    setDataUrl(null)
+    QRCodeLib.toDataURL(props.value, { width: 96, margin: 1, errorCorrectionLevel: 'M' })
+      .then((url) => {
+        if (!cancelled) setDataUrl(url)
+      })
+      .catch(() => {
+        if (!cancelled) setErr(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [props.value])
+
+  if (!props.value) {
+    return (
+      <div className="flex h-[104px] w-[104px] items-center justify-center rounded-lg border border-dashed border-slate-600 bg-slate-900/80 p-2 text-center text-[10px] leading-tight text-slate-500">
+        ยังไม่มี QR
+        <span className="mt-1 block text-[9px] opacity-80">รอ migration หรือตั้ง FRONTEND_ORIGINS</span>
+      </div>
+    )
+  }
+  if (err || !dataUrl) {
+    return (
+      <div className="flex h-[104px] w-[104px] items-center justify-center rounded-lg border border-dashed border-slate-600 bg-slate-900/80 text-[10px] text-slate-500">
+        {err ? 'สร้าง QR ไม่สำเร็จ' : 'กำลังสร้าง QR…'}
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-lg border border-slate-600 bg-white p-2 shadow-inner" role="img" aria-label="QR ยืนยันตัวตนสมาชิก">
+      <img src={dataUrl} alt="" width={96} height={96} className="block" decoding="async" />
+    </div>
+  )
+}
+
 /** รูปบัตร — key จาก URL ด้านนอกเพื่อรีเซ็ตสถานะเมื่อ URL เปลี่ยน */
 function MemberCardPhoto(props: { imageUrl: string }) {
   const [broken, setBroken] = useState(false)
@@ -348,6 +407,7 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
   const code = memberStr(props.member, 'member_code')
   const membershipStatus = memberStr(props.member, 'membership_status') || '—'
   const distinctionLines = memberDistinctionLabels(props.member)
+  const identityQrUrl = memberIdentityScanUrlForQr(props.member)
   const photoUrl =
     safeHttpImageUrl(props.member.photo_url) ??
     safeHttpImageUrl(props.member.profile_photo_url) ??
@@ -370,10 +430,11 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
               {batchName !== '—' ? <span className="text-slate-300"> · {batchName}</span> : null}
             </p>
             {batchYear !== '—' ? <p className="mt-1 text-xs text-slate-500">ปีรุ่น {batchYear}</p> : null}
-            <div className="mt-6 flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-slate-600 bg-slate-900/80 text-[10px] text-slate-500">
-                QR
-              </div>
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <MemberCardQr value={identityQrUrl} />
+              <p className="max-w-[14rem] text-center text-[10px] text-slate-500">
+                QR นี้ระบุตัวคุณเท่านั้น — ใช้รับบัตรหรือยืนยันตัวตนในงานได้เมื่อระบบงานเปิดใช้
+              </p>
             </div>
             <dl className="mt-6 space-y-2 text-left text-sm">
               <div className="flex justify-between gap-4 border-t border-slate-800 pt-3">

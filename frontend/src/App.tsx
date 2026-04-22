@@ -20,8 +20,13 @@ const AdminSchoolActivitiesPanel = lazy(async () => {
   const m = await import('./components/AdminSchoolActivitiesPanel')
   return { default: m.AdminSchoolActivitiesPanel }
 })
+const AdminElectionCardsPanel = lazy(async () => {
+  const m = await import('./components/AdminElectionCardsPanel')
+  return { default: m.AdminElectionCardsPanel }
+})
 import { AdminHomePage, AdminLayout } from './components/AdminArea'
 import { CramQrEntryPage } from './components/CramQrEntryPage'
+import { OpenMemberIdentityPage } from './open/OpenMemberIdentityPage'
 import { MemberLinkPanel } from './components/MemberLinkPanel'
 import { MemberRequestsPanel } from './components/MemberRequestsPanel'
 import { PushOptIn } from './components/PushOptIn'
@@ -646,6 +651,7 @@ function AppChrome(props: AppChromeProps) {
             <Route path="/dev" element={<HomePage health={props.health} apiBase={props.apiBase} />} />
           ) : null}
           <Route path="/entry/cram-qr" element={<CramQrEntryPage />} />
+          <Route path="/open/member-identity" element={<OpenMemberIdentityPage apiBase={props.apiBase} />} />
           <Route
             path="/member/*"
             element={
@@ -754,6 +760,14 @@ function AppChrome(props: AppChromeProps) {
               element={
                 <Suspense fallback={adminPanelSuspenseFallback}>
                   <AdminSchoolActivitiesPanel apiBase={props.apiBase} />
+                </Suspense>
+              }
+            />
+            <Route
+              path="election-cards"
+              element={
+                <Suspense fallback={adminPanelSuspenseFallback}>
+                  <AdminElectionCardsPanel apiBase={props.apiBase} />
                 </Suspense>
               }
             />

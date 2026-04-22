@@ -12,6 +12,8 @@ import { importTemplateRouter } from './routes/importTemplate.js'
 import { lineAuthRouter } from './routes/lineAuth.js'
 import { memberRequestsAdminRouter } from './routes/memberRequestsAdmin.js'
 import { membersRouter } from './routes/members.js'
+import { electionAdminRouter } from './routes/electionAdmin.js'
+import { electionPublicRouter } from './routes/electionPublic.js'
 import { portalRouter } from './routes/portal.js'
 import { pushRouter } from './routes/push.js'
 
@@ -109,7 +111,7 @@ export function createApp(): express.Express {
         membersVerify:
           'POST /api/members/verify-link — ผูก LINE กับสมาชิก + sync app_users (member_id, approved)',
         membersSession:
-          'POST /api/members/session-member (line_uid — โหลดสมาชิกที่ผูกไว้แล้วสำหรับกู้เซสชัน; member มี membership_distinction_labels จาก member_distinctions)',
+          'POST /api/members/session-member (line_uid — โหลดสมาชิกที่ผูกไว้แล้วสำหรับกู้เซสชัน; member มี membership_distinction_labels + member_identity_scan_url สำหรับ QR บัตร)',
         membersAppRoles:
           'POST /api/members/app-roles (line_uid, entry_source?) — app_users + roles + entry; sync member_id/approved ถ้าผูกสมาชิกแล้วแต่แถวค้าง',
         membersDonations:
@@ -138,6 +140,10 @@ export function createApp(): express.Express {
           'GET/POST/PATCH /api/admin/cram/classrooms, GET/POST/PATCH/DELETE /api/admin/cram/students (Admin key: x-admin-key) — ห้อง/นักเรียนกวดวิชา',
         schoolActivities:
           'GET/POST/PATCH/DELETE /api/admin/school-activities (กิจกรรมโรงเรียน / school_activities) | GET …/donations/summary | GET …/yupparaj-export.csv (Admin key: x-admin-key)',
+        publicElection:
+          'GET /api/public/election/events/active | POST /api/public/election/card-claim { t, election_event_slug | election_event_id }',
+        adminElectionEvents:
+          'GET|POST /api/admin/election-events (x-admin-key) | PATCH /api/admin/election-events/:id | GET /api/admin/election-events/:id/stats',
       },
     })
   })
@@ -160,6 +166,13 @@ export function createApp(): express.Express {
     legacyHeaders: false,
   })
 
+  const electionPublicLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+
   app.use('/api/auth/line', lineOAuthLimit, lineAuthRouter)
   app.use('/api/portal', membersPublicLimit, portalRouter)
   app.use('/api/push', pushRouter)
@@ -170,6 +183,8 @@ export function createApp(): express.Express {
   app.use('/api/admin/members', importTemplateRouter)
   app.use('/api/admin/members', adminAuth, importMembersRouter)
   app.use('/api/admin/members', adminAuth, appRolesAdminRouter)
+  app.use('/api/admin/election-events', adminAuth, electionAdminRouter)
+  app.use('/api/public/election', electionPublicLimit, electionPublicRouter)
   app.use('/api/members', membersPublicLimit, membersRouter)
 
   return app

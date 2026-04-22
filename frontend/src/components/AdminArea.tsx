@@ -42,6 +42,9 @@ export function AdminLayout() {
           <NavLink to="/admin/school-activities" className={adminNavClass}>
             กิจกรรมโรงเรียน
           </NavLink>
+          <NavLink to="/admin/election-cards" className={adminNavClass}>
+            รับบัตรเลือกตั้ง
+          </NavLink>
         </nav>
       </header>
 
@@ -104,6 +107,12 @@ export function AdminHomePage() {
           badge="คำร้อง"
           title="คำร้องขอแก้ไขข้อมูลสมาชิก"
           description="ตรวจคำร้องจากสมาชิกที่ขอแก้ไขข้อมูลในทะเบียน"
+        />
+        <AdminCard
+          to="/admin/election-cards"
+          badge="QR"
+          title="รับบัตรเลือกตั้ง (QR บัตรสมาชิก)"
+          description="สร้างงานรับบัตร ดูสถิติตามรุ่นและเปอร์เซ็นต์เทียบสมาชิก Active — สมาชิกสแกน QR ที่หน้า /open/member-identity"
         />
       </AdminSection>
 
