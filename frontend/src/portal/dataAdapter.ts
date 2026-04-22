@@ -169,10 +169,7 @@ type PortalSnapshotSlice<TData> = Omit<PortalDataState<TData>, 'refetch'>
 const memberPortalMockData: MemberPortalData = {
   statsCards: memberStatsCards,
   roleCards: {
-    member: [
-      { label: 'กิจกรรมที่สมัคร', value: '3', hint: 'กิจกรรมที่กำลังเข้าร่วมอยู่' },
-      { label: 'การแจ้งเตือนใหม่', value: '5', hint: 'ยังไม่ได้อ่านในรอบ 7 วัน' },
-    ],
+    member: [],
     staff: [
       { label: 'คำร้องต้องติดตาม', value: '14', hint: 'รายการที่ต้องประสานงานเพิ่ม' },
       { label: 'เอกสารรอตรวจ', value: '9', hint: 'เอกสารรายงานที่ยังไม่สมบูรณ์' },

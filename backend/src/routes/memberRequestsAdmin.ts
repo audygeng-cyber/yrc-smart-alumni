@@ -4,9 +4,10 @@ import { presidentAuth } from '../middleware/presidentAuth.js'
 import { getServiceSupabase } from '../lib/supabase.js'
 import { assertPresidentForRequestBatch } from '../util/presidentKeys.js'
 import { normalizeWhitespace } from '../util/normalize.js'
+import { distinctionSpecsFromRegistrationData, replaceMemberDistinctions } from '../util/memberDistinctions.js'
 import { memberInsertFromRequestedData } from '../util/memberFromRequestedData.js'
 import { appendMemberRequestHistory, buildMemberRequestHistoryEntry } from '../util/memberRequestHistory.js'
-import { syncAppUserAfterMemberLink } from '../util/syncAppUserWithMember.js'
+import { rollbackSyncedMemberRegistration, syncAppUserAfterMemberLink } from '../util/syncAppUserWithMember.js'
 
 export const memberRequestsAdminRouter = Router()
 
@@ -178,9 +179,20 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
         return
       }
 
-      const synced = await syncAppUserAfterMemberLink(supabase, line_uid, newMember.id as string)
+      const memberId = newMember.id as string
+      const regSpecs = distinctionSpecsFromRegistrationData(requested_data)
+      if (regSpecs.length) {
+        const distRes = await replaceMemberDistinctions(supabase, memberId, regSpecs)
+        if (distRes.error) {
+          await supabase.from('members').delete().eq('id', memberId)
+          res.status(500).json({ error: 'บันทึกมิติสมาชิกไม่สำเร็จ', details: distRes.error.message })
+          return
+        }
+      }
+
+      const synced = await syncAppUserAfterMemberLink(supabase, line_uid, memberId)
       if (!synced.ok) {
-        await supabase.from('members').delete().eq('id', newMember.id as string)
+        await supabase.from('members').delete().eq('id', memberId)
         res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: synced.error })
         return
       }
@@ -207,11 +219,20 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
         .eq('id', id)
 
       if (finErr) {
+        const rb = await rollbackSyncedMemberRegistration(supabase, line_uid, memberId)
+        if (rb.error) {
+          res.status(500).json({
+            error: 'ปิดคำร้องไม่สำเร็จ และ rollback ทะเบียนไม่สมบูรณ์ — ตรวจสอบ members / app_users ด้วยตนเอง',
+            details: finErr,
+            rollbackError: rb.error.message,
+          })
+          return
+        }
         res.status(500).json({ error: 'ปิดคำร้องไม่สำเร็จ', details: finErr })
         return
       }
 
-      res.json({ ok: true, memberId: newMember.id })
+      res.json({ ok: true, memberId })
       return
     }
 

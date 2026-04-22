@@ -118,7 +118,7 @@ npm run migrations:list
 2. ตรวจค่าอย่างน้อย:
    - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
    - `FRONTEND_ORIGINS` = URL หน้าเว็บ Vercel แบบเต็ม เช่น `https://ชื่อ-app.vercel.app` (คั่นหลายค่าด้วย comma ไม่เว้นช่องเกินจำเป็น)
-   - คีย์ที่ endpoint admin/ประธานใช้: `ADMIN_UPLOAD_KEY`, `PRESIDENT_UPLOAD_KEY` หรือ `PRESIDENT_KEYS_JSON` ตามที่ตั้งไว้
+   - คีย์ที่ endpoint admin/ประธานใช้: `ADMIN_UPLOAD_KEY`, `PRESIDENT_UPLOAD_KEY` หรือ `PRESIDENT_KEYS_JSON` ตามที่ตั้งไว้ (ถ้า JSON มี `member_id` ต่อรุ่น หลัง deploy ใช้แผงนำเข้า → **ซิงก์ประธานรุ่น** หรือ `POST /api/admin/members/sync-registry-presidents` เพื่อเขียนมิติ `batch_president` ในตาราง `member_distinctions`)
    - ถ้าใช้ LINE / Push: `LINE_*`, `VAPID_*` ตาม `backend/.env.example`
 3. **Revision ล่าสุด** ต้องเป็น revision ที่ deploy หลังแก้ env (หรือหลัง deploy image ใหม่)
 4. ทดสอบจากเบราว์เซอร์หรือเทอร์มินัล:

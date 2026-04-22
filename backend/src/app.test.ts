@@ -155,7 +155,8 @@ describe.sequential('createApp', () => {
     const res = await request(app).get('/api/portal/member')
     expect(res.status).toBe(200)
     expect(Array.isArray(res.body.statsCards)).toBe(true)
-    expect(res.body.roleCards?.member?.length).toBeGreaterThan(0)
+    expect(Array.isArray(res.body.roleCards?.member)).toBe(true)
+    expect(res.body.roleCards.member.length).toBe(0)
     expect(res.body.roleCards?.staff?.length).toBeGreaterThan(0)
     expect(Array.isArray(res.body.batchDistribution)).toBe(true)
     expect(Array.isArray(res.body.meetingReports)).toBe(true)
@@ -215,6 +216,8 @@ describe.sequential('createApp', () => {
     expect(res.headers['content-type']?.includes('text/csv')).toBe(true)
     expect(res.text).toContain('รุ่น')
     expect(res.text).toContain('ชื่อ')
+    expect(res.text).toContain('ประธานรุ่น')
+    expect(res.text).toContain('ศิษย์เก่าดีเด่น')
   })
 
   it('GET import template XLSX (public)', async () => {
@@ -228,6 +231,32 @@ describe.sequential('createApp', () => {
     vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
     const app = createApp()
     const res = await request(app).get('/api/admin/members/summary')
+    expect(res.status).toBe(401)
+    expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
+  })
+
+  it('GET /api/admin/members/directory requires admin key', async () => {
+    vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
+    const app = createApp()
+    const res = await request(app).get('/api/admin/members/directory?view=person&q=test')
+    expect(res.status).toBe(401)
+    expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
+  })
+
+  it('PATCH /api/admin/members/:id/directory-flags requires admin key', async () => {
+    vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
+    const app = createApp()
+    const res = await request(app)
+      .patch('/api/admin/members/00000000-0000-0000-0000-000000000099/directory-flags')
+      .send({ batch_president: true })
+    expect(res.status).toBe(401)
+    expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
+  })
+
+  it('POST /api/admin/members/sync-registry-presidents requires admin key', async () => {
+    vi.stubEnv('ADMIN_UPLOAD_KEY', 'test-admin-key')
+    const app = createApp()
+    const res = await request(app).post('/api/admin/members/sync-registry-presidents').send({ dryRun: true })
     expect(res.status).toBe(401)
     expect(res.body.error).toBe('ไม่ได้รับอนุญาต')
   })

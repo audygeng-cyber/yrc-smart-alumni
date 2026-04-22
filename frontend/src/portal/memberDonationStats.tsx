@@ -97,20 +97,18 @@ const MOCK_STATS: YupparajPublicStats = {
   ],
 }
 
-function BarRow(props: { label: string; sub?: string; value: number; max: number }) {
-  const pct = props.max > 0 ? Math.min(100, (props.value / props.max) * 100) : 0
-  const bg = 'bg-gradient-to-r from-sky-600/90 to-sky-400/80'
+function BatchAmountRow(props: { label: string; sub?: string; value: number; donationCount: number }) {
   return (
-    <div className="min-w-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-1 text-xs">
-        <span className="truncate font-medium text-slate-200">{props.label}</span>
-        <span className="shrink-0 tabular-nums text-fuchsia-200/95">
-          {Math.round(props.value).toLocaleString('th-TH')} ฿
-        </span>
-      </div>
-      {props.sub ? <p className="truncate text-[10px] text-slate-500">{props.sub}</p> : null}
-      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-800/90" role="presentation">
-        <div className={`h-full rounded-full transition-[width] duration-500 ${bg}`} style={{ width: `${pct}%` }} />
+    <div className="min-w-0 rounded-lg border border-slate-800/80 bg-slate-900/30 px-3 py-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
+        <div className="min-w-0">
+          <span className="font-medium text-slate-200">{props.label}</span>
+          {props.sub ? <p className="truncate text-[10px] text-slate-500">{props.sub}</p> : null}
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="tabular-nums text-fuchsia-200/95">{Math.round(props.value).toLocaleString('th-TH')} ฿</p>
+          <p className="text-[10px] text-slate-500">{props.donationCount.toLocaleString('th-TH')} รายการโอน</p>
+        </div>
       </div>
     </div>
   )
@@ -542,13 +540,6 @@ export function MemberYupparajPublicStats(props: {
     void load()
   }, [load, props.refreshTrigger])
 
-  const maxBatch = useMemo(() => {
-    const rows = stats?.byBatch ?? []
-    let m = 0
-    for (const b of rows) m = Math.max(m, b.totalAmount)
-    return m > 0 ? m : 1
-  }, [stats?.byBatch])
-
   const donorGroups = useMemo(
     () => (stats ? buildActivityDonorGroups(stats, props.linkedActivities) : []),
     [stats, props.linkedActivities],
@@ -636,12 +627,7 @@ export function MemberYupparajPublicStats(props: {
 
       {activityCards.length > 0 ? (
         <div className="mt-8">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">แต่ละโครงการ</h4>
-          {props.linkedActivities != null && props.linkedActivities.length > 0 ? (
-            <p className="mt-1 text-[11px] text-slate-500">
-              ลำดับและชื่อโครงการตรงกับที่ Admin ตั้งในระบบและที่แสดงในหน้า «สนับสนุนกิจกรรม» — ยอดสะสมจาก API แบบสด
-            </p>
-          ) : null}
+          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายละเอียดกิจกรรม</h4>
           <div className="mt-3 grid gap-4 md:grid-cols-2">
             {activityCards.map((a) => (
               <ActivityStatCard
@@ -662,16 +648,15 @@ export function MemberYupparajPublicStats(props: {
 
       {stats.byBatch.length > 0 ? (
         <div className="mt-8">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">สัดส่วนตามรุ่น (ยอดรวม)</h4>
-          <p className="mt-1 text-[11px] text-slate-500">เปรียบเทียบยอดระหว่างรุ่น — แถบยาวตามสัดส่วนยอดสูงสุดในหน้านี้</p>
-          <div className="mt-4 space-y-4">
+          <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">สถิติแยกตามรุ่น</h4>
+          <div className="mt-4 space-y-2">
             {stats.byBatch.map((b) => (
-              <BarRow
+              <BatchAmountRow
                 key={`${b.batch}-${b.batchName ?? ''}`}
                 label={`รุ่น ${b.batch}`}
                 sub={b.batchName ? b.batchName : undefined}
                 value={b.totalAmount}
-                max={maxBatch}
+                donationCount={b.donationCount}
               />
             ))}
           </div>
@@ -681,9 +666,6 @@ export function MemberYupparajPublicStats(props: {
       {stats.donors.length > 0 ? (
         <div className="mt-8">
           <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">รายชื่อผู้บริจาคตามโครงการ</h4>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-            แยกตามโครงการเดียวกับที่แสดงด้านบน (จาก Admin / school_activities) — กด «บันทึกเป็นภาพ» เพื่อดาวน์โหลด PNG ส่งแจ้งใน LINE (ยอดอัปเดตเมื่อเปิดหน้านี้หรือรีเฟรชสถิติ)
-          </p>
           <div className="mt-4 space-y-0">
             {donorGroups.map((g) => (
               <ActivityDonorSection key={g.activityId} group={g} generatedAt={stats.generatedAt} />

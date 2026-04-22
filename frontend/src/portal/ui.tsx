@@ -18,7 +18,8 @@ function portalNavLinkClass(isActive: boolean, layout: 'sidebar' | 'strip') {
 
 export function PortalShell(props: {
   title: string
-  subtitle: string
+  /** ถ้าไม่ส่งหรือว่าง — ไม่แสดงบรรทัดรองใต้หัวเรื่อง */
+  subtitle?: string
   navItems: PortalNavItem[]
   children: React.ReactNode
 }) {
@@ -34,7 +35,9 @@ export function PortalShell(props: {
         <h2 id={titleId} className="text-sm font-medium uppercase tracking-wide text-slate-300">
           {props.title}
         </h2>
-        <p className="mt-2 text-sm text-slate-400 line-clamp-2 sm:line-clamp-none">{props.subtitle}</p>
+        {props.subtitle?.trim() ? (
+          <p className="mt-2 text-sm text-slate-400 line-clamp-2 sm:line-clamp-none">{props.subtitle.trim()}</p>
+        ) : null}
       </div>
 
       {/* มือถือ/แท็บเล็ต: เมนูพอร์ทัลแนวนอนเลื่อนได้ — ลดการเลื่อนยาวจากรายการเมนูแนวตั้งเต็มความกว้าง */}

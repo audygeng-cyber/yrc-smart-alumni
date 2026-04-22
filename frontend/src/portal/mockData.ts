@@ -49,7 +49,7 @@ export const memberStatsCards: MetricItem[] = [
   { label: 'สมาชิกทั้งหมด', value: '1,248', hint: 'ภาพรวมทั้งสมาคมศิษย์เก่า' },
   { label: 'จำนวนรุ่น', value: '58', hint: 'รุ่นที่มีข้อมูลในทะเบียน' },
   { label: 'สมาชิกที่ใช้งานอยู่', value: '1,019', hint: 'มีการใช้งานล่าสุดในระบบ' },
-  { label: 'คำร้องเดือนนี้', value: '42', hint: 'คำร้องอัปเดตข้อมูลทั้งหมด' },
+  { label: 'คำร้องสมาชิก', value: '42', hint: 'คำร้องอัปเดตข้อมูลทั้งหมด' },
 ]
 
 export const memberBatchDistribution: TrendItem[] = [

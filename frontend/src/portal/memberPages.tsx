@@ -82,11 +82,7 @@ export function MemberArea(props: {
     .map((item) => ({ to: item.to, label: item.label, shortLabel: item.shortLabel }))
 
   return (
-    <PortalShell
-      title="พอร์ทัลสมาชิก"
-      subtitle="แดชบอร์ด บัตร แก้ข้อมูล สนับสนุนยุพราช สมาคม กวดวิชา — เลือกจากเมนูด้านบนหรือแถบด้านข้างบนจอใหญ่"
-      navItems={visibleNavItems}
-    >
+    <PortalShell title="พอร์ทัลสมาชิก" navItems={visibleNavItems}>
       <Routes>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route

@@ -163,6 +163,10 @@ Response: `{ "line_uid": "…", "name": …, "picture": … }`
 - Admin ยังใช้ `Admin key (x-admin-key)` ได้ทุกรุ่น  
 - ถ้าไม่ตั้ง JSON แต่ตั้ง `PRESIDENT_UPLOAD_KEY` อย่างเดียว = คีย์เดียวใช้ได้ทุกรุ่น (จนกว่าจะเปลี่ยนเป็น JSON)
 
+**ผูกกับทะเบียน (`member_distinctions` รหัส `batch_president`)** — ใช้ค่าเป็น object ต่อรุ่น ระบุ `member_id` (UUID ของ `members.id`) คู่กับ `key` หรือ `president_key` จากนั้น Admin เรียก `POST /api/admin/members/sync-registry-presidents` (header `x-admin-key`) เพื่อตั้งประธานรุ่นในรุ่นนั้นให้เป็นคนเดียว โดยลบมิติประธานรุ่นของคนอื่นในรุ่นเดียวก่อน รองรับ `dryRun: true` ใน body เพื่อดูแผนโดยไม่อัปเดต DB
+
+ตัวอย่าง: `PRESIDENT_KEYS_JSON={"2520":{"key":"secret-2520","member_id":"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}}`
+
 ## Web Push (แจ้งเตือนคำร้องสมาชิกใหม่)
 
 1. รัน migration `supabase/migrations/20260415140000_push_subscriptions.sql` ใน Supabase  

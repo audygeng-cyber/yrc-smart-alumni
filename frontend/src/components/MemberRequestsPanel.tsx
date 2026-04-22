@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ADMIN_UPLOAD_STORAGE_KEY } from '../lib/adminApi'
 import { msUntilNextHour } from '../lib/wallClockHourly'
 import { themeAccent, themeTapTarget } from '../lib/themeTokens'
@@ -982,6 +983,17 @@ export function MemberRequestsPanel({ apiBase }: Props) {
       <p className="mt-2 text-xs text-slate-400">
         Admin ดูรายการด้วย Admin key (x-admin-key) — ประธานรุ่นอนุมัติขั้นแรกได้ด้วย President key (x-president-key)
         (ตั้ง PRESIDENT_UPLOAD_KEY ในระบบ backend) หรือให้ Admin ใช้ Admin key (x-admin-key) แทนได้
+      </p>
+      <p className="mt-2 text-xs text-slate-500">
+        <Link
+          to="/admin/import#admin-member-directory"
+          className={`font-medium text-fuchsia-300 underline-offset-2 hover:text-fuchsia-200 hover:underline ${portalFocusRing}`}
+        >
+          ค้นหาทะเบียนสมาชิกหลายมิติ
+        </Link>
+        {' — '}
+        รายคน ทั้งรุ่น ประธานรุ่น ศิษย์เก่าดีเด่น กรรมการ (ใช้ Admin key เดียวกับหน้านี้ที่แผงนำเข้า) — ถ้าใช้{' '}
+        <code className="text-slate-500">PRESIDENT_KEYS_JSON</code> แบบมี <code className="text-slate-500">member_id</code> แผงนำเข้ามีปุ่มซิงก์ทะเบียนอัตโนมัติ
       </p>
 
       <label className="mt-4 block text-sm text-slate-300">

@@ -52,3 +52,30 @@ export async function syncAppUserAfterMemberLink(
   if (upErr2) return { ok: false, error: upErr2 }
   return { ok: true }
 }
+
+/**
+ * หลัง `syncAppUserAfterMemberLink` สำเร็จแล้ว แต่ขั้นถัดไปล้ม (เช่น อัปเดต `member_update_requests` เป็น approved ไม่สำเร็จ)
+ * — คืนสถานะ `app_users` ให้สอดคล้องก่อนมีสมาชิกคนนี้ แล้วลบแถว `members` (มิติใน `member_distinctions` cascade ตาม FK)
+ */
+export async function rollbackSyncedMemberRegistration(
+  supabase: SupabaseClient,
+  line_uid: string,
+  memberId: string,
+): Promise<{ error: Error | null }> {
+  const now = new Date().toISOString()
+  const lu = line_uid.trim()
+  const { error: uErr } = await supabase
+    .from('app_users')
+    .update({
+      member_id: null,
+      approval_status: 'pending',
+      updated_at: now,
+    })
+    .eq('line_uid', lu)
+    .eq('member_id', memberId)
+  if (uErr) return { error: new Error(uErr.message) }
+
+  const { error: dErr } = await supabase.from('members').delete().eq('id', memberId)
+  if (dErr) return { error: new Error(dErr.message) }
+  return { error: null }
+}
