@@ -6,6 +6,7 @@ import { assertPresidentForRequestBatch } from '../util/presidentKeys.js'
 import { normalizeWhitespace } from '../util/normalize.js'
 import { memberInsertFromRequestedData } from '../util/memberFromRequestedData.js'
 import { appendMemberRequestHistory, buildMemberRequestHistoryEntry } from '../util/memberRequestHistory.js'
+import { syncAppUserAfterMemberLink } from '../util/syncAppUserWithMember.js'
 
 export const memberRequestsAdminRouter = Router()
 
@@ -174,6 +175,13 @@ memberRequestsAdminRouter.post('/:id/admin-approve', adminAuth, async (req, res)
 
       if (insErr || !newMember) {
         res.status(500).json({ error: 'เพิ่มข้อมูลสมาชิกไม่สำเร็จ', details: insErr })
+        return
+      }
+
+      const synced = await syncAppUserAfterMemberLink(supabase, line_uid, newMember.id as string)
+      if (!synced.ok) {
+        await supabase.from('members').delete().eq('id', newMember.id as string)
+        res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: synced.error })
         return
       }
 

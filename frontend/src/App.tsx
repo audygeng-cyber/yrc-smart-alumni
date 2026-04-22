@@ -148,6 +148,8 @@ export default function App() {
     /** สรุป JSON จาก app-roles / session-member — ไล่บั๊กบนมือถือ */
     detail?: string
   } | null>(null)
+  /** session-member 403 MEMBERSHIP_INACTIVE — แสดงบน LinkPage */
+  const [sessionMemberBlockMessage, setSessionMemberBlockMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -185,7 +187,10 @@ export default function App() {
     if (snap && uid && String(snap.line_uid ?? '') !== uid) {
       setVerifiedMember(null)
     }
-    if (!uid) setVerifiedMember(null)
+    if (!uid) {
+      setVerifiedMember(null)
+      setSessionMemberBlockMessage(null)
+    }
   }, [lineUid])
 
   useEffect(() => {
@@ -198,7 +203,18 @@ export default function App() {
       setRestoringMemberSession(true)
       try {
         const result = await fetchSessionMember(apiBase, lineUid.trim(), controller.signal)
-        if (cancelled || !result.ok) return
+        if (cancelled) return
+        if (!result.ok) {
+          if (!cancelled && 'code' in result && result.code === 'MEMBERSHIP_INACTIVE') {
+            setSessionMemberBlockMessage(
+              'สถานะสมาชิกในทะเบียนยังไม่ Active — หากส่งคำร้องสมัครใหม่ ต้องรอประธานรุ่นและ Admin อนุมัติครบก่อนจึงจะใช้พอร์ทัลได้ หรือติดต่อผู้ดูแลหากเป็นสมาชิกเดิม',
+            )
+          } else if (!cancelled) {
+            setSessionMemberBlockMessage(null)
+          }
+          return
+        }
+        setSessionMemberBlockMessage(null)
         setMemberSnapshot(result.member)
         setVerifiedMember(result.member)
         setLinkedMemberVersion((n) => n + 1)
@@ -280,10 +296,20 @@ export default function App() {
             text: `บันทึก LINE UID ในระบบไม่สำเร็จ: ${persisted.error}${persisted.status != null ? ` (HTTP ${persisted.status})` : ''} — ตรวจ VITE_API_URL และ CORS`,
             detail,
           })
+        } else if (!session.ok && 'code' in session && session.code === 'MEMBERSHIP_INACTIVE') {
+          setSessionMemberBlockMessage(
+            'สถานะสมาชิกในทะเบียนยังไม่ Active — หากส่งคำร้องสมัครใหม่ ต้องรอประธานรุ่นและ Admin อนุมัติครบก่อนจึงจะใช้พอร์ทัลได้ หรือติดต่อผู้ดูแลหากเป็นสมาชิกเดิม',
+          )
+          setLineIdentitySyncMessage({
+            kind: 'ok',
+            text: 'ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว — แต่ยังเข้าพอร์ทัลสมาชิกไม่ได้จนกว่าสถานะในทะเบียนจะ Active',
+            detail,
+          })
         } else {
           const sessionHint = session.ok
             ? 'พบแถวสมาชิกที่ผูก LINE แล้ว — เปิดหน้าสมาชิกได้'
             : 'ยังไม่พบสมาชิกที่ผูก LINE นี้ในระบบ — ใช้ฟอร์มด้านล่างเพื่อตรวจและผูก (session-member อาจเป็น 404)'
+          setSessionMemberBlockMessage(null)
           setLineIdentitySyncMessage({
             kind: 'ok',
             text: `ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว — ${sessionHint}`,
@@ -357,6 +383,7 @@ export default function App() {
     setLineUidFromOAuth(false)
     setVerifiedMember(null)
     setLineIdentitySyncMessage(null)
+    setSessionMemberBlockMessage(null)
   }
 
   function handleLineUidManualChange(v: string) {
@@ -366,6 +393,7 @@ export default function App() {
   }
 
   function handleMemberVerified(member: Record<string, unknown>) {
+    setSessionMemberBlockMessage(null)
     setMemberSnapshot(member)
     setVerifiedMember(member)
     setLinkedMemberVersion((n) => n + 1)
@@ -406,6 +434,8 @@ export default function App() {
         }}
         lineIdentitySyncMessage={lineIdentitySyncMessage}
         onDismissLineIdentityMessage={() => setLineIdentitySyncMessage(null)}
+        sessionMemberBlockMessage={sessionMemberBlockMessage}
+        onDismissSessionMemberBlockMessage={() => setSessionMemberBlockMessage(null)}
       />
     </AppRolesProvider>
   )
@@ -431,6 +461,8 @@ type AppChromeProps = {
   onMemberUpdated: (m: Record<string, unknown>) => void
   lineIdentitySyncMessage: { kind: 'ok' | 'err'; text: string; detail?: string } | null
   onDismissLineIdentityMessage: () => void
+  sessionMemberBlockMessage: string | null
+  onDismissSessionMemberBlockMessage: () => void
 }
 
 function AppChrome(props: AppChromeProps) {
@@ -604,6 +636,8 @@ function AppChrome(props: AppChromeProps) {
                 onMemberVerified={props.onMemberVerified}
                 lineIdentitySyncMessage={props.lineIdentitySyncMessage}
                 onDismissLineIdentityMessage={props.onDismissLineIdentityMessage}
+                sessionMemberBlockMessage={props.sessionMemberBlockMessage}
+                onDismissSessionMemberBlockMessage={props.onDismissSessionMemberBlockMessage}
               />
             }
           />
@@ -642,6 +676,8 @@ function AppChrome(props: AppChromeProps) {
                   onMemberVerified={props.onMemberVerified}
                   lineIdentitySyncMessage={props.lineIdentitySyncMessage}
                   onDismissLineIdentityMessage={props.onDismissLineIdentityMessage}
+                  sessionMemberBlockMessage={props.sessionMemberBlockMessage}
+                  onDismissSessionMemberBlockMessage={props.onDismissSessionMemberBlockMessage}
                 />
               )
             }
@@ -874,6 +910,8 @@ function LinkPage(props: {
   onMemberVerified: (m: Record<string, unknown>) => void
   lineIdentitySyncMessage: { kind: 'ok' | 'err'; text: string; detail?: string } | null
   onDismissLineIdentityMessage: () => void
+  sessionMemberBlockMessage: string | null
+  onDismissSessionMemberBlockMessage: () => void
 }) {
   const hasMember = Boolean(props.verifiedMember && props.lineUid)
   const lineEntry = readLineEntrySource()
@@ -902,6 +940,24 @@ function LinkPage(props: {
               type="button"
               onClick={() => props.onDismissLineIdentityMessage()}
               className={`${themeTapTarget} w-full shrink-0 rounded-md border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800/80 sm:w-auto ${themeAccent.focusRing}`}
+            >
+              ปิด
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {props.sessionMemberBlockMessage ? (
+        <section
+          className="mb-4 rounded-xl border border-amber-800/55 bg-amber-950/25 p-4 text-sm text-amber-100/95"
+          role="alert"
+          aria-live="polite"
+        >
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+            <p className="min-w-0 flex-1 break-words">{props.sessionMemberBlockMessage}</p>
+            <button
+              type="button"
+              onClick={() => props.onDismissSessionMemberBlockMessage()}
+              className={`${themeTapTarget} w-full shrink-0 rounded-md border border-amber-800/60 px-3 py-2 text-xs text-amber-100 hover:bg-amber-950/50 sm:w-auto ${themeAccent.focusRing}`}
             >
               ปิด
             </button>

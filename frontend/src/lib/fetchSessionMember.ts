@@ -7,7 +7,7 @@ export type FetchSessionMemberOk = {
   trace: string
 }
 
-export type FetchSessionMemberFail = { ok: false; status: number; trace: string }
+export type FetchSessionMemberFail = { ok: false; status: number; trace: string; code?: string }
 
 /**
  * โหลดแถวสมาชิกที่ผูก LINE UID แล้ว (POST /api/members/session-member)
@@ -31,9 +31,10 @@ export async function fetchSessionMember(
   })
   const j = (await r.json().catch(() => ({}))) as Record<string, unknown>
   const trace = summarizeSessionMemberTrace(r.status, j)
+  const code = typeof j.code === 'string' ? j.code : undefined
   const m = j.member
   if (!r.ok || !m || typeof m !== 'object' || Array.isArray(m)) {
-    return { ok: false, status: r.status, trace }
+    return { ok: false, status: r.status, trace, code }
   }
   return { ok: true, member: m as Record<string, unknown>, trace }
 }

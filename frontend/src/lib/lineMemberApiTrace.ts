@@ -18,6 +18,7 @@ export function summarizeAppRolesTrace(status: number, body: Record<string, unkn
     roles: body.roles,
     app_user_id: body.app_user_id,
     has_linked_member: body.has_linked_member,
+    membership_active: body.membership_active,
     approval_status: body.approval_status,
     line_uid: body.line_uid,
   }

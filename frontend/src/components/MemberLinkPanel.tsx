@@ -119,11 +119,11 @@ export function MemberLinkPanel({
   const requestStatusLabel = useMemo(() => {
     switch (requestStatus?.status) {
       case 'pending_president':
-        return 'รอประธานรุ่นอนุมัติ'
+        return 'รอประธานรุ่นอนุมัติ (ยังไม่ Active)'
       case 'pending_admin':
-        return 'รอ Admin อนุมัติ'
+        return 'รอ Admin อนุมัติ (ยังไม่ Active)'
       case 'approved':
-        return 'อนุมัติแล้ว'
+        return 'อนุมัติครบแล้ว (พร้อม Active ในทะเบียน)'
       case 'rejected':
         return 'ถูกปฏิเสธ'
       default:
@@ -177,6 +177,14 @@ export function MemberLinkPanel({
           /* ignore */
         }
         navigate('/member', { replace: true })
+        return
+      }
+      if (r.status === 403 && j.code === 'MEMBERSHIP_INACTIVE') {
+        setMsg(
+          typeof j.error === 'string' && j.error.trim()
+            ? j.error.trim()
+            : 'สถานะสมาชิกในทะเบียนยังไม่ Active — หากส่งคำร้องสมัครใหม่ ต้องรอประธานรุ่นและ Admin อนุมัติครบก่อน หรือติดต่อผู้ดูแลหากเป็นสมาชิกเดิม',
+        )
         return
       }
       if (!r.ok) {
@@ -263,6 +271,9 @@ export function MemberLinkPanel({
       <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ผูกบัญชีสมาชิก</h2>
       <p className="mt-2 text-xs text-slate-400">
         กรอกรุ่น · ชื่อ · นามสกุล ให้ตรงทะเบียน แล้วกด &quot;เข้าสู่ระบบด้วย LINE&quot; ด้านล่างเพื่อดึง LINE UID
+      </p>
+      <p className="mt-2 text-xs text-slate-500">
+        สมัครใหม่: หลังส่งคำร้อง ต้องรอประธานรุ่นอนุมัติ แล้ว Admin อนุมัติตามลำดับ — ระหว่างรอจะยังไม่มีสถานะสมาชิก Active ในทะเบียน (ยังเข้าพอร์ทัลเต็มรูปแบบไม่ได้) จนกว่าจะอนุมัติครบและมีแถวสมาชิกในระบบ
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">

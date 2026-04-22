@@ -44,7 +44,7 @@ function pickInt(d: Record<string, unknown>, key: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-/** สร้างแถวสำหรับ insert เข้า members จากคำร้องสมัครใหม่ */
+/** สร้างแถวสำหรับ insert เข้า members จากคำร้องสมัครใหม่ (หลังประธานรุ่น + Admin อนุมัติครบแล้วเท่านั้น) */
 export function memberInsertFromRequestedData(
   line_uid: string,
   requested_data: Record<string, unknown>,
@@ -52,6 +52,7 @@ export function memberInsertFromRequestedData(
   const out: Record<string, unknown> = {
     line_uid,
     organization: 'alumni',
+    /** ค่าเริ่มต้น Active — สมาชิกถือว่า active ในทะเบียนหลังคำร้องผ่านลำดับอนุมัติแล้ว */
     membership_status: pickString(requested_data, 'membership_status') ?? 'Active',
   }
 

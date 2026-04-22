@@ -7,6 +7,8 @@ import type { MemberRow } from '../util/memberImportMap.js'
 import { parseStoragePublicObjectPath } from '../util/memberProfilePhotoStorage.js'
 import { mergeMemberProfileSnapshot, parseMemberSelfUpdates } from '../util/memberSelfUpdate.js'
 import { normalizeWhitespace } from '../util/normalize.js'
+import { isMemberMembershipActive } from '../util/memberMembership.js'
+import { syncAppUserAfterMemberLink } from '../util/syncAppUserWithMember.js'
 
 /** ช่องทางเข้าระบบ (สอดคล้อง frontend `lineEntrySource.ts`) — ใช้ประกอบบันทึก/audit ภายหลัง */
 const APP_ENTRY_SOURCES = new Set(['alumni_url', 'cram_qr', 'cram_alumni_url'])
@@ -19,6 +21,11 @@ const profilePhotoUpload = multer({
 })
 
 export const membersRouter = Router()
+
+const MEMBERSHIP_INACTIVE_JSON = {
+  code: 'MEMBERSHIP_INACTIVE' as const,
+  error: 'สถานะสมาชิกในทะเบียนยังไม่ Active — รอการอนุมัติหรือติดต่อผู้ดูแล',
+}
 
 async function fetchMemberRowById(supabase: ReturnType<typeof getServiceSupabase>, id: string) {
   const { data, error } = await supabase.from('members').select('*').eq('id', id).maybeSingle()
@@ -64,59 +71,6 @@ function extFromImageMime(mime: string): string {
   return 'bin'
 }
 
-/**
- * A2: หลัง verify-link สำเร็จ — ให้ `app_users` สอดคล้องกับ `members` (member_id + approved)
- * ครอบคลุมกรณีเคยสร้างแถวจาก POST /app-roles ตอนยังไม่ผูกสมาชิก (pending / member_id null)
- */
-async function syncAppUserAfterVerifyLink(
-  supabase: ReturnType<typeof getServiceSupabase>,
-  line_uid: string,
-  memberId: string,
-): Promise<{ ok: true } | { ok: false; error: unknown }> {
-  const now = new Date().toISOString()
-  const { data: existing, error: qErr } = await supabase.from('app_users').select('id').eq('line_uid', line_uid).maybeSingle()
-  if (qErr) return { ok: false, error: qErr }
-
-  if (existing?.id) {
-    const { error: upErr } = await supabase
-      .from('app_users')
-      .update({
-        member_id: memberId,
-        approval_status: 'approved',
-        updated_at: now,
-      })
-      .eq('id', existing.id)
-    if (upErr) return { ok: false, error: upErr }
-    return { ok: true }
-  }
-
-  const { error: insErr } = await supabase.from('app_users').insert({
-    line_uid,
-    member_id: memberId,
-    approval_status: 'approved',
-  })
-  if (!insErr) return { ok: true }
-
-  const code = (insErr as { code?: string }).code
-  const msg = String((insErr as { message?: string }).message ?? '')
-  const isDup = code === '23505' || msg.includes('duplicate') || msg.includes('unique')
-  if (!isDup) return { ok: false, error: insErr }
-
-  const again = await supabase.from('app_users').select('id').eq('line_uid', line_uid).maybeSingle()
-  if (again.error || !again.data?.id) return { ok: false, error: again.error ?? insErr }
-
-  const { error: upErr2 } = await supabase
-    .from('app_users')
-    .update({
-      member_id: memberId,
-      approval_status: 'approved',
-      updated_at: now,
-    })
-    .eq('id', again.data.id)
-  if (upErr2) return { ok: false, error: upErr2 }
-  return { ok: true }
-}
-
 membersRouter.get('/', (_req, res) => {
   res.json({
     message: 'กำลังเตรียมหน้ารายการสมาชิก โดยจะเปิดใช้งานร่วมกับ auth และ Supabase RLS',
@@ -148,6 +102,10 @@ membersRouter.post('/session-member', async (req, res) => {
     }
 
     const full = await fetchMemberRowById(supabase, row.id as string)
+    if (!isMemberMembershipActive(full?.membership_status)) {
+      res.status(403).json(MEMBERSHIP_INACTIVE_JSON)
+      return
+    }
     res.json({ ok: true, memberId: row.id, member: full })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
@@ -174,12 +132,18 @@ membersRouter.post('/app-roles', async (req, res) => {
 
     const supabase = getServiceSupabase()
 
-    const { data: memberRow, error: mErr } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
+    const { data: memberRow, error: mErr } = await supabase
+      .from('members')
+      .select('id, membership_status')
+      .eq('line_uid', line_uid)
+      .maybeSingle()
     if (mErr) {
       res.status(500).json({ error: 'ค้นหาสมาชิกไม่สำเร็จ', details: mErr })
       return
     }
     const hasLinkedMember = Boolean(memberRow?.id)
+    const membershipActive =
+      hasLinkedMember && isMemberMembershipActive((memberRow as { membership_status?: string | null }).membership_status)
 
     const userLookup = await supabase
       .from('app_users')
@@ -241,7 +205,7 @@ membersRouter.post('/app-roles', async (req, res) => {
       const mid = memberRow.id as string
       const cur = appUser as { member_id?: string | null; approval_status?: string }
       if (cur.member_id !== mid || cur.approval_status !== 'approved') {
-        const synced = await syncAppUserAfterVerifyLink(supabase, line_uid, mid)
+        const synced = await syncAppUserAfterMemberLink(supabase, line_uid, mid)
         if (!synced.ok) {
           res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: synced.error })
           return
@@ -305,7 +269,7 @@ membersRouter.post('/app-roles', async (req, res) => {
         .filter((x): x is string => typeof x === 'string' && Boolean(x.trim()))
     }
 
-    if (hasLinkedMember && !roles.includes('member')) {
+    if (membershipActive && !roles.includes('member')) {
       roles = [...roles, 'member']
     }
 
@@ -315,6 +279,7 @@ membersRouter.post('/app-roles', async (req, res) => {
       app_user_id: appUser?.id ?? null,
       approval_status: appUser?.approval_status ?? null,
       has_linked_member: hasLinkedMember,
+      membership_active: membershipActive,
       roles,
       entry_source,
       first_entry_source: firstEntryOut,
@@ -387,7 +352,7 @@ membersRouter.post('/verify-link', async (req, res) => {
 
     const { data: rows, error: qErr } = await supabase
       .from('members')
-      .select('id, line_uid')
+      .select('id, line_uid, membership_status')
       .eq('batch', nb)
       .eq('first_name', nf)
       .eq('last_name', nl)
@@ -444,8 +409,13 @@ membersRouter.post('/verify-link', async (req, res) => {
       return
     }
 
+    if (!isMemberMembershipActive((member as { membership_status?: string | null }).membership_status)) {
+      res.status(403).json(MEMBERSHIP_INACTIVE_JSON)
+      return
+    }
+
     if (member.line_uid === line_uid) {
-      const synced = await syncAppUserAfterVerifyLink(supabase, line_uid, member.id as string)
+      const synced = await syncAppUserAfterMemberLink(supabase, line_uid, member.id as string)
       if (!synced.ok) {
         res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: synced.error })
         return
@@ -465,7 +435,7 @@ membersRouter.post('/verify-link', async (req, res) => {
       return
     }
 
-    const syncedAfterLink = await syncAppUserAfterVerifyLink(supabase, line_uid, member.id as string)
+    const syncedAfterLink = await syncAppUserAfterMemberLink(supabase, line_uid, member.id as string)
     if (!syncedAfterLink.ok) {
       res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: syncedAfterLink.error })
       return
@@ -517,6 +487,10 @@ membersRouter.post('/update-self', async (req, res) => {
       res.status(403).json({
         error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้ — ใช้ "ตรวจสอบและผูก" ก่อน',
       })
+      return
+    }
+    if (!isMemberMembershipActive((row as { membership_status?: string | null }).membership_status)) {
+      res.status(403).json(MEMBERSHIP_INACTIVE_JSON)
       return
     }
 
@@ -588,6 +562,10 @@ membersRouter.post('/profile-photo', profilePhotoUpload.single('photo'), async (
       })
       return
     }
+    if (!isMemberMembershipActive((row as { membership_status?: string | null }).membership_status)) {
+      res.status(403).json(MEMBERSHIP_INACTIVE_JSON)
+      return
+    }
 
     const memberId = String(row.id)
     const objectPath = `${memberId}/${randomUUID()}.${extFromImageMime(mime)}`
@@ -654,7 +632,11 @@ membersRouter.get('/profile-versions', async (req, res) => {
     }
 
     const supabase = getServiceSupabase()
-    const { data: row, error: qErr } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
+    const { data: row, error: qErr } = await supabase
+      .from('members')
+      .select('id, membership_status')
+      .eq('line_uid', line_uid)
+      .maybeSingle()
 
     if (qErr) {
       res.status(500).json({ error: 'ค้นหาข้อมูลไม่สำเร็จ', details: qErr })
@@ -662,6 +644,10 @@ membersRouter.get('/profile-versions', async (req, res) => {
     }
     if (!row) {
       res.status(403).json({ error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้' })
+      return
+    }
+    if (!isMemberMembershipActive((row as { membership_status?: string | null }).membership_status)) {
+      res.status(403).json(MEMBERSHIP_INACTIVE_JSON)
       return
     }
 
@@ -951,13 +937,21 @@ membersRouter.post('/donations/history', async (req, res) => {
     }
 
     const supabase = getServiceSupabase()
-    const { data: member, error: mErr } = await supabase.from('members').select('id').eq('line_uid', line_uid).maybeSingle()
+    const { data: member, error: mErr } = await supabase
+      .from('members')
+      .select('id, membership_status')
+      .eq('line_uid', line_uid)
+      .maybeSingle()
     if (mErr) {
       res.status(500).json({ error: 'โหลดข้อมูลสมาชิกไม่สำเร็จ', details: mErr })
       return
     }
     if (!member) {
       res.status(403).json({ error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้' })
+      return
+    }
+    if (!isMemberMembershipActive((member as { membership_status?: string | null }).membership_status)) {
+      res.status(403).json(MEMBERSHIP_INACTIVE_JSON)
       return
     }
 
@@ -1046,6 +1040,10 @@ membersRouter.post('/donations', async (req, res) => {
     }
     if (!member) {
       res.status(403).json({ error: 'ยังไม่พบสมาชิกที่ผูก LINE UID นี้' })
+      return
+    }
+    if (!isMemberMembershipActive((member as { membership_status?: string | null }).membership_status)) {
+      res.status(403).json(MEMBERSHIP_INACTIVE_JSON)
       return
     }
 
