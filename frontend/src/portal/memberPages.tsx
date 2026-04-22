@@ -1,5 +1,6 @@
 import QRCodeLib from 'qrcode'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { memberIdentityScanUrlForQr } from '../lib/memberIdentityScanUrl'
 import { safeHttpImageUrl } from '../lib/safeHttpUrl'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { MemberProfileSection } from '../components/MemberProfileSection'
@@ -317,17 +318,6 @@ function memberDistinctionLabels(m: Record<string, unknown>): string[] {
   return v
     .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
     .map((s) => s.trim())
-}
-
-/** ลิงก์ฝังใน QR บัตร — สอดคล้อง backend `member_identity_scan_url` + docs/MEMBER_IDENTITY_QR_FLOW.md */
-function memberIdentityScanUrlForQr(m: Record<string, unknown>): string {
-  const direct = m.member_identity_scan_url
-  if (typeof direct === 'string' && /^https?:\/\//i.test(direct.trim())) return direct.trim()
-  const tok = m.member_identity_qr_token
-  if (typeof tok === 'string' && tok.trim().length > 0 && typeof window !== 'undefined' && window.location?.origin) {
-    return `${window.location.origin}/open/member-identity?t=${encodeURIComponent(tok.trim())}`
-  }
-  return ''
 }
 
 function MemberCardQr(props: { value: string }) {

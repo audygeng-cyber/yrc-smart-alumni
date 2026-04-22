@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { ADMIN_UPLOAD_STORAGE_KEY, normalizeApiBase } from '../lib/adminApi'
 import { formatFetchError, readApiJson } from '../lib/adminHttp'
+import { memberIdentityScanUrlForQr } from '../lib/memberIdentityScanUrl'
 import { themeAccent } from '../lib/themeTokens'
+import { AdminMemberIdentityQrCell, CopyIdentityScanUrlButton } from './AdminMemberIdentityQrCell'
 import { portalFocusRing } from '../portal/portalLabels'
 
 const BATCH_ID_KEY = 'yrc_last_import_batch_id'
@@ -26,6 +28,10 @@ type DirectoryRow = {
   email: string | null
   member_code: string | null
   student_id: string | null
+  /** จาก API เมื่อตั้ง FRONTEND_ORIGINS บน backend */
+  member_identity_scan_url?: string | null
+  /** เมื่อยังไม่มี origin — ประกอบ URL ฝั่งเบราว์เซอร์ */
+  member_identity_qr_token?: string | null
   batch_president: boolean
   outstanding_alumni: boolean
   distinction_summary: string
@@ -215,6 +221,8 @@ export function AdminImportPanel({ apiBase }: Props) {
       const members = Array.isArray(body.members)
         ? (body.members as DirectoryRow[]).map((m) => ({
             ...m,
+            member_identity_scan_url: typeof m.member_identity_scan_url === 'string' ? m.member_identity_scan_url : null,
+            member_identity_qr_token: typeof m.member_identity_qr_token === 'string' ? m.member_identity_qr_token : null,
             distinction_summary: typeof m.distinction_summary === 'string' ? m.distinction_summary : '—',
             distinctions: Array.isArray(m.distinctions) ? m.distinctions : [],
             batch_president: Boolean(m.batch_president),
@@ -258,6 +266,18 @@ export function AdminImportPanel({ apiBase }: Props) {
       const { payload, rawText, ok } = await readApiJson(r)
       if (!ok) {
         setFlagMsg(formatFetchError('บันทึกแฟล็กทะเบียน', r.status, payload, rawText, IMPORT_FETCH_ERROR_OPTS))
+        return
+      }
+      if (payload && typeof payload === 'object' && 'member' in payload) {
+        const mem = (payload as { member: Record<string, unknown> }).member
+        const scanUrl = memberIdentityScanUrlForQr(mem)
+        setFlagMsg(
+          [
+            scanUrl ? `ลิงก์สแกน QR (ทดสอบ/พิมพ์บัตร): ${scanUrl}` : 'ไม่มีลิงก์สแกน — ตรวจ migration `member_identity_qr_token` และ FRONTEND_ORIGINS บน API',
+            '',
+            JSON.stringify(payload, null, 2),
+          ].join('\n'),
+        )
         return
       }
       setFlagMsg(JSON.stringify(payload, null, 2))
@@ -387,6 +407,11 @@ export function AdminImportPanel({ apiBase }: Props) {
         <p className="mt-1 text-xs leading-relaxed text-slate-500">
           รายชื่อกรรมการมาจากบทบาท <code className="text-slate-400">committee</code> ในระบบ (หลังผูก LINE และซิงก์แอป) — ประธานรุ่น/ศิษย์เก่าดีเด่นตั้งได้จากคอลัมน์ในเทมเพลตนำเข้า หรือแก้ด้านล่าง
         </p>
+        <p className="mt-2 text-xs leading-relaxed text-slate-500">
+          คอลัมน์ <span className="text-slate-300">QR บัตร</span> มาจาก API ทะเบียน (โทเคนต่อคนในฐานข้อมูล) — สแกนเปิด{' '}
+          <code className="text-slate-400">/open/member-identity</code> ใช้รับบัตรร่วมกับแผง{' '}
+          <span className="text-slate-300">Admin → รับบัตรเลือกตั้ง</span> เมื่อเปิดงานในระบบ
+        </p>
         <div
           className="mt-3 rounded-md border border-slate-800/80 bg-slate-950/60 p-3 text-xs text-slate-400"
           role="group"
@@ -482,7 +507,7 @@ export function AdminImportPanel({ apiBase }: Props) {
         ) : null}
         {dirRows.length > 0 ? (
           <div className="mt-3 max-h-72 overflow-auto rounded border border-slate-800">
-            <table className="w-full min-w-[640px] border-collapse text-left text-xs text-slate-300">
+            <table className="w-full min-w-[860px] border-collapse text-left text-xs text-slate-300">
               <thead className="sticky top-0 bg-slate-900/95 text-[10px] font-medium uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="border-b border-slate-800 px-2 py-2">รุ่น</th>
@@ -491,6 +516,7 @@ export function AdminImportPanel({ apiBase }: Props) {
                   <th className="border-b border-slate-800 px-2 py-2">ป.รุ่น</th>
                   <th className="border-b border-slate-800 px-2 py-2">มิติ / เกียรติ</th>
                   <th className="border-b border-slate-800 px-2 py-2">กรรมการ</th>
+                  <th className="border-b border-slate-800 px-2 py-2">QR บัตร</th>
                   <th className="border-b border-slate-800 px-2 py-2">UUID</th>
                 </tr>
               </thead>
@@ -499,6 +525,7 @@ export function AdminImportPanel({ apiBase }: Props) {
                   const name = [row.title, row.first_name, row.nickname ? `(${row.nickname})` : '', row.last_name]
                     .filter(Boolean)
                     .join(' ')
+                  const identityUrl = memberIdentityScanUrlForQr(row as unknown as Record<string, unknown>)
                   return (
                     <tr key={row.id} className="odd:bg-slate-950/50">
                       <td className="border-b border-slate-800/80 px-2 py-1.5 align-top">{row.batch ?? '—'}</td>
@@ -509,7 +536,34 @@ export function AdminImportPanel({ apiBase }: Props) {
                         {row.distinction_summary}
                       </td>
                       <td className="border-b border-slate-800/80 px-2 py-1.5 align-top">{row.committee_role ? 'ใช่' : '—'}</td>
-                      <td className="border-b border-slate-800/80 px-2 py-1.5 font-mono text-[10px] text-slate-500">{row.id}</td>
+                      <td className="border-b border-slate-800/80 px-2 py-1.5 align-top">
+                        <div className="flex flex-col items-start gap-0.5">
+                          <AdminMemberIdentityQrCell value={identityUrl} />
+                          {identityUrl ? (
+                            <>
+                              <CopyIdentityScanUrlButton url={identityUrl} />
+                              <a
+                                href={identityUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={`text-[10px] text-slate-400 underline hover:text-slate-200 ${portalFocusRing}`}
+                              >
+                                เปิดลิงก์
+                              </a>
+                            </>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="border-b border-slate-800/80 px-2 py-1.5 align-top font-mono text-[10px] text-slate-500">
+                        <span className="block break-all">{row.id}</span>
+                        <button
+                          type="button"
+                          className={`mt-1 text-[10px] font-medium text-amber-300/90 hover:text-amber-200 ${portalFocusRing}`}
+                          onClick={() => setFlagMemberId(row.id)}
+                        >
+                          ใส่ในฟอร์มแก้แฟล็ก
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
