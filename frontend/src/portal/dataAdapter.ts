@@ -58,6 +58,7 @@ export type YupparajDonationActivityItem = {
 
 export type MemberPortalData = {
   statsCards: MetricItem[]
+  /** คงโครงเดิมกับ API — `member` ไม่ใช้บน UI (แดชบอร์ดสมาชิกแสดงเฉพาะ statsCards) ต้องเป็น [] เสมอ */
   roleCards: Record<MemberRoleView, MetricItem[]>
   batchDistribution: TrendItem[]
   donationCampaigns: DonationCampaign[]
@@ -243,14 +244,14 @@ export function normalizeMemberPortalData(raw: unknown, fallback: MemberPortalDa
   if (!isRecord(raw)) return fallback
 
   const rc = raw.roleCards
-  const roleCards =
+  const mergedRoleCards =
     isRecord(rc) && Array.isArray(rc.member) && Array.isArray(rc.staff)
       ? (rc as MemberPortalData['roleCards'])
       : fallback.roleCards
 
   return {
     statsCards: Array.isArray(raw.statsCards) ? (raw.statsCards as MemberPortalData['statsCards']) : fallback.statsCards,
-    roleCards,
+    roleCards: { ...mergedRoleCards, member: [] },
     batchDistribution: Array.isArray(raw.batchDistribution)
       ? (raw.batchDistribution as MemberPortalData['batchDistribution'])
       : fallback.batchDistribution,

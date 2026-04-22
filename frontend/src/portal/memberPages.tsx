@@ -35,8 +35,6 @@ export function MemberArea(props: {
   onMemberUpdated: (member: Record<string, unknown>) => void
 }) {
   const { onMemberUpdated: parentOnMemberUpdated } = props
-  /** แดชบอร์ดยังแยกการ์ดตามบทบาท mock — ไม่มีตัวเลือกมุมมองบทบาทบน UI แล้ว */
-  const memberDashboardRole: MemberRoleView = 'member'
   /** เพิ่มทุกครั้งที่บันทึกโปรไฟล์สำเร็จ — ให้หน้าประวัติ refetch แม้ไม่ได้ใช้ data router (`useRevalidator` ใช้ได้กับ loader เท่านั้น) */
   const [profileVersionsRefresh, setProfileVersionsRefresh] = useState(0)
   const portalData = useMemberPortalData(props.apiBase)
@@ -88,7 +86,7 @@ export function MemberArea(props: {
         <Route
           path="dashboard"
           element={
-            <MemberDashboardPage portalState={portalData} roleView={memberDashboardRole} apiBase={props.apiBase} />
+            <MemberDashboardPage portalState={portalData} apiBase={props.apiBase} />
           }
         />
         <Route path="card" element={<MemberCardPage member={props.member} />} />

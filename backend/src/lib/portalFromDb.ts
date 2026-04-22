@@ -396,6 +396,8 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
     })
   }
 
+  base.roleCards.member = []
+
   return base
 }
 
