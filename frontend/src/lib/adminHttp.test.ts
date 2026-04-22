@@ -49,6 +49,7 @@ describe('formatFetchError', () => {
     const msg = formatFetchError('สรุป', 404, null, '', {
       include404ImportHint: true,
     })
+    expect(msg).toContain('GET /api/admin/members/directory')
     expect(msg).toContain('GET /api/admin/members/summary')
   })
 

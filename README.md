@@ -89,6 +89,12 @@ git push -u origin master
 - `GET /api/admin/members/summary` — สรุปภาพรวมทั้งหมด
 - `GET /api/admin/members/summary?importBatchId=<id>` — สรุปเฉพาะรอบที่นำเข้า
 
+**ค้นหาและทะเบียนในแผง Admin** (ต้องมี `x-admin-key`):
+
+- `GET /api/admin/members/directory?view=person|batch|batch_presidents|outstanding|committee` — รายชื่อ + ลิงก์/QR บัตรประจำตัว (`member_identity_scan_url`) เมื่อ API เป็นเวอร์ชันล่าสุด
+
+ถ้าเว็บแสดง **HTTP 404** และ body เป็น HTML ว่า `Cannot GET /api/admin/members/directory` (หรือ path อื่นใต้ `/api/admin/members/...`) แปลว่า **Cloud Run ที่ `VITE_API_URL` ชี้อยู่ยังไม่ได้ deploy backend ชุดล่าสุด** — build + deploy API ตาม `docs/DEPLOY_INVENTORY.md` (หรือขั้นตอนทีม) แล้วตรวจว่า Vercel ตั้ง `VITE_API_URL` ตรง URL นั้น
+
 ในหน้าเว็บแท็บ Admin มีปุ่ม **ตรวจสอบหลังนำเข้า** ให้เรียก endpoint นี้อัตโนมัติ
 
 ```bash

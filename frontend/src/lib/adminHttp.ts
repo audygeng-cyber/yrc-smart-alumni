@@ -46,7 +46,7 @@ export function formatFetchError(
       : rawText
   const hint404 =
     options?.include404ImportHint && status === 404
-      ? '\n\nถ้าเป็น 404: มักหมายความว่า API บน Cloud Run ยังไม่ได้ deploy เวอร์ชันที่มี GET /api/admin/members/summary — ให้ build + deploy backend รอบล่าสุดแล้วลองใหม่'
+      ? '\n\nถ้าเป็น 404: มักหมายความว่า API บน Cloud Run (ค่า VITE_API_URL) ยังไม่ใช่เวอร์ชันล่าสุด — ให้ build + deploy backend แล้วลองใหม่\nเส้นทางแผงนำเข้า/ทะเบียนที่ต้องมีบน API: GET /api/admin/members/directory, GET /api/admin/members/summary, PATCH /api/admin/members/:id/directory-flags, POST /api/admin/members/import'
       : ''
   return `${label} ไม่สำเร็จ — HTTP ${status}\n${jsonPart}\n\nดิบจากเซิร์ฟเวอร์:\n${snippet}${hint404}`
 }
