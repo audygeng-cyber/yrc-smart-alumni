@@ -24,6 +24,11 @@ describe('parseMemberSelfUpdates', () => {
     const u = parseMemberSelfUpdates({ 'รูปโปรไฟล์ (URL)': ' https://x.test/a.png ' })
     expect(u.photo_url).toBe('https://x.test/a.png')
   })
+
+  it('maps legacy สถานะสมาชิก header to membership_status', () => {
+    const u = parseMemberSelfUpdates({ สถานะสมาชิก: ' Active ' })
+    expect(u.membership_status).toBe('Active')
+  })
 })
 
 describe('mergeMemberProfileSnapshot', () => {

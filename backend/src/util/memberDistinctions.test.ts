@@ -4,6 +4,7 @@ import {
   dedupeDistinctionSpecs,
   distinctionSpecsFromRegistrationData,
   extractDistinctionSpecsFromImportRow,
+  formatMembershipDistinctionLines,
   normalizeBuddhistYearKey,
   normalizeOutstandingProgramKey,
   rollupDistinctions,
@@ -93,5 +94,28 @@ describe('rollupDistinctions', () => {
     expect(rollup.outstanding_alumni).toBe(true)
     expect(rollup.distinctions).toHaveLength(2)
     expect(rollup.distinction_summary).toContain('2560')
+  })
+})
+
+describe('formatMembershipDistinctionLines', () => {
+  it('orders and labels rows for member card', () => {
+    const lines = formatMembershipDistinctionLines([
+      {
+        id: '2',
+        member_id: 'm',
+        code: MemberDistinctionCode.outstandingAlumniYear,
+        mark_key: '2560',
+        label_th: 'ศิษย์เก่าดีเด่น ปี พ.ศ. 2560',
+      },
+      {
+        id: '1',
+        member_id: 'm',
+        code: MemberDistinctionCode.batchPresident,
+        mark_key: '',
+        label_th: null,
+      },
+    ])
+    expect(lines[0]).toBe('ประธานรุ่น')
+    expect(lines[1]).toBe('ศิษย์เก่าดีเด่น ปี พ.ศ. 2560')
   })
 })

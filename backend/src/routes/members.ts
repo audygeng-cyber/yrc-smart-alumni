@@ -9,6 +9,7 @@ import { mergeMemberProfileSnapshot, parseMemberSelfUpdates } from '../util/memb
 import { normalizeWhitespace } from '../util/normalize.js'
 import { isMemberMembershipActive } from '../util/memberMembership.js'
 import { syncAppUserAfterMemberLink } from '../util/syncAppUserWithMember.js'
+import { fetchDistinctionsByMemberIds, formatMembershipDistinctionLines } from '../util/memberDistinctions.js'
 
 /** ช่องทางเข้าระบบ (สอดคล้อง frontend `lineEntrySource.ts`) — ใช้ประกอบบันทึก/audit ภายหลัง */
 const APP_ENTRY_SOURCES = new Set(['alumni_url', 'cram_qr', 'cram_alumni_url'])
@@ -24,13 +25,25 @@ export const membersRouter = Router()
 
 const MEMBERSHIP_INACTIVE_JSON = {
   code: 'MEMBERSHIP_INACTIVE' as const,
-  error: 'สถานะสมาชิกในทะเบียนยังไม่ Active — รอการอนุมัติหรือติดต่อผู้ดูแล',
+  error: 'สมาชิกภาพในทะเบียนยังไม่ Active — รอการอนุมัติหรือติดต่อผู้ดูแล',
 }
 
 async function fetchMemberRowById(supabase: ReturnType<typeof getServiceSupabase>, id: string) {
   const { data, error } = await supabase.from('members').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data
+}
+
+/** แถว members + มิติสมาชิก (`member_distinctions`) สำหรับบัตร/พอร์ทัล */
+async function fetchMemberWithDistinctions(supabase: ReturnType<typeof getServiceSupabase>, id: string) {
+  const full = await fetchMemberRowById(supabase, id)
+  if (!full) return null
+  const map = await fetchDistinctionsByMemberIds(supabase, [id])
+  const rows = map.get(id) ?? []
+  return {
+    ...(full as Record<string, unknown>),
+    membership_distinction_labels: formatMembershipDistinctionLines(rows),
+  }
 }
 
 /** อัปเดตทะเบียน + บันทึก member_profile_versions (ใช้ทั้ง update-self และอัปโหลดรูป) */
@@ -101,8 +114,8 @@ membersRouter.post('/session-member', async (req, res) => {
       return
     }
 
-    const full = await fetchMemberRowById(supabase, row.id as string)
-    if (!isMemberMembershipActive(full?.membership_status)) {
+    const full = await fetchMemberWithDistinctions(supabase, row.id as string)
+    if (!isMemberMembershipActive((full as { membership_status?: string | null } | null)?.membership_status)) {
       res.status(403).json(MEMBERSHIP_INACTIVE_JSON)
       return
     }
@@ -420,7 +433,7 @@ membersRouter.post('/verify-link', async (req, res) => {
         res.status(500).json({ error: 'อัปเดต app_users ไม่สำเร็จ', details: synced.error })
         return
       }
-      const full = await fetchMemberRowById(supabase, member.id as string)
+      const full = await fetchMemberWithDistinctions(supabase, member.id as string)
       res.json({ ok: true, memberId: member.id, alreadyLinked: true, member: full })
       return
     }
@@ -441,7 +454,7 @@ membersRouter.post('/verify-link', async (req, res) => {
       return
     }
 
-    const full = await fetchMemberRowById(supabase, member.id as string)
+    const full = await fetchMemberWithDistinctions(supabase, member.id as string)
     res.json({ ok: true, memberId: member.id, linked: true, member: full })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
@@ -506,7 +519,7 @@ membersRouter.post('/update-self', async (req, res) => {
       return
     }
 
-    const full = await fetchMemberRowById(supabase, row.id as string)
+    const full = await fetchMemberWithDistinctions(supabase, row.id as string)
     res.json({ ok: true, memberId: row.id, member: full })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
@@ -612,7 +625,7 @@ membersRouter.post('/profile-photo', profilePhotoUpload.single('photo'), async (
       await supabase.storage.from(MEMBER_PROFILE_PHOTO_BUCKET).remove([oldObjectPath])
     }
 
-    const full = await fetchMemberRowById(supabase, memberId)
+    const full = await fetchMemberWithDistinctions(supabase, memberId)
     res.json({ ok: true, memberId, photoUrl: publicUrl, member: full })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'

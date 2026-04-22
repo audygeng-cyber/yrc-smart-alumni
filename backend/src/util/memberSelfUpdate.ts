@@ -1,4 +1,4 @@
-import { HEADER_TO_DB, type MemberRow } from './memberImportMap.js'
+import { HEADER_TO_DB, thaiHeaderToMemberKey, type MemberRow } from './memberImportMap.js'
 
 /** ฟิลด์ที่สมาชิกแก้เองไม่ได้ */
 const LOCKED = new Set<keyof MemberRow>([
@@ -34,7 +34,7 @@ export function parseMemberSelfUpdates(raw: Record<string, unknown>): Partial<Me
 
   for (const [keyRaw, val] of Object.entries(raw)) {
     const k = keyRaw.trim()
-    let dbKey: keyof MemberRow | undefined = HEADER_TO_DB[k]
+    let dbKey: keyof MemberRow | undefined = thaiHeaderToMemberKey(k)
     if (!dbKey && ALLOWED_DB_KEYS.has(k as keyof MemberRow)) {
       dbKey = k as keyof MemberRow
     }

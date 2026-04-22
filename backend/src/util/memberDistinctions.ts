@@ -240,6 +240,40 @@ export function rollupDistinctions(rows: DistinctionRow[]): DirectoryDistinction
   }
 }
 
+const CARD_LINE_PRIORITY: Record<string, number> = {
+  [MemberDistinctionCode.batchPresident]: 0,
+  [MemberDistinctionCode.outstandingAlumni]: 1,
+  [MemberDistinctionCode.outstandingAlumniYear]: 2,
+  [MemberDistinctionCode.outstandingProgram]: 3,
+  [MemberDistinctionCode.alumniBase]: 4,
+}
+
+function cardLineLabel(r: DistinctionRow): string {
+  if (r.code === MemberDistinctionCode.batchPresident) return 'ประธานรุ่น'
+  if (r.code === MemberDistinctionCode.outstandingAlumni) return 'ศิษย์เก่าดีเด่น'
+  if (r.code === MemberDistinctionCode.outstandingAlumniYear) {
+    const t = r.label_th?.trim()
+    if (t) return t
+    return r.mark_key ? `ศิษย์เก่าดีเด่น ปี พ.ศ. ${r.mark_key}` : 'ศิษย์เก่าดีเด่น (ปี)'
+  }
+  if (r.code === MemberDistinctionCode.outstandingProgram) {
+    return r.label_th?.trim() || (r.mark_key ? `ศิษย์เก่าดีเด่น (${r.mark_key})` : 'ศิษย์เก่าดีเด่น (โปรแกรม)')
+  }
+  if (r.code === MemberDistinctionCode.alumniBase) return r.label_th?.trim() || 'ฐานสถานะศิษย์เก่า'
+  return r.label_th?.trim() || r.code
+}
+
+/** บรรทัดแสดงบนบัตรสมาชิก (มิติเพิ่มจาก `membership_status` ในตาราง members) */
+export function formatMembershipDistinctionLines(rows: DistinctionRow[]): string[] {
+  const sorted = [...rows].sort((a, b) => {
+    const pa = CARD_LINE_PRIORITY[a.code] ?? 50
+    const pb = CARD_LINE_PRIORITY[b.code] ?? 50
+    if (pa !== pb) return pa - pb
+    return (a.mark_key || '').localeCompare(b.mark_key || '', 'th')
+  })
+  return sorted.map((r) => cardLineLabel(r))
+}
+
 /** ลบเฉพาะประธานรุ่นทุกคนในรุ่น แล้วใส่ให้ memberId */
 export async function setBatchPresidentDistinctionForBatch(
   supabase: SupabaseClient,

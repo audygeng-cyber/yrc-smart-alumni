@@ -108,7 +108,8 @@ export function createApp(): express.Express {
         lineToken: 'POST /api/auth/line/token',
         membersVerify:
           'POST /api/members/verify-link — ผูก LINE กับสมาชิก + sync app_users (member_id, approved)',
-        membersSession: 'POST /api/members/session-member (line_uid — โหลดสมาชิกที่ผูกไว้แล้วสำหรับกู้เซสชัน)',
+        membersSession:
+          'POST /api/members/session-member (line_uid — โหลดสมาชิกที่ผูกไว้แล้วสำหรับกู้เซสชัน; member มี membership_distinction_labels จาก member_distinctions)',
         membersAppRoles:
           'POST /api/members/app-roles (line_uid, entry_source?) — app_users + roles + entry; sync member_id/approved ถ้าผูกสมาชิกแล้วแต่แถวค้าง',
         membersDonations:

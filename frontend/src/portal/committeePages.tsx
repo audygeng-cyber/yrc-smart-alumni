@@ -528,7 +528,7 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="ค้นหารายชื่อสมาชิกตัวอย่าง"
-                placeholder="ชื่อ, รุ่น, สถานะ หรือรหัสสมาชิก…"
+                placeholder="ชื่อ, รุ่น, สมาชิกภาพ หรือรหัสสมาชิก…"
                 className={`mt-2 w-full max-w-md rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 ${portalFocusRing}`}
               />
             </div>
@@ -547,7 +547,7 @@ function CommitteeMembersPage(props: { portalState: PortalDataState<CommitteePor
                     <tr>
                       <th scope="col" className="px-3 py-2">ชื่อ-นามสกุล</th>
                       <th scope="col" className="px-3 py-2">รุ่น</th>
-                      <th scope="col" className="px-3 py-2">สถานะ</th>
+                      <th scope="col" className="px-3 py-2">สมาชิกภาพ</th>
                       <th scope="col" className="px-3 py-2 font-mono">รหัส</th>
                     </tr>
                   </thead>

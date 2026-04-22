@@ -487,7 +487,7 @@ export function AdminImportPanel({ apiBase }: Props) {
                 <tr>
                   <th className="border-b border-slate-800 px-2 py-2">รุ่น</th>
                   <th className="border-b border-slate-800 px-2 py-2">ชื่อ–สกุล</th>
-                  <th className="border-b border-slate-800 px-2 py-2">สถานะ</th>
+                  <th className="border-b border-slate-800 px-2 py-2">สมาชิกภาพ</th>
                   <th className="border-b border-slate-800 px-2 py-2">ป.รุ่น</th>
                   <th className="border-b border-slate-800 px-2 py-2">มิติ / เกียรติ</th>
                   <th className="border-b border-slate-800 px-2 py-2">กรรมการ</th>

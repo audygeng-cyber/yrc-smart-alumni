@@ -207,7 +207,7 @@ export default function App() {
         if (!result.ok) {
           if (!cancelled && 'code' in result && result.code === 'MEMBERSHIP_INACTIVE') {
             setSessionMemberBlockMessage(
-              'สถานะสมาชิกในทะเบียนยังไม่ Active — หากส่งคำร้องสมัครใหม่ ต้องรอประธานรุ่นและ Admin อนุมัติครบก่อนจึงจะใช้พอร์ทัลได้ หรือติดต่อผู้ดูแลหากเป็นสมาชิกเดิม',
+              'สมาชิกภาพในทะเบียนยังไม่ Active — หากส่งคำร้องสมัครใหม่ ต้องรอประธานรุ่นและ Admin อนุมัติครบก่อนจึงจะใช้พอร์ทัลได้ หรือติดต่อผู้ดูแลหากเป็นสมาชิกเดิม',
             )
           } else if (!cancelled) {
             setSessionMemberBlockMessage(null)
@@ -298,11 +298,11 @@ export default function App() {
           })
         } else if (!session.ok && 'code' in session && session.code === 'MEMBERSHIP_INACTIVE') {
           setSessionMemberBlockMessage(
-            'สถานะสมาชิกในทะเบียนยังไม่ Active — หากส่งคำร้องสมัครใหม่ ต้องรอประธานรุ่นและ Admin อนุมัติครบก่อนจึงจะใช้พอร์ทัลได้ หรือติดต่อผู้ดูแลหากเป็นสมาชิกเดิม',
+            'สมาชิกภาพในทะเบียนยังไม่ Active — หากส่งคำร้องสมัครใหม่ ต้องรอประธานรุ่นและ Admin อนุมัติครบก่อนจึงจะใช้พอร์ทัลได้ หรือติดต่อผู้ดูแลหากเป็นสมาชิกเดิม',
           )
           setLineIdentitySyncMessage({
             kind: 'ok',
-            text: 'ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว — แต่ยังเข้าพอร์ทัลสมาชิกไม่ได้จนกว่าสถานะในทะเบียนจะ Active',
+            text: 'ระบบได้รับ LINE UID และบันทึกใน app_users แล้ว — แต่ยังเข้าพอร์ทัลสมาชิกไม่ได้จนกว่าสมาชิกภาพในทะเบียนจะ Active',
             detail,
           })
         } else {

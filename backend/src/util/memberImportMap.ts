@@ -28,7 +28,7 @@ export const IMPORT_TEMPLATE_HEADERS: readonly string[] = [
   'เบอร์โทรศัพท์',
   'อีเมล์',
   'ID Line',
-  'สถานะสมาชิก',
+  'สมาชิกภาพ',
   'ประธานรุ่น',
   'ศิษย์เก่าดีเด่น',
   'ศิษย์เก่าดีเด่น (ปี พ.ศ.)',
@@ -64,8 +64,18 @@ export const HEADER_TO_DB: Record<string, keyof MemberRow> = {
   เบอร์โทรศัพท์: 'phone',
   อีเมล์: 'email',
   'ID Line': 'line_display_id',
-  สถานะสมาชิก: 'membership_status',
+  สมาชิกภาพ: 'membership_status',
   'รูปโปรไฟล์ (URL)': 'photo_url',
+}
+
+/** หัวคอลัมน์เก่า/สเปรดชีตเดิม — ไม่อยู่ในเทมเพลตปัจจุบัน แต่ยังรองรับตอนนำเข้า/บอดี้เก่า */
+const LEGACY_HEADER_TO_DB: Record<string, keyof MemberRow> = {
+  สถานะสมาชิก: 'membership_status',
+}
+
+export function thaiHeaderToMemberKey(h: string): keyof MemberRow | undefined {
+  const t = h.trim()
+  return HEADER_TO_DB[t] ?? LEGACY_HEADER_TO_DB[t]
 }
 
 export type MemberRow = {
@@ -158,7 +168,7 @@ export function mapExcelRow(
   out.organization = 'alumni'
 
   for (const [thaiHeader, value] of Object.entries(raw)) {
-    const key = HEADER_TO_DB[thaiHeader.trim()]
+    const key = thaiHeaderToMemberKey(thaiHeader)
     if (!key || key === 'import_batch_id' || key === 'organization') continue
 
     if (key === 'row_number') {

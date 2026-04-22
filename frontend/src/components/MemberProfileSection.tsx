@@ -17,7 +17,7 @@ const PROFILE_FIELD_GROUPS: ReadonlyArray<{ title: string; headers: readonly str
       'ชื่อเล่น',
       'วันเกิด',
       'วันสมัคร',
-      'สถานะสมาชิก',
+      'สมาชิกภาพ',
     ],
   },
   {

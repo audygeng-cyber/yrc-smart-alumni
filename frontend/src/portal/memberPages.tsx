@@ -310,6 +310,14 @@ function memberStr(m: Record<string, unknown>, key: string): string {
   return String(v).trim()
 }
 
+function memberDistinctionLabels(m: Record<string, unknown>): string[] {
+  const v = m.membership_distinction_labels
+  if (!Array.isArray(v)) return []
+  return v
+    .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    .map((s) => s.trim())
+}
+
 /** รูปบัตร — key จาก URL ด้านนอกเพื่อรีเซ็ตสถานะเมื่อ URL เปลี่ยน */
 function MemberCardPhoto(props: { imageUrl: string }) {
   const [broken, setBroken] = useState(false)
@@ -338,7 +346,8 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
   const batchName = memberStr(props.member, 'batch_name') || '—'
   const batchYear = memberStr(props.member, 'batch_year') || '—'
   const code = memberStr(props.member, 'member_code')
-  const status = memberStr(props.member, 'membership_status') || '—'
+  const membershipStatus = memberStr(props.member, 'membership_status') || '—'
+  const distinctionLines = memberDistinctionLabels(props.member)
   const photoUrl =
     safeHttpImageUrl(props.member.photo_url) ??
     safeHttpImageUrl(props.member.profile_photo_url) ??
@@ -372,8 +381,22 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
                 <dd className="font-mono text-xs text-slate-300">{code || '—'}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-400">สถานะ</dt>
-                <dd className="text-slate-200">{status}</dd>
+                <dt className="text-slate-400 shrink-0">สมาชิกภาพ</dt>
+                <dd className="min-w-0 max-w-[min(100%,14rem)] text-right text-slate-200">
+                  {distinctionLines.length === 0 ? (
+                    membershipStatus
+                  ) : (
+                    <div className="space-y-2 text-left sm:text-right">
+                      <p className="font-medium text-slate-100">{membershipStatus}</p>
+                      <p className="text-[11px] text-slate-500">มิติเพิ่มเติมในทะเบียน</p>
+                      <ul className="list-disc pl-4 text-left text-sm text-slate-300 sm:ml-0 sm:list-inside sm:pl-0">
+                        {distinctionLines.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </dd>
               </div>
             </dl>
           </div>

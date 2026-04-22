@@ -23,7 +23,7 @@ export const MEMBER_SELF_EDIT_HEADERS: readonly string[] = [
   'เบอร์โทรศัพท์',
   'อีเมล์',
   'ID Line',
-  'สถานะสมาชิก',
+  'สมาชิกภาพ',
   'รูปโปรไฟล์ (URL)',
 ]
 
@@ -49,6 +49,8 @@ export const HEADER_TO_MEMBER_KEY: Record<string, string> = {
   เบอร์โทรศัพท์: 'phone',
   อีเมล์: 'email',
   'ID Line': 'line_display_id',
+  สมาชิกภาพ: 'membership_status',
+  /** @deprecated ใช้ในสเปรดชีตเก่า — แมปชุดเดียวกับสมาชิกภาพ */
   สถานะสมาชิก: 'membership_status',
   'รูปโปรไฟล์ (URL)': 'photo_url',
 }
