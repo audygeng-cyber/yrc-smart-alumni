@@ -10,7 +10,11 @@ import { normalizeWhitespace } from '../util/normalize.js'
 import { isMemberMembershipActive } from '../util/memberMembership.js'
 import { syncAppUserAfterMemberLink } from '../util/syncAppUserWithMember.js'
 import { fetchDistinctionsByMemberIds, formatMembershipDistinctionLines } from '../util/memberDistinctions.js'
-import { buildMemberIdentityScanUrl, primaryFrontendOriginFromEnv } from '../util/memberIdentityScanUrl.js'
+import {
+  memberIdentityScanFieldsOnly,
+  spreadMemberRowWithoutRawIdentityToken,
+} from '../util/memberIdentityScanUrl.js'
+import { readMemberIdentityQrToken } from '../util/memberIdentityQrToken.js'
 
 /** ช่องทางเข้าระบบ (สอดคล้อง frontend `lineEntrySource.ts`) — ใช้ประกอบบันทึก/audit ภายหลัง */
 const APP_ENTRY_SOURCES = new Set(['alumni_url', 'cram_qr', 'cram_alumni_url'])
@@ -37,23 +41,30 @@ async function fetchMemberRowById(supabase: ReturnType<typeof getServiceSupabase
 
 /** แถว members + มิติสมาชิก (`member_distinctions`) + ลิงก์ QR บัตร (ดู docs/MEMBER_IDENTITY_QR_FLOW.md) */
 async function fetchMemberWithDistinctions(supabase: ReturnType<typeof getServiceSupabase>, id: string) {
-  const full = await fetchMemberRowById(supabase, id)
+  let full = await fetchMemberRowById(supabase, id)
   if (!full) return null
+  let row = full as Record<string, unknown>
+  if (!readMemberIdentityQrToken(row)) {
+    const newTok = randomUUID()
+    const { data: again, error } = await supabase
+      .from('members')
+      .update({ member_identity_qr_token: newTok, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('*')
+      .maybeSingle()
+    if (!error && again) {
+      row = again as Record<string, unknown>
+    } else {
+      row = { ...row, member_identity_qr_token: newTok }
+    }
+  }
   const map = await fetchDistinctionsByMemberIds(supabase, [id])
   const rows = map.get(id) ?? []
-  const row = full as Record<string, unknown>
-  const tokenRaw = row.member_identity_qr_token
-  const token = typeof tokenRaw === 'string' && tokenRaw.length > 0 ? tokenRaw : null
-  const { member_identity_qr_token: _omitToken, ...rest } = row
-  const origin = primaryFrontendOriginFromEnv()
-  const member_identity_scan_url =
-    token && origin ? buildMemberIdentityScanUrl(origin, token) : null
+  const base = spreadMemberRowWithoutRawIdentityToken(row)
   return {
-    ...rest,
+    ...base,
     membership_distinction_labels: formatMembershipDistinctionLines(rows),
-    member_identity_scan_url,
-    /** เมื่อยังไม่ตั้ง FRONTEND_ORIGINS — ให้ฝั่งเว็บสร้าง URL จาก `window.location.origin` */
-    ...(member_identity_scan_url || !token ? {} : { member_identity_qr_token: token }),
+    ...memberIdentityScanFieldsOnly(row),
   }
 }
 

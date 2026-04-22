@@ -18,6 +18,7 @@ import {
   setBatchPresidentDistinctionForBatch,
 } from '../util/memberDistinctions.js'
 import { rollbackFailedMemberImport } from '../util/memberImportRollback.js'
+import { memberIdentityScanFieldsOnly, spreadMemberRowWithoutRawIdentityToken } from '../util/memberIdentityScanUrl.js'
 import { getPresidentRegistrySyncTargets, parsePresidentKeyEntries } from '../util/presidentKeys.js'
 import { sheetRowsToObjects } from '../util/readExcelRows.js'
 
@@ -26,7 +27,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 
 const REQUIRED_THAI_HEADERS = ['รุ่น', 'ชื่อ', 'นามสกุล'] as const
 
 const DIRECTORY_SELECT =
-  'id, batch, batch_name, first_name, last_name, title, nickname, membership_status, line_uid, phone, email, member_code, student_id'
+  'id, batch, batch_name, first_name, last_name, title, nickname, membership_status, line_uid, phone, email, member_code, student_id, member_identity_qr_token'
 
 const DIRECTORY_LIMIT = 500
 
@@ -50,6 +51,20 @@ type DirectoryMemberBase = {
   email: string | null
   member_code: string | null
   student_id: string | null
+  /** จาก DB — ตัดออกจาก JSON หลัง merge `member_identity_scan_url` / token สำหรับ QR */
+  member_identity_qr_token?: string | null
+  member_identity_scan_url?: string | null
+}
+
+function mapDirectoryMemberForApi(row: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...spreadMemberRowWithoutRawIdentityToken(row),
+    ...memberIdentityScanFieldsOnly(row),
+  }
+}
+
+function mapDirectoryListForApi(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return rows.map((r) => mapDirectoryMemberForApi(r))
 }
 
 async function attachCommitteeRole(
@@ -385,7 +400,12 @@ importMembersRouter.get('/directory', async (req, res) => {
       const base = (members ?? []) as DirectoryMemberBase[]
       const withCommittee = base.map((m) => ({ ...m, committee_role: true }))
       const enriched = await enrichWithDistinctions(supabase, withCommittee)
-      res.json({ ok: true, view, count: enriched.length, members: enriched })
+      res.json({
+        ok: true,
+        view,
+        count: enriched.length,
+        members: mapDirectoryListForApi(enriched as Record<string, unknown>[]),
+      })
       return
     }
 
@@ -444,7 +464,12 @@ importMembersRouter.get('/directory', async (req, res) => {
     const rows = (data ?? []) as DirectoryMemberBase[]
     const withCommittee = await attachCommitteeRole(supabase, rows)
     const enriched = await enrichWithDistinctions(supabase, withCommittee)
-    res.json({ ok: true, view, count: enriched.length, members: enriched })
+    res.json({
+      ok: true,
+      view,
+      count: enriched.length,
+      members: mapDirectoryListForApi(enriched as Record<string, unknown>[]),
+    })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })
@@ -650,7 +675,7 @@ importMembersRouter.patch('/:memberId/directory-flags', async (req, res) => {
 
     const [withComm] = await attachCommitteeRole(supabase, [data as DirectoryMemberBase])
     const [enriched] = await enrichWithDistinctions(supabase, [withComm])
-    res.json({ ok: true, member: enriched })
+    res.json({ ok: true, member: mapDirectoryMemberForApi(enriched as Record<string, unknown>) })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
     res.status(500).json({ error: message })

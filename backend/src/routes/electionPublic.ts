@@ -1,6 +1,7 @@
 import rateLimit from 'express-rate-limit'
 import { Router } from 'express'
 import { getServiceSupabase } from '../lib/supabase.js'
+import { readMemberIdentityQrToken } from '../util/memberIdentityQrToken.js'
 import { isMemberMembershipActive } from '../util/memberMembership.js'
 
 export const electionPublicRouter = Router()
@@ -77,7 +78,7 @@ electionPublicRouter.get('/events/active', async (_req, res) => {
  */
 electionPublicRouter.post('/card-claim', electionCardClaimLimiter, async (req, res) => {
   try {
-    const t = parseUuid(req.body?.t)
+    const t = readMemberIdentityQrToken({ member_identity_qr_token: (req.body as { t?: unknown })?.t })
     const slugRaw = typeof req.body?.election_event_slug === 'string' ? req.body.election_event_slug.trim() : ''
     const slug = slugRaw.toLowerCase()
     const eventId = parseUuid(req.body?.election_event_id)

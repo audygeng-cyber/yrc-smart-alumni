@@ -431,9 +431,12 @@ function MemberCardPage(props: { member: Record<string, unknown> }) {
             </p>
             {batchYear !== '—' ? <p className="mt-1 text-xs text-slate-500">ปีรุ่น {batchYear}</p> : null}
             <div className="mt-6 flex flex-col items-center gap-2">
+              <p className="max-w-[16rem] text-center text-xs font-medium text-slate-300">
+                สร้าง QR code ประจำตัวได้เลย
+              </p>
               <MemberCardQr value={identityQrUrl} />
-              <p className="max-w-[14rem] text-center text-[10px] text-slate-500">
-                QR นี้ระบุตัวคุณเท่านั้น — ใช้รับบัตรหรือยืนยันตัวตนในงานได้เมื่อระบบงานเปิดใช้
+              <p className="max-w-[15rem] text-center text-[10px] leading-snug text-slate-500">
+                และ QR นี้ระบุตัวคุณเท่านั้น — ใช้รับบัตรหรือยืนยันตัวตนในงานได้เมื่อระบบงานเปิดใช้
               </p>
             </div>
             <dl className="mt-6 space-y-2 text-left text-sm">
