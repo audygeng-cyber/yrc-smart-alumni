@@ -29,6 +29,8 @@ describe.sequential('createApp', () => {
     expect(res.body.ok).toBe(true)
     expect(res.body.paths?.health).toBe('/health')
     expect(String(res.body.paths?.lineOAuthState ?? '')).toContain('oauth-state')
+    expect(String(res.body.paths?.finance ?? '')).toContain('Excel')
+    expect(String(res.body.paths?.finance ?? '')).toContain('ปิดงบนอกระบบ')
     expect(String(res.body.paths?.adminMemberRoles ?? '')).toContain('app-roles')
     expect(String(res.body.paths?.portal ?? '')).toContain('rsvp-summary')
   })

@@ -64,10 +64,12 @@ export function FinancePeriodClosingPanel({
   setPeriodClosingDetail,
 }: FinancePeriodClosingPanelProps) {
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="ปิดงวดบัญชีและส่งผู้ตรวจสอบ">
-      <h3 className="text-sm font-medium text-slate-100">ปิดงวดบัญชีและเตรียมไฟล์ผู้ตรวจสอบ</h3>
+    <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-200" aria-label="ปิดงวดบัญชีภายในระบบและส่งมอบข้อมูลผู้ตรวจสอบ">
+      <h3 className="text-sm font-medium text-slate-100">ปิดงวดบัญชี (ภายในระบบ) และชุดข้อมูลผู้ตรวจ</h3>
       <p className="mt-1 text-[11px] text-slate-400">
-        เลือกหน่วยงานและช่วงวันที่เพื่อบันทึกงวดปิดบัญชี จากนั้นส่งออก <code className="text-slate-400">Auditor Package CSV</code> เพื่อส่งผู้ตรวจสอบ
+        บันทึก <strong className="text-slate-300">งวดปิดบัญชีในระบบ</strong> (สแนปช็อต trial balance / จำนวนรายการสมุด) แล้วส่งออก{' '}
+        <code className="text-slate-400">Auditor Package CSV</code> ให้ผู้ตรวจเปิดใน Excel — นี่คือการส่งมอบข้อมูล{' '}
+        <strong className="text-slate-300">ไม่ใช่</strong> การรับรองหรือปิดงบการเงินตามกฎหมายในแอป
       </p>
       <div className="mt-3 grid gap-2 md:grid-cols-5">
         <input
@@ -250,10 +252,10 @@ export function FinancePeriodClosingPanel({
                       type="button"
                       disabled={loading || row.auditor_handoff_status !== 'sent'}
                       onClick={() => onMarkAuditorCompleted(row.id, `${row.period_from} ถึง ${row.period_to}`)}
-                      aria-label={`ยืนยันปิดงานผู้ตรวจสอบงวด ${row.period_from} ถึง ${row.period_to}`}
+                      aria-label={`บันทึกว่าผู้ตรวจรับชุดข้อมูลครบแล้ว (งวด ${row.period_from} ถึง ${row.period_to}) — ไม่ใช่การปิดงบการเงินในแอป`}
                       className={`rounded bg-cyan-700 px-2 py-1 text-[10px] text-white hover:bg-cyan-600 disabled:opacity-50 ${portalFocusRing}`}
                     >
-                      Mark completed
+                      ผู้ตรวจรับครบ
                     </button>
                   </td>
                   <td className="px-2 py-1.5">
@@ -261,10 +263,10 @@ export function FinancePeriodClosingPanel({
                       type="button"
                       disabled={loading}
                       onClick={() => onDownloadAuditorPackage(row.id, `${row.period_from} ถึง ${row.period_to}`)}
-                      aria-label={`ส่งออกแพ็กผู้ตรวจสอบงวด ${row.period_from} ถึง ${row.period_to}`}
+                      aria-label={`ดาวน์โหลด CSV ชุดผู้ตรวจงวด ${row.period_from} ถึง ${row.period_to} (เปิด Excel ได้)`}
                       className={`rounded bg-cyan-700 px-2 py-1 text-[10px] text-white hover:bg-cyan-600 disabled:opacity-50 ${portalFocusRing}`}
                     >
-                      Export
+                      CSV ผู้ตรวจ
                     </button>
                   </td>
                 </tr>

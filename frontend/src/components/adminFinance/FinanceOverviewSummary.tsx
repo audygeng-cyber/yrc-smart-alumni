@@ -67,10 +67,10 @@ export function FinanceOverviewSummary({
       ) : null}
       {periodClosings.length > 0 ? (
         <p className="mt-1">
-          ปิดงวดบัญชีแล้ว {formatThNumber(periodClosings.length)} งวด (ล่าสุด:{' '}
+          ปิดงวดในระบบแล้ว {formatThNumber(periodClosings.length)} งวด (ล่าสุด:{' '}
           {new Date(periodClosings[0].closed_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}) ·
-          ส่งผู้ตรวจสอบแล้ว {formatThNumber(periodClosingsSentCount)} งวด · ปิดงานแล้ว{' '}
-          {formatThNumber(periodClosingsCompletedCount)} งวด
+          สถานะส่งมอบผู้ตรวจ: ส่งแล้ว {formatThNumber(periodClosingsSentCount)} งวด · ผู้ตรวจกดปิดงานในแอปแล้ว{' '}
+          {formatThNumber(periodClosingsCompletedCount)} งวด <span className="text-slate-500">(ไม่เทียบเท่าการปิดงบการเงินนอกระบบ)</span>
         </p>
       ) : null}
     </div>

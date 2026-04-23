@@ -188,7 +188,11 @@ export function FinanceFiscalToolsPanel({
                 สร้างรอบใหม่
               </button>
             </div>
-            <p className="text-[10px] text-slate-500">ปิดปี: รหัสบัญชีกองทุนสะสม (equity)</p>
+            <p className="text-[10px] text-slate-500">
+              ปิดปีที่นี่ = โพสต์รายการปิดรอบปีบัญชีใน <strong className="text-slate-400">สมุดระบบ</strong> (เช่น โอนผลสุทธิเข้ากองทุนสะสม) —{' '}
+              <strong className="text-slate-400">ไม่ใช่</strong> การปิดงบการเงิน/รับรองงบแทนผู้ตรวจนอกระบบ
+            </p>
+            <p className="text-[10px] text-slate-500">รหัสบัญชีกองทุนสะสม (equity) สำหรับปิดปี</p>
             <input
               type="text"
               value={fiscalCloseSurplusCode}
@@ -226,10 +230,11 @@ export function FinanceFiscalToolsPanel({
                       <button
                         type="button"
                         disabled={loading}
+                        title="โพสต์รายการปิดรอบปีในสมุดระบบ ไม่ใช่การรับรองงบการเงินนอกระบบ"
                         onClick={() => onCloseFiscalYear(fy.id, fy.fiscal_label)}
                         className={`shrink-0 rounded bg-amber-800 px-1.5 py-0.5 text-[10px] text-white hover:bg-amber-700 disabled:opacity-50 ${portalFocusRing}`}
                       >
-                        ปิดปี
+                        ปิดปี (สมุด)
                       </button>
                     ) : null}
                   </li>
