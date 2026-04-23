@@ -101,11 +101,15 @@ export function MemberLinkPanel({
           return
         }
         setRegistryBatches([])
-        setRegistryBatchesErr(
+        const baseDetail =
           typeof j.error === 'string' && j.error.trim()
             ? j.error.trim()
-            : `โหลดรายการรุ่นไม่สำเร็จ (HTTP ${r.status})`,
-        )
+            : `โหลดรายการรุ่นไม่สำเร็จ (HTTP ${r.status})`
+        const hint404 =
+          r.status === 404
+            ? ' — มักหมายความว่า API (Cloud Run ที่ VITE_API_URL) ยังไม่ใช่เวอร์ชันล่าสุด: deploy backend ให้มี GET /api/members/registry-batches'
+            : ''
+        setRegistryBatchesErr(`${baseDetail}${hint404}`)
       } catch {
         if (!cancelled) {
           setRegistryBatches([])
