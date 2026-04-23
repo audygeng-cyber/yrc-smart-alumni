@@ -267,7 +267,7 @@ export function MemberLinkPanel({
   }
 
   return (
-    <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6" aria-busy={loading || requestStatusLoading}>
+    <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-6" aria-busy={loading || requestStatusLoading}>
       <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ผูกบัญชีสมาชิก</h2>
       <p className="mt-2 text-xs text-slate-400">
         กรอกรุ่น · ชื่อ · นามสกุล ให้ตรงทะเบียน แล้วกด &quot;เข้าสู่ระบบด้วย LINE&quot; ด้านล่างเพื่อดึง LINE UID
@@ -276,7 +276,7 @@ export function MemberLinkPanel({
         สมัครใหม่: หลังส่งคำร้อง ต้องรอประธานรุ่นอนุมัติ แล้ว Admin อนุมัติตามลำดับ — ระหว่างรอจะยังไม่มีสมาชิกภาพ Active ในทะเบียน (ยังเข้าพอร์ทัลเต็มรูปแบบไม่ได้) จนกว่าจะอนุมัติครบและมีแถวสมาชิกในระบบ
       </p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         <Field label="รุ่น" value={batch} onChange={setBatch} placeholder="เช่น 3336" />
         <Field
           label="ชื่อ"
@@ -284,7 +284,7 @@ export function MemberLinkPanel({
           onChange={setFirstName}
           placeholder="ไม่ต้องใส่คำนำหน้านาม"
         />
-        <Field label="นามสกุล" value={lastName} onChange={setLastName} className="sm:col-span-2" />
+        <Field label="นามสกุล" value={lastName} onChange={setLastName} className="col-span-2" />
       </div>
 
       {lineLoginAvailable ? (
@@ -378,7 +378,7 @@ export function MemberLinkPanel({
                     คำร้องนี้ได้รับอนุมัติแล้ว ถ้ายังไม่เห็นข้อมูลสมาชิก ให้กด &quot;ตรวจสอบและผูก&quot; อีกครั้ง
                   </p>
                   {approvedRequestedNames ? (
-                    <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" role="group" aria-label="เครื่องมือใช้ข้อมูลจากคำร้องล่าสุด">
+                    <div className="mt-3 flex min-w-0 flex-row flex-wrap items-center gap-2" role="group" aria-label="เครื่องมือใช้ข้อมูลจากคำร้องล่าสุด">
                       <button
                         type="button"
                         onClick={applyApprovedRequestData}
@@ -396,7 +396,7 @@ export function MemberLinkPanel({
                       >
                         ผูกอัตโนมัติ
                       </button>
-                      <span className="min-w-0 break-words text-xs opacity-80 sm:self-center">
+                      <span className="min-w-0 self-center break-words text-xs opacity-80">
                         {approvedRequestedNames.batch} · {approvedRequestedNames.firstName} {approvedRequestedNames.lastName}
                       </span>
                     </div>
@@ -436,7 +436,7 @@ export function MemberLinkPanel({
           <p className="mt-1 text-xs text-slate-400">
             กรอกรุ่น · ชื่อ · นามสกุล และรายละเอียดอื่นตามที่มี — ส่งแล้วรอประธานรุ่น / Admin อนุมัติ
           </p>
-          <div className="mt-4 grid max-h-[28rem] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+          <div className="mt-4 grid max-h-[28rem] grid-cols-2 gap-3 overflow-y-auto pr-1">
             {MEMBER_REGISTER_EXTRA_HEADERS.map((h) => (
               <Field
                 key={h}
@@ -491,14 +491,14 @@ function Field({
   placeholder?: string
 }) {
   return (
-    <label className={`block text-sm text-slate-300 ${className}`}>
+    <label className={`block min-w-0 text-sm text-slate-300 ${className}`}>
       {label}
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
         placeholder={placeholder}
-        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-600 focus-visible:border-fuchsia-700 ${portalFocusRing}`}
+        className={`mt-1 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-600 focus-visible:border-fuchsia-700 ${portalFocusRing}`}
       />
     </label>
   )

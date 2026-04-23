@@ -513,39 +513,31 @@ function AppChrome(props: AppChromeProps) {
       >
         ข้ามไปยังเนื้อหาหลัก
       </a>
-      <header className="border-b border-slate-800 bg-slate-900/80 pb-3 backdrop-blur sm:pb-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pt-[max(1rem,env(safe-area-inset-top,0px))]">
-        <h1 className="text-lg font-semibold tracking-tight sm:text-xl">YRC Smart Alumni</h1>
-        <p className="mt-1 line-clamp-2 text-sm text-slate-400 sm:line-clamp-none">
+      <header className="border-b border-slate-800 bg-slate-900/80 pb-4 backdrop-blur pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pt-[max(1rem,env(safe-area-inset-top,0px))]">
+        <h1 className="text-xl font-semibold tracking-tight">YRC Smart Alumni</h1>
+        <p className="mt-1 text-sm text-slate-400">
           {onMemberPortal ? 'พอร์ทัลสมาชิก' : 'พอร์ทัลสมาชิก · คณะกรรมการ · Academy'}
         </p>
         {!onMemberPortal ? (
-          <div
-            className="mt-3 min-w-0 rounded-lg border border-slate-800/80 bg-slate-950/40 p-2 sm:border-0 sm:bg-transparent sm:p-0"
-            aria-label="มุมมองบทบาทและเมนูพอร์ทัล"
-          >
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="mt-3 min-w-0 border-0 bg-transparent p-0" aria-label="มุมมองบทบาทและเมนูพอร์ทัล">
+            <div className="flex min-w-0 flex-row flex-wrap items-center gap-2">
               <span className="shrink-0 text-xs uppercase tracking-wide text-slate-400">มุมมองบทบาท</span>
               <select
                 value={props.roleView}
                 onChange={(e) => props.setRoleView(e.target.value as RoleView)}
                 aria-label="เลือกมุมมองบทบาทของพอร์ทัล"
                 aria-describedby={roleViewSummaryId}
-                className={`${themeTapTarget} min-w-0 w-full max-w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 sm:w-auto sm:max-w-md sm:py-1.5 sm:text-xs ${themeAccent.focusRing}`}
+                className={`${themeTapTarget} min-w-0 w-auto max-w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-200 sm:max-w-md ${themeAccent.focusRing}`}
               >
                 <option value="all">ทุกพอร์ทัล</option>
                 <option value="member">เฉพาะสมาชิก</option>
                 <option value="committee">เฉพาะคณะกรรมการ</option>
                 <option value="academy">เฉพาะโรงเรียนกวดวิชา (Academy)</option>
               </select>
-              <span className="hidden text-xs text-slate-500 sm:inline">จำลองการมองเห็นเมนูตามสิทธิ์</span>
+              <span className="text-xs text-slate-500">จำลองการมองเห็นเมนูตามสิทธิ์</span>
             </div>
-            <p id={roleViewSummaryId} className="mt-2 min-w-0 text-xs leading-snug text-slate-400 sm:mt-1" role="status" aria-live="polite" aria-atomic="true">
-              <span className="sm:hidden">
-                {roleViewLabel} · {visiblePortalCount.toLocaleString('th-TH')} หมวด
-              </span>
-              <span className="hidden sm:inline">
-                มุมมองปัจจุบัน: {roleViewLabel} · พอร์ทัลที่แสดง {visiblePortalCount.toLocaleString('th-TH')} หมวด
-              </span>
+            <p id={roleViewSummaryId} className="mt-1 min-w-0 text-xs leading-snug text-slate-400" role="status" aria-live="polite" aria-atomic="true">
+              มุมมองปัจจุบัน: {roleViewLabel} · พอร์ทัลที่แสดง {visiblePortalCount.toLocaleString('th-TH')} หมวด
             </p>
           </div>
         ) : null}
@@ -594,23 +586,40 @@ function AppChrome(props: AppChromeProps) {
                   to="/"
                   label="เข้าสู่ระบบ / ผูกบัญชี"
                   shortLabel="หลัก"
+                  matchLabelOnNarrow
                   active={location.pathname === '/' || location.pathname.startsWith('/auth/link')}
                 />
-                {showMemberNav ? <NavPill to="/member/dashboard" label="สมาชิก" active={location.pathname.startsWith('/member')} /> : null}
+                {showMemberNav ? (
+                  <NavPill to="/member/dashboard" label="สมาชิก" matchLabelOnNarrow active={location.pathname.startsWith('/member')} />
+                ) : null}
                 {showCommitteeNav ? (
-                  <NavPill to="/committee/dashboard" label="คณะกรรมการ" active={location.pathname.startsWith('/committee')} />
+                  <NavPill
+                    to="/committee/dashboard"
+                    label="คณะกรรมการ"
+                    matchLabelOnNarrow
+                    active={location.pathname.startsWith('/committee')}
+                  />
                 ) : null}
                 {showAcademyNav ? (
                   <NavPill
                     to="/academy/dashboard"
                     label="โรงเรียนกวดวิชา"
                     shortLabel="Academy"
+                    matchLabelOnNarrow
                     active={location.pathname.startsWith('/academy')}
                   />
                 ) : null}
-                {canRequests ? <NavPill to="/requests" label="คำร้อง" active={location.pathname.startsWith('/requests')} /> : null}
+                {canRequests ? (
+                  <NavPill to="/requests" label="คำร้อง" matchLabelOnNarrow active={location.pathname.startsWith('/requests')} />
+                ) : null}
                 {canAdmin ? (
-                  <NavPill to="/admin" label="ผู้ดูแล (Admin)" shortLabel="Admin" active={location.pathname.startsWith('/admin')} />
+                  <NavPill
+                    to="/admin"
+                    label="ผู้ดูแล (Admin)"
+                    shortLabel="Admin"
+                    matchLabelOnNarrow
+                    active={location.pathname.startsWith('/admin')}
+                  />
                 ) : null}
               </>
             )}
@@ -621,7 +630,7 @@ function AppChrome(props: AppChromeProps) {
       <main
         id="app-main"
         tabIndex={-1}
-        className={`mx-auto min-w-0 scroll-mt-2 pt-6 outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-600/45 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:scroll-mt-0 sm:pt-10 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] sm:pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] ${portalWidthClass}`}
+        className={`mx-auto min-w-0 scroll-mt-0 pt-10 outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-600/45 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] ${portalWidthClass}`}
       >
         <Routes>
           <Route
@@ -941,7 +950,7 @@ function LinkPage(props: {
           role="status"
           aria-live="polite"
         >
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-row flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1 space-y-2">
               <p className="min-w-0 break-words">{props.lineIdentitySyncMessage.text}</p>
               {props.lineIdentitySyncMessage.detail ? (
@@ -953,7 +962,7 @@ function LinkPage(props: {
             <button
               type="button"
               onClick={() => props.onDismissLineIdentityMessage()}
-              className={`${themeTapTarget} w-full shrink-0 rounded-md border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800/80 sm:w-auto ${themeAccent.focusRing}`}
+              className={`${themeTapTarget} w-auto max-w-full shrink-0 rounded-md border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800/80 ${themeAccent.focusRing}`}
             >
               ปิด
             </button>
@@ -966,12 +975,12 @@ function LinkPage(props: {
           role="alert"
           aria-live="polite"
         >
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-row flex-wrap items-start justify-between gap-3">
             <p className="min-w-0 flex-1 break-words">{props.sessionMemberBlockMessage}</p>
             <button
               type="button"
               onClick={() => props.onDismissSessionMemberBlockMessage()}
-              className={`${themeTapTarget} w-full shrink-0 rounded-md border border-amber-800/60 px-3 py-2 text-xs text-amber-100 hover:bg-amber-950/50 sm:w-auto ${themeAccent.focusRing}`}
+              className={`${themeTapTarget} w-auto max-w-full shrink-0 rounded-md border border-amber-800/60 px-3 py-2 text-xs text-amber-100 hover:bg-amber-950/50 ${themeAccent.focusRing}`}
             >
               ปิด
             </button>
@@ -979,7 +988,7 @@ function LinkPage(props: {
         </section>
       ) : null}
       <section className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-sm" role="status" aria-live="polite" aria-atomic="true">
-        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-row flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">สถานะการเชื่อมสมาชิก</p>
             {props.restoringMemberSession ? (
@@ -1003,7 +1012,7 @@ function LinkPage(props: {
             <Link
               to="/member/dashboard"
               aria-label="ไปยังหน้าแดชบอร์ดสมาชิก"
-              className={`${themeTapTarget} inline-flex w-full shrink-0 items-center justify-center rounded-lg px-4 py-2 text-sm sm:w-auto ${themeAccent.buttonPrimary} ${themeAccent.focusRing}`}
+              className={`${themeTapTarget} inline-flex w-auto max-w-full shrink-0 items-center justify-center rounded-lg px-4 py-2 text-sm ${themeAccent.buttonPrimary} ${themeAccent.focusRing}`}
             >
               ไปหน้าสมาชิก
             </Link>
