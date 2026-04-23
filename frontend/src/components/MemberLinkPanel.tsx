@@ -277,8 +277,13 @@ export function MemberLinkPanel({
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Field label="รุ่น" value={batch} onChange={setBatch} />
-        <Field label="ชื่อ" value={firstName} onChange={setFirstName} />
+        <Field label="รุ่น" value={batch} onChange={setBatch} placeholder="เช่น 3336" />
+        <Field
+          label="ชื่อ"
+          value={firstName}
+          onChange={setFirstName}
+          placeholder="ไม่ต้องใส่คำนำหน้านาม"
+        />
         <Field label="นามสกุล" value={lastName} onChange={setLastName} className="sm:col-span-2" />
       </div>
 
@@ -477,11 +482,13 @@ function Field({
   value,
   onChange,
   className = '',
+  placeholder,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   className?: string
+  placeholder?: string
 }) {
   return (
     <label className={`block text-sm text-slate-300 ${className}`}>
@@ -490,7 +497,8 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
-        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-fuchsia-700 ${portalFocusRing}`}
+        placeholder={placeholder}
+        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-600 focus-visible:border-fuchsia-700 ${portalFocusRing}`}
       />
     </label>
   )
