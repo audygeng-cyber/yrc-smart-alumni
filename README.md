@@ -134,7 +134,7 @@ Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name
 รายละเอียด flow และการนำเข้ารายชื่อชุดใหม่: [`docs/MEMBER_FLOW.md`](docs/MEMBER_FLOW.md)  
 QR บัตรสมาชิก / โทเคนต่อคน / แนวงานเลือกตั้งในอนาคต: [`docs/MEMBER_IDENTITY_QR_FLOW.md`](docs/MEMBER_IDENTITY_QR_FLOW.md)  
 แผนระบบหลายบทบาท (URL เดียว + LINE login + RBAC): [`docs/SYSTEM_V2_ROADMAP.md`](docs/SYSTEM_V2_ROADMAP.md)  
-แผนระบบบัญชี/อนุมัติจ่ายเงิน: [`docs/ACCOUNTING_FLOW.md`](docs/ACCOUNTING_FLOW.md)
+แผนระบบบัญชี/อนุมัติจ่ายเงิน: [`docs/ACCOUNTING_FLOW.md`](docs/ACCOUNTING_FLOW.md) · ความต้องการเจ้าของผลิตภัณฑ์ (ส่งออก Excel ให้ผู้ตรวจปิดงบนอกระบบ — ระบบไม่ปิดงบแทน): [`docs/ACCOUNTING_OWNER_REQUIREMENTS.md`](docs/ACCOUNTING_OWNER_REQUIREMENTS.md)
 
 หน้าเว็บแท็บ **ผูกบัญชี** / **Admin** ใช้ทดสอบ flow เหล่านี้ได้จาก UI
 
