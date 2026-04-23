@@ -15,7 +15,6 @@ import {
   spreadMemberRowWithoutRawIdentityToken,
 } from '../util/memberIdentityScanUrl.js'
 import { readMemberIdentityQrToken } from '../util/memberIdentityQrToken.js'
-import { fetchDistinctMemberBatches } from '../util/memberRegistryBatches.js'
 
 /** ช่องทางเข้าระบบ (สอดคล้อง frontend `lineEntrySource.ts`) — ใช้ประกอบบันทึก/audit ภายหลัง */
 const APP_ENTRY_SOURCES = new Set(['alumni_url', 'cram_qr', 'cram_alumni_url'])
@@ -111,18 +110,6 @@ membersRouter.get('/', (_req, res) => {
   res.json({
     message: 'กำลังเตรียมหน้ารายการสมาชิก โดยจะเปิดใช้งานร่วมกับ auth และ Supabase RLS',
   })
-})
-
-/** รายการรุ่น (distinct) จากทะเบียน — สำหรับ dropdown หน้าผูก LINE / สมัครใหม่ */
-membersRouter.get('/registry-batches', async (_req, res) => {
-  try {
-    const supabase = getServiceSupabase()
-    const batches = await fetchDistinctMemberBatches(supabase)
-    res.json({ ok: true, batches })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
-    res.status(500).json({ error: 'โหลดรายการรุ่นไม่สำเร็จ', details: message })
-  }
 })
 
 /**

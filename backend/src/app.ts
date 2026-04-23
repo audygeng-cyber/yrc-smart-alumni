@@ -108,7 +108,6 @@ export function createApp(): express.Express {
         health: '/health',
         lineOAuthState: 'GET|POST /api/auth/line/oauth-state',
         lineToken: 'POST /api/auth/line/token',
-        membersRegistryBatches: 'GET /api/members/registry-batches — รายการรุ่น (distinct) จากทะเบียน สำหรับ dropdown ผูก LINE',
         membersVerify:
           'POST /api/members/verify-link — ผูก LINE กับสมาชิก + sync app_users (member_id, approved)',
         membersSession:
