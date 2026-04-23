@@ -116,6 +116,8 @@ curl -X DELETE http://localhost:4000/api/admin/members/all ^
 
 **ผูก LINE UID** — ต้องมีแถวใน `members` ที่ `รุ่น` + `ชื่อ` + `นามสกุล` ตรงกันหนึ่งแถวเท่านั้น
 
+`GET /api/members/registry-batches` — รายการรุ่น (distinct) จากทะเบียน สำหรับ dropdown หน้าผูกบัญชี (ไม่ต้องมี Admin key)
+
 `POST /api/members/verify-link`  
 Body JSON: `{ "line_uid": "…", "batch": "…", "first_name": "…", "last_name": "…" }`  
 ตอบ `member` (แถวจาก `members`) เมื่อผูกสำเร็จ — ใช้เติมฟอร์มแก้ไขข้อมูลเพิ่มเติม

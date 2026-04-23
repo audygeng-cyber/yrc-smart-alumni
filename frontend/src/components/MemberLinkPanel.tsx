@@ -46,6 +46,8 @@ export function MemberLinkPanel({
   const [batch, setBatch] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [registryBatches, setRegistryBatches] = useState<string[] | undefined>(undefined)
+  const [registryBatchesErr, setRegistryBatchesErr] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const isErrorMsg = msg !== null && (msg.includes('HTTP') || msg.includes('ไม่สำเร็จ'))
   const [loading, setLoading] = useState(false)
@@ -84,6 +86,37 @@ export function MemberLinkPanel({
       /* ignore */
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setRegistryBatches(undefined)
+      setRegistryBatchesErr(null)
+      try {
+        const r = await fetch(`${apiBase}/api/members/registry-batches`)
+        const j = (await r.json().catch(() => ({}))) as { ok?: unknown; batches?: unknown; error?: unknown }
+        if (cancelled) return
+        if (r.ok && j.ok === true && Array.isArray(j.batches)) {
+          setRegistryBatches(j.batches.filter((x): x is string => typeof x === 'string' && x.trim().length > 0))
+          return
+        }
+        setRegistryBatches([])
+        setRegistryBatchesErr(
+          typeof j.error === 'string' && j.error.trim()
+            ? j.error.trim()
+            : `โหลดรายการรุ่นไม่สำเร็จ (HTTP ${r.status})`,
+        )
+      } catch {
+        if (!cancelled) {
+          setRegistryBatches([])
+          setRegistryBatchesErr('เรียก API รายการรุ่นไม่สำเร็จ — ตรวจ VITE_API_URL')
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [apiBase])
 
   useEffect(() => {
     if (!lineUid.trim()) {
@@ -270,14 +303,21 @@ export function MemberLinkPanel({
     <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6" aria-busy={loading || requestStatusLoading}>
       <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ผูกบัญชีสมาชิก</h2>
       <p className="mt-2 text-xs text-slate-400">
-        กรอกรุ่น · ชื่อ · นามสกุล ให้ตรงทะเบียน แล้วกด &quot;เข้าสู่ระบบด้วย LINE&quot; ด้านล่างเพื่อดึง LINE UID
+        เลือกรุ่นจากทะเบียน · กรอกชื่อ · นามสกุล ให้ตรงที่ Admin นำเข้า แล้วกด &quot;เข้าสู่ระบบด้วย LINE&quot; ด้านล่างเพื่อดึง LINE UID
       </p>
       <p className="mt-2 text-xs text-slate-500">
         สมัครใหม่: หลังส่งคำร้อง ต้องรอประธานรุ่นอนุมัติ แล้ว Admin อนุมัติตามลำดับ — ระหว่างรอจะยังไม่มีสมาชิกภาพ Active ในทะเบียน (ยังเข้าพอร์ทัลเต็มรูปแบบไม่ได้) จนกว่าจะอนุมัติครบและมีแถวสมาชิกในระบบ
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Field label="รุ่น" value={batch} onChange={setBatch} />
+        <BatchField
+          label="รุ่น"
+          value={batch}
+          onChange={setBatch}
+          options={registryBatches ?? []}
+          loading={registryBatches === undefined}
+          loadError={registryBatchesErr}
+        />
         <Field label="ชื่อ" value={firstName} onChange={setFirstName} />
         <Field label="นามสกุล" value={lastName} onChange={setLastName} className="sm:col-span-2" />
       </div>
@@ -339,7 +379,7 @@ export function MemberLinkPanel({
       )}
 
       <p className="mt-4 text-xs text-slate-400">
-        ตรวจสอบว่ามีในทะเบียนหรือไม่ — ต้องตรงกับข้อมูลที่ Admin นำเข้า (รุ่น · ชื่อ · นามสกุล)
+        ตรวจสอบว่ามีในทะเบียนหรือไม่ — รุ่นเลือกจากรายการในฐานข้อมูล · ชื่อ · นามสกุล ต้องตรงที่ Admin นำเข้า
       </p>
       <p id={verificationHintId} className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
         {requestStatusSummary}
@@ -429,7 +469,7 @@ export function MemberLinkPanel({
         <div className="mt-8 border-t border-slate-800 pt-6">
           <h3 className="text-sm font-medium text-slate-300">สมัครสมาชิกใหม่ (คำร้อง)</h3>
           <p className="mt-1 text-xs text-slate-400">
-            กรอกรุ่น · ชื่อ · นามสกุล และรายละเอียดอื่นตามที่มี — ส่งแล้วรอประธานรุ่น / Admin อนุมัติ
+            เลือกรุ่น · กรอกชื่อ · นามสกุล และรายละเอียดอื่นตามที่มี — ส่งแล้วรอประธานรุ่น / Admin อนุมัติ
           </p>
           <div className="mt-4 grid max-h-[28rem] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
             {MEMBER_REGISTER_EXTRA_HEADERS.map((h) => (
@@ -492,6 +532,96 @@ function Field({
         aria-label={label}
         className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-fuchsia-700 ${portalFocusRing}`}
       />
+    </label>
+  )
+}
+
+/** รุ่น: dropdown จากทะเบียน — โหลดไม่ได้หรือทะเบียนว่าง → ช่องพิมพ์; ค่าที่ไม่อยู่ในรายการ → เพิ่มเป็นตัวเลือกชั่วคราว */
+function BatchField({
+  label,
+  value,
+  onChange,
+  options,
+  loading,
+  loadError,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: string[]
+  loading: boolean
+  loadError: string | null
+}) {
+  const trimmed = value.trim()
+  const extraOption =
+    trimmed && options.length > 0 && !options.includes(trimmed) ? trimmed : null
+  const selectValue =
+    trimmed && (options.includes(trimmed) || extraOption === trimmed) ? trimmed : ''
+
+  if (loadError) {
+    return (
+      <div className="block text-sm text-slate-300">
+        <label className="block">
+          {label}
+          <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            aria-label={`${label} พิมพ์เอง`}
+            placeholder="พิมพ์รุ่นให้ตรงทะเบียน"
+            className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-fuchsia-700 ${portalFocusRing}`}
+          />
+        </label>
+        <p className="mt-1 text-[11px] text-amber-200/90" role="alert">
+          ไม่สามารถโหลดรายการรุ่น — {loadError}
+        </p>
+      </div>
+    )
+  }
+
+  if (!loading && options.length === 0) {
+    return (
+      <div className="block text-sm text-slate-300">
+        <label className="block">
+          {label}
+          <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            aria-label={`${label} พิมพ์เอง`}
+            placeholder="ยังไม่มีรุ่นในระบบ — พิมพ์รุ่นตามทะเบียน"
+            className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-fuchsia-700 ${portalFocusRing}`}
+          />
+        </label>
+        <p className="mt-1 text-[11px] text-slate-500">ยังไม่มีรุ่นในทะเบียน — ติดต่อผู้ดูแลให้นำเข้าข้อมูลสมาชิก</p>
+      </div>
+    )
+  }
+
+  return (
+    <label className="block text-sm text-slate-300">
+      {label}
+      <span className="sr-only">จากทะเบียนสมาชิก</span>
+      <select
+        value={selectValue}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={loading}
+        aria-label={`${label} จากทะเบียน`}
+        className={`mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus-visible:border-fuchsia-700 disabled:opacity-60 ${portalFocusRing}`}
+      >
+        <option value="">{loading ? 'กำลังโหลดรายการรุ่น…' : '— เลือกรุ่น —'}</option>
+        {extraOption ? (
+          <option value={extraOption}>
+            {extraOption} (ไม่อยู่ในรายการล่าสุด — ตรวจทะเบียน)
+          </option>
+        ) : null}
+        {options.map((b) => (
+          <option key={b} value={b}>
+            {b}
+          </option>
+        ))}
+      </select>
+      {extraOption ? (
+        <p className="mt-1 text-[11px] text-slate-500">ถ้ารุ่นไม่ตรงทะเบียน ให้แก้แล้วเลือกจากรายการด้านบน</p>
+      ) : null}
     </label>
   )
 }
