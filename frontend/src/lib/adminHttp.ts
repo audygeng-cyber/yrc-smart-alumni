@@ -1,4 +1,4 @@
-/** Shared helpers for admin `fetch` flows (import + finance panels). */
+/** Shared helpers for admin `fetch` flows (import, school-activities, cram, etc.). */
 
 export type ApiJsonResult = {
   status: number

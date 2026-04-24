@@ -103,7 +103,7 @@ if (!supabaseConfigured && hasBackendEnv) {
 
 console.log(`  ${mark(adminConfigured)} ตั้งค่า ADMIN_UPLOAD_KEY ใน backend/.env`)
 if (!adminConfigured && hasBackendEnv) {
-  console.log('      → จำเป็นสำหรับแท็บ Admin / นำเข้าสมาชิก / finance ที่ต้องใช้ x-admin-key')
+  console.log('      → จำเป็นสำหรับแท็บ Admin / นำเข้าสมาชิก / กิจกรรมโรงเรียน ที่ต้องใช้ x-admin-key')
 }
 
 console.log(`  ${mark(hasFrontendEnv)} มีไฟล์ frontend/.env (ไม่บังคับ — โค้ด default VITE_API_URL ไปที่พอร์ต 4000)`)

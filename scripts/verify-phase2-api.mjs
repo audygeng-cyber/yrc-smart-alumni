@@ -111,8 +111,10 @@ async function main() {
       if (!pushDoc.includes('vapid-public') || !pushDoc.includes('subscribe')) {
         errors.push('GET / paths.push ต้องอ้าง vapid-public และ subscribe')
       }
-      const fin = String(j.paths?.finance ?? '')
-      if (!fin.includes('payment-requests')) errors.push('GET / paths.finance ต้องมี payment-requests')
+      const school = String(j.paths?.schoolActivities ?? '')
+      if (!school.includes('school-activities') || !school.includes('donations/summary')) {
+        errors.push('GET / paths.schoolActivities ต้องอ้าง school-activities และ donations/summary')
+      }
     }
 
     // CORS — default dev origin
@@ -137,12 +139,12 @@ async function main() {
       errors.push(`POST /api/push/subscribe {} → ${sub.status} (คาด 400 เมื่อไม่ส่ง endpoint/keys)`)
     }
 
-    // Admin — ไม่ส่ง x-admin-key
-    const fin = await fetch(`${base}/api/admin/finance/overview`)
-    if (fin.status !== 401) {
-      errors.push(`GET /api/admin/finance/overview ไม่มีคีย์ → ${fin.status} (คาด 401)`)
+    // Admin — ไม่ส่ง x-admin-key (เส้นทางกิจกรรมโรงเรียนแทนโมดูล finance ที่ถอดแล้ว)
+    const school = await fetch(`${base}/api/admin/school-activities`)
+    if (school.status !== 401) {
+      errors.push(`GET /api/admin/school-activities ไม่มีคีย์ → ${school.status} (คาด 401)`)
     } else {
-      const b = await fin.json().catch(() => ({}))
+      const b = await school.json().catch(() => ({}))
       if (String(b.error ?? '') !== 'ไม่ได้รับอนุญาต') {
         errors.push('ข้อความ 401 admin ไม่ตรงที่คาด')
       }

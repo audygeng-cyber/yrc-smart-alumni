@@ -31,7 +31,7 @@ export function CramQrEntryPage() {
           className={`${themeAccent.buttonPrimary} ${focus}`}
           aria-label="ไปหน้าล็อกอิน LINE"
         >
-          ดำเนินการต่อ — ผูกบัญชี LINE
+          ดำเนินการต่อ — ล็อกอิน LINE / ผูกสมาชิก
         </Link>
         <Link to="/" className={`border border-slate-600 bg-slate-900/60 text-slate-200 hover:bg-slate-800 ${focus}`}>
           กลับหน้าหลัก

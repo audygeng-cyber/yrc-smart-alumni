@@ -268,7 +268,7 @@ export function MemberLinkPanel({
 
   return (
     <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-6" aria-busy={loading || requestStatusLoading}>
-      <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ผูกบัญชีสมาชิก</h2>
+      <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">ผูกสมาชิกกับทะเบียน</h2>
       <p className="mt-2 text-xs text-slate-400">
         กรอกรุ่น · ชื่อ · นามสกุล ให้ตรงทะเบียน แล้วกด &quot;เข้าสู่ระบบด้วย LINE&quot; ด้านล่างเพื่อดึง LINE UID
       </p>
@@ -304,10 +304,10 @@ export function MemberLinkPanel({
               <button
                 type="button"
                 onClick={onClearLineSession}
-                aria-label="ออกจากบัญชี LINE ที่ผูกไว้"
+                aria-label="ออกจาก LINE ที่ล็อกอินไว้"
                 className={`${themeTapTarget} mt-3 inline-flex min-h-[44px] items-center rounded-sm text-xs text-amber-400 underline hover:text-amber-300 ${portalFocusRing}`}
               >
-                ออกจากบัญชี LINE นี้
+                ออกจาก LINE นี้
               </button>
             </div>
           ) : null}
@@ -391,7 +391,7 @@ export function MemberLinkPanel({
                         type="button"
                         disabled={loading}
                         onClick={autoLinkFromApprovedRequest}
-                        aria-label="ผูกบัญชีอัตโนมัติจากข้อมูลคำร้องล่าสุด"
+                        aria-label="ผูกสมาชิกอัตโนมัติจากข้อมูลคำร้องล่าสุด"
                         className={`${themeTapTarget} rounded-lg px-3 py-2 text-xs font-medium text-white disabled:opacity-50 ${themeAccent.buttonPrimaryStrong} ${portalFocusRing}`}
                       >
                         ผูกอัตโนมัติ
@@ -418,7 +418,7 @@ export function MemberLinkPanel({
         type="button"
         disabled={loading || !lineUid.trim()}
         onClick={verifyLink}
-        aria-label="ตรวจสอบข้อมูลและผูกบัญชีสมาชิก"
+        aria-label="ตรวจสอบข้อมูลและผูกสมาชิกกับทะเบียน"
         aria-describedby={`${verificationHintId} ${requestStatusSummaryId}`}
         className={`${themeTapTarget} mt-4 rounded-lg ${themeAccent.buttonPrimaryStrong} px-4 py-2 text-sm font-medium disabled:opacity-50 ${portalFocusRing}`}
       >
@@ -426,7 +426,7 @@ export function MemberLinkPanel({
       </button>
       <p id={requestStatusSummaryId} className="mt-2 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true">
         {hasApprovedRequest
-          ? 'พบคำร้องที่อนุมัติแล้ว สามารถกด "ใช้ข้อมูลจากคำร้องล่าสุด" หรือกดตรวจสอบเพื่อผูกบัญชีได้ทันที'
+          ? 'พบคำร้องที่อนุมัติแล้ว สามารถกด "ใช้ข้อมูลจากคำร้องล่าสุด" หรือกดตรวจสอบเพื่อผูกสมาชิกได้ทันที'
           : 'หากยังไม่พบในทะเบียน ให้ส่งคำร้องสมัครใหม่และรอประธานรุ่น/ผู้ดูแลอนุมัติ'}
       </p>
 

@@ -290,7 +290,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
     <section className="mt-8 rounded-xl border border-amber-900/40 bg-amber-950/10 p-6" aria-busy={loading}>
       <h2 className="text-sm font-medium uppercase tracking-wide text-amber-200">Admin — กิจกรรมโรงเรียน (ตาราง school_activities)</h2>
       <p className="mt-2 text-xs text-slate-400">
-        ตั้งค่าชื่อกิจกรรม รายละเอียด เป้ายอด และกลุ่มบัญชีที่นี่ — ข้อมูลจะถูกส่งต่อไปยังพอร์ทัลสมาชิกอัตโนมัติเมื่อสถานะเป็น &quot;เปิด&quot;
+        ตั้งค่าชื่อกิจกรรม รายละเอียด เป้ายอด และขอบเขตกองทุน (fund_scope) ที่นี่ — ข้อมูลจะถูกส่งต่อไปยังพอร์ทัลสมาชิกอัตโนมัติเมื่อสถานะเป็น &quot;เปิด&quot;
       </p>
       <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-slate-500">
         <li>
@@ -376,7 +376,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
         </label>
         <div className="mt-2 flex flex-wrap gap-2">
           <label className="text-xs text-slate-400">
-            กลุ่มบัญชี
+            ขอบเขตกองทุน
             <select
               value={newFundScope}
               onChange={(e) => setNewFundScope(e.target.value as typeof newFundScope)}
@@ -417,7 +417,7 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                 กิจกรรม
               </th>
               <th scope="col" className="px-3 py-2">
-                กลุ่มบัญชี
+                ขอบเขตกองทุน
               </th>
               <th scope="col" className="px-3 py-2">
                 เป้า (บาท)
@@ -457,12 +457,12 @@ export function AdminSchoolActivitiesPanel({ apiBase }: Props) {
                         </label>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <label className="text-xs text-slate-400">
-                            กลุ่มบัญชี
+                            ขอบเขตกองทุน
                             <select
                               value={editFundScope}
                               onChange={(e) => setEditFundScope(e.target.value as typeof editFundScope)}
                               className={`ml-1 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-sm ${portalFocusRing}`}
-                              aria-label="กลุ่มบัญชี"
+                              aria-label="ขอบเขตกองทุน"
                             >
                               <option value="yupparaj_school">ยุพราช</option>
                               <option value="association">สมาคม</option>

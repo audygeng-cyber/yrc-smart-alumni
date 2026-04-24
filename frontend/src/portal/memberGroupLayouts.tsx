@@ -10,18 +10,12 @@ const subNavClass = ({ isActive }: { isActive: boolean }) =>
 const associationItems: { to: string; label: string }[] = [
   { to: '/member/association/agendas', label: 'วาระการประชุมทั้งหมด' },
   { to: '/member/association/meeting-reports', label: 'รายงานการประชุมทั้งหมด' },
-  { to: '/member/association/finance-by-month', label: 'รายรับ-รายจ่ายทั้งหมด (รายเดือน)' },
-  { to: '/member/association/finance-current', label: 'รายรับ-รายจ่ายปัจจุบัน' },
-  { to: '/member/association/statements', label: 'Statement ทั้งหมด (รายเดือน)' },
 ]
 
 const cramItems: { to: string; label: string }[] = [
   { to: '/member/cram-school/student-stats', label: 'สถิตินักเรียน / วิชา / ห้อง' },
   { to: '/member/cram-school/agendas', label: 'วาระการประชุมทั้งหมด' },
   { to: '/member/cram-school/meeting-reports', label: 'รายงานการประชุมทั้งหมด' },
-  { to: '/member/cram-school/finance-by-month', label: 'รายรับ-รายจ่ายทั้งหมด (รายเดือน)' },
-  { to: '/member/cram-school/finance-current', label: 'รายรับ-รายจ่ายปัจจุบัน' },
-  { to: '/member/cram-school/statements', label: 'Statement ทั้งหมด (รายเดือน)' },
 ]
 
 function AdminNote() {
@@ -37,7 +31,7 @@ export function MemberAssociationLayout() {
     <div className="min-w-0 space-y-4">
       <header className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
         <h2 className="text-base font-semibold text-slate-100">กิจกรรมสมาคมศิษย์เก่า</h2>
-        <p className="mt-1 text-sm text-slate-400">รายงานและข้อมูลการเงินของนิติบุคคลสมาคมฯ — แยกจากกองโรงเรียนยุพราชและโรงเรียนกวดวิชา</p>
+        <p className="mt-1 text-sm text-slate-400">วาระและรายงานการประชุมของสมาคมฯ — แยกจากกองโรงเรียนยุพราชและโรงเรียนกวดวิชา</p>
         <AdminNote />
       </header>
       <nav
@@ -60,7 +54,7 @@ export function MemberCramSchoolLayout() {
     <div className="min-w-0 space-y-4">
       <header className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
         <h2 className="text-base font-semibold text-slate-100">กิจกรรมโรงเรียนกวดวิชา</h2>
-        <p className="mt-1 text-sm text-slate-400">สถิติการเรียนการสอนและรายงานการเงินโรงเรียนกวดวิชา — แยกบัญชีจากสมาคมศิษย์เก่า</p>
+        <p className="mt-1 text-sm text-slate-400">สถิติการเรียนการสอนและรายงานประชุมโรงเรียนกวดวิชา — แยกจากสมาคมศิษย์เก่า</p>
         <AdminNote />
       </header>
       <nav
@@ -92,7 +86,7 @@ export function MemberPortalPlaceholderPage(props: PlaceholderProps) {
       <p className="mt-2 text-sm text-slate-400">{props.description}</p>
       <ul className="mt-4 list-inside list-disc space-y-2 text-sm text-slate-400">
         <li>เอกสารฉบับนี้ sync จากระบบหลังบ้านเมื่อผู้ดูแลบันทึก — สมาชิกไม่แก้ไขได้ที่นี่</li>
-        <li>รูปแบบรายงานรายเดือน / Statement สอดคล้องมาตรฐานบัญชีที่ทีมกำหนดในแผงการเงิน</li>
+        <li>รายงานที่เผยแพร่ผ่านพอร์ทัลมาจากข้อมูลที่ผู้ดูแลบันทึก — ไม่มีโมดูลบัญชีแยกประเภทในแอปนี้</li>
       </ul>
       <div className="mt-5 flex flex-wrap gap-2">
         {props.committeeLink ? (

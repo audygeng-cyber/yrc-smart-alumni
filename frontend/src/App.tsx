@@ -8,10 +8,6 @@ const AdminImportPanel = lazy(async () => {
   const m = await import('./components/AdminImportPanel')
   return { default: m.AdminImportPanel }
 })
-const AdminFinancePanel = lazy(async () => {
-  const m = await import('./components/AdminFinancePanel')
-  return { default: m.AdminFinancePanel }
-})
 const AdminCramPanel = lazy(async () => {
   const m = await import('./components/AdminCramPanel')
   return { default: m.AdminCramPanel }
@@ -567,7 +563,7 @@ function AppChrome(props: AppChromeProps) {
               <>
                 <NavPill
                   to="/"
-                  label="เข้าสู่ระบบ/ผูกบัญชี"
+                  label="ล็อกอิน LINE / ผูกสมาชิก"
                   matchLabelOnNarrow
                   active={location.pathname === '/' || location.pathname.startsWith('/auth/link')}
                 />
@@ -584,7 +580,7 @@ function AppChrome(props: AppChromeProps) {
               <>
                 <NavPill
                   to="/"
-                  label="เข้าสู่ระบบ / ผูกบัญชี"
+                  label="ล็อกอิน LINE / ผูกสมาชิก"
                   shortLabel="หลัก"
                   matchLabelOnNarrow
                   active={location.pathname === '/' || location.pathname.startsWith('/auth/link')}
@@ -740,22 +736,7 @@ function AppChrome(props: AppChromeProps) {
                 </Suspense>
               }
             />
-            <Route
-              path="finance"
-              element={
-                <Suspense fallback={adminPanelSuspenseFallback}>
-                  <Navigate to="/admin/finance/accounting" replace />
-                </Suspense>
-              }
-            />
-            <Route
-              path="finance/:tab"
-              element={
-                <Suspense fallback={adminPanelSuspenseFallback}>
-                  <AdminFinancePanel apiBase={props.apiBase} />
-                </Suspense>
-              }
-            />
+            <Route path="finance/*" element={<Navigate to="/admin" replace />} />
             <Route
               path="cram"
               element={
@@ -825,13 +806,13 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
         <h2 className="text-sm font-medium uppercase tracking-wide text-fuchsia-200/90">เข้าสู่ระบบด้วย LINE</h2>
         <p className="mt-2 break-words text-sm text-slate-400">
           หลังล็อกอิน LINE ระบบจะได้รับ UID จาก LINE (ค่า <code className="text-slate-300">sub</code>) เก็บในเบราว์เซอร์
-          และบันทึกแถวใน <code className="text-slate-300">app_users</code> ผ่าน API — จากนั้นจึงผูกกับทะเบียนสมาชิกได้ที่หน้าผูกบัญชี
+          และบันทึกแถวใน <code className="text-slate-300">app_users</code> ผ่าน API — จากนั้นจึงผูกกับทะเบียนสมาชิกได้ที่หน้าแรก (ล็อกอิน / ผูกสมาชิก)
         </p>
         <Link
           to="/"
           className={`${themeTapTarget} mt-4 inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium ${themeAccent.buttonPrimaryStrong} ${themeAccent.focusRing}`}
         >
-          ไปล็อกอิน LINE / ผูกบัญชี
+          ไปล็อกอิน LINE / ผูกสมาชิก
         </Link>
       </section>
       <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6">
@@ -888,10 +869,10 @@ function HomePage({ health, apiBase }: { health: string; apiBase: string }) {
           <li role="listitem">
             <Link
               to="/"
-              aria-label="ไปหน้าผูกบัญชีสมาชิก"
+              aria-label="ไปหน้าล็อกอินและผูกสมาชิก"
               className={`${themeTapTarget} inline-flex items-center rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 ${themeAccent.focusRing}`}
             >
-              ผูกบัญชี
+              ผูกสมาชิก
             </Link>
           </li>
           <li role="listitem">

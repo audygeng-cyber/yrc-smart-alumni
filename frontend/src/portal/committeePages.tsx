@@ -12,7 +12,6 @@ import {
   TrendBars,
 } from './ui'
 import {
-  type CommitteeMonthlyPl,
   type CommitteePortalData,
   type CommitteeRoleView,
   type PortalDataState,
@@ -34,7 +33,6 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
   const navItems = [
     { to: '/committee/dashboard', label: 'แดชบอร์ด', shortLabel: 'แดชบอร์ด', roles: ['chair', 'member'] as CommitteeRoleView[] },
     { to: '/committee/members', label: 'ทะเบียนสมาชิก', shortLabel: 'ทะเบียน', roles: ['chair', 'member'] as CommitteeRoleView[] },
-    { to: '/committee/finance', label: 'การเงินละเอียด', shortLabel: 'การเงิน', roles: ['chair'] as CommitteeRoleView[] },
     { to: '/committee/meetings', label: 'วาระ/รายงานประชุม', shortLabel: 'ประชุม', roles: ['chair', 'member'] as CommitteeRoleView[] },
     {
       to: '/committee/attendance',
@@ -52,7 +50,7 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
   return (
     <PortalShell
       title="พอร์ทัลคณะกรรมการ"
-      subtitle="ทะเบียน การเงิน ประชุม ลงมติ — คณะกรรมการ 35 คน (เลือกเมนูด้านบนหรือแถบข้างบนจอใหญ่)"
+      subtitle="ทะเบียน ประชุม ลงมติ — คณะกรรมการ 35 คน (เลือกเมนูด้านบนหรือแถบข้างบนจอใหญ่)"
       navItems={visibleNavItems}
     >
       <section className="mb-3 min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-2.5 text-sm sm:mb-4 sm:p-3" aria-busy={portalData.loading}>
@@ -91,7 +89,7 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<CommitteeDashboardPage roleView={roleView} portalState={portalData} />} />
         <Route path="members" element={<CommitteeMembersPage portalState={portalData} />} />
-        <Route path="finance" element={<CommitteeFinancePage roleView={roleView} portalState={portalData} />} />
+        <Route path="finance" element={<Navigate to="/committee/dashboard" replace />} />
         <Route path="meetings" element={<CommitteeMeetingsPage portalState={portalData} apiBase={props.apiBase} />} />
         <Route
           path="attendance"
@@ -101,126 +99,6 @@ export function CommitteeArea(props: { apiBase: string; lineUid: string | null }
         <Route path="*" element={<PortalNotFound scopeLabel={portalNotFoundScopeLabel.committee} />} />
       </Routes>
     </PortalShell>
-  )
-}
-
-function fmtThbAmount(n: number) {
-  return `฿ ${Math.round(n).toLocaleString('th-TH')}`
-}
-
-function CommitteePlBlock(props: { title: string; entityHint: string; pl: CommitteeMonthlyPl | null }) {
-  return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-400">{props.entityHint}</p>
-      <h4 className="mt-1 text-base font-medium text-slate-100">{props.title}</h4>
-      {!props.pl ? (
-        <p className="mt-3 text-sm text-slate-400" role="status" aria-live="polite" aria-atomic="true">
-          ไม่มีข้อมูลสมุดรายวัน (journal) ในช่วงเดือนนี้
-        </p>
-      ) : (
-        <dl className="mt-3 space-y-2 text-sm">
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-400">รายรับ</dt>
-            <dd className="text-fuchsia-300">{fmtThbAmount(props.pl.revenue)}</dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-400">รายจ่าย</dt>
-            <dd className="text-amber-200">{fmtThbAmount(props.pl.expense)}</dd>
-          </div>
-          <div className="flex justify-between gap-4 border-t border-slate-800 pt-2">
-            <dt className="text-slate-400">กำไรสุทธิ</dt>
-            <dd className="font-medium text-slate-100">{fmtThbAmount(props.pl.netIncome)}</dd>
-          </div>
-        </dl>
-      )}
-    </div>
-  )
-}
-
-function CommitteeFinancePage(props: {
-  roleView: CommitteeRoleView
-  portalState: PortalDataState<CommitteePortalData>
-}) {
-  const { data, loading, source } = props.portalState
-  const monthLabel = new Date().toLocaleString('th-TH', { month: 'long', year: 'numeric' })
-
-  if (props.roleView === 'member') {
-    return (
-      <div className="min-w-0 space-y-4">
-        <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
-          <PortalSectionHeader loading={loading} source={source}>
-            <div>
-              <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การเงิน (สรุป)</h3>
-              <p className="mt-2 text-sm text-slate-400">
-                มุมมองกรรมการแสดงเฉพาะกำไรสุทธิโดยสังเขป — รายละเอียดบัญชีเต็มสำหรับประธาน/ผู้ได้รับมอบหมาย
-              </p>
-            </div>
-          </PortalSectionHeader>
-          {loading ? (
-            <PortalContentLoading />
-          ) : (
-            <ul className="mt-4 space-y-3 text-sm" role="list" aria-label="สรุปกำไรสุทธิแยกตามนิติบุคคล">
-              <li className="rounded border border-slate-800 px-3 py-2" role="listitem">
-                <span className="text-slate-400">นิติบุคคลสมาคม · กำไรสุทธิ</span>
-                <p className="mt-1 font-medium text-slate-100">
-                  {data.associationMonthlyPl ? fmtThbAmount(data.associationMonthlyPl.netIncome) : '— ไม่มีข้อมูล —'}
-                </p>
-              </li>
-              <li className="rounded border border-slate-800 px-3 py-2" role="listitem">
-                <span className="text-slate-400">โรงเรียนกวดวิชา · กำไรสุทธิ</span>
-                <p className="mt-1 font-medium text-slate-100">
-                  {data.cramSchoolMonthlyPl ? fmtThbAmount(data.cramSchoolMonthlyPl.netIncome) : '— ไม่มีข้อมูล —'}
-                </p>
-              </li>
-            </ul>
-          )}
-          <p className="mt-4 text-xs text-slate-600">ช่วงอ้างอิง: {monthLabel} (ตามสมุดรายวัน journal ในระบบ)</p>
-        </section>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-w-0 space-y-4">
-      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-busy={loading}>
-        <PortalSectionHeader loading={loading} source={source}>
-          <div>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">การเงินละเอียด</h3>
-            <p className="mt-2 text-sm text-slate-400">
-              สรุป P/L เดือนปัจจุบันจากบัญชีแยกประเภท (journal) แยกนิติบุคคล — อัปเดตเมื่อโหลดพอร์ทัล
-            </p>
-            <p className="mt-1 text-xs text-slate-600">ช่วงเดือน: {monthLabel}</p>
-          </div>
-        </PortalSectionHeader>
-        {loading ? (
-          <PortalContentLoading />
-        ) : (
-          <>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <CommitteePlBlock entityHint="legal_entities.code = association" title="นิติบุคคลสมาคม" pl={data.associationMonthlyPl} />
-              <CommitteePlBlock entityHint="legal_entities.code = cram_school" title="โรงเรียนกวดวิชา" pl={data.cramSchoolMonthlyPl} />
-            </div>
-            <div
-              className="mt-4 rounded-lg border border-amber-900/40 bg-amber-950/20 px-4 py-3 text-sm"
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-              aria-label="จำนวนคำขอจ่ายเงินที่รอดำเนินการ"
-            >
-              <p className="text-amber-100">
-                คำขอจ่ายที่รอดำเนินการ (สถานะ = pending):{' '}
-                <span className="font-semibold tabular-nums">{data.paymentRequestsPending.toLocaleString('th-TH')}</span> รายการ
-              </p>
-            </div>
-          </>
-        )}
-        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="ลิงก์ทางลัดหน้าแดชบอร์ดคณะกรรมการ">
-          <Link to="/committee/dashboard" aria-label="ไปหน้าแดชบอร์ดคณะกรรมการ" className={`rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-700 ${portalFocusRing}`}>
-            แดชบอร์ด
-          </Link>
-        </div>
-      </section>
-    </div>
   )
 }
 
@@ -1012,8 +890,6 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
   const closedAgendaCount = data.meetingOverview.closedAgendaCount
   const publishedDocumentCount = data.meetingOverview.publishedDocumentCount
   const minutesPublishedCount = data.meetingOverview.minutesPublishedCount
-  const payPending = data.paymentRequestsPending
-
   const dashJumpClass = `rounded border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-800 ${portalFocusRing}`
 
   return (
@@ -1075,9 +951,6 @@ function CommitteeDashboardPage(props: { roleView: CommitteeRoleView; portalStat
             <li className="rounded border border-indigo-900/40 bg-indigo-950/20 px-3 py-2 text-indigo-100" role="listitem">
               วาระที่ปิดแล้ว {closedAgendaCount.toLocaleString('th-TH')} รายการ · รายงานประชุมเผยแพร่{' '}
               {minutesPublishedCount.toLocaleString('th-TH')} ฉบับ
-            </li>
-            <li className="rounded border border-sky-900/40 bg-sky-950/20 px-3 py-2 text-sky-100" role="listitem">
-              คำขอจ่ายรอดำเนินการ {payPending.toLocaleString('th-TH')} รายการ (สถานะ pending)
             </li>
             <li className={`rounded px-3 py-2 text-fuchsia-100 ${themeAccent.panel}`} role="listitem">
               เอกสารประชุมเผยแพร่ {publishedDocumentCount.toLocaleString('th-TH')} รายการ

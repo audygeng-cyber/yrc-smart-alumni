@@ -82,16 +82,16 @@ export const memberDonationHistoryMock = [
 ]
 
 export const memberFinanceCards: MetricItem[] = [
-  { label: 'รายรับเดือนนี้', value: '฿ 482,000', hint: 'รวมรายรับที่เปิดเผยต่อสมาชิก' },
-  { label: 'รายจ่ายเดือนนี้', value: '฿ 351,400', hint: 'ค่าใช้จ่ายกิจกรรมและงานบริหาร' },
-  { label: 'ยอดคงเหลือสุทธิ', value: '฿ 130,600', hint: 'รายรับ - รายจ่าย' },
-  { label: 'จำนวนรายงานประชุม', value: '18', hint: 'เอกสารที่เผยแพร่ในระบบ' },
+  { label: 'กิจกรรมโรงเรียน', value: 'สถิติ', hint: 'ดูยอดบริจาคตามกิจกรรมบนหน้าหลักสมาชิก (กองยุพราช)' },
+  { label: 'งานบัญชีในแอป', value: '—', hint: 'ไม่มีโมดูลบัญชีแยกประเภท — ข้อมูลจาก API จะทับค่าตัวอย่างนี้' },
+  { label: 'รายงานการเงิน', value: '—', hint: 'ไม่เผยแพร่ผ่านพอร์ทัลสมาชิกในรุ่นนี้' },
+  { label: 'ประชุม/วาระ', value: '—', hint: 'ใช้พอร์ทัลคณะกรรมการ /committee/meetings หากได้รับสิทธิ์' },
 ]
 
 export const memberMeetingReports: MeetingReportItem[] = [
   { title: 'ประชุมใหญ่สามัญประจำปี 2569', date: '12/04/2569' },
   { title: 'สรุปโครงการสนับสนุนกิจกรรมเดือนมีนาคม', date: '28/03/2569' },
-  { title: 'รายงานการเงินไตรมาส 1/2569', date: '20/03/2569' },
+  { title: 'สรุปโครงการสนับสนุนโรงเรียน Q1/2569', date: '20/03/2569' },
 ]
 
 export const memberRequestTrendMock: TrendItem[] = [
@@ -122,7 +122,7 @@ export const committeeRequestTrend: TrendItem[] = [
 ]
 
 export const committeeMeetings: MeetingItem[] = [
-  { topic: 'วาระการเงินประจำเดือน', time: '09:30', status: 'ready' },
+  { topic: 'วาระโครงการสนับสนุนโรงเรียน', time: '09:30', status: 'ready' },
   { topic: 'โครงการสนับสนุนโรงเรียน', time: '10:30', status: 'pending_vote' },
   { topic: 'อัปเดตทะเบียนสมาชิก', time: '11:15', status: 'in_review' },
 ]
@@ -159,7 +159,7 @@ export const committeeAttendanceRowsMock = [
 ]
 
 export const committeeOpenAgendasMock = [
-  { id: 'a0000000-0000-0000-0000-000000000001', title: 'อนุมัติคำขอจ่ายเงินโครงการกีฬา', scope: 'association', status: 'open' },
+  { id: 'a0000000-0000-0000-0000-000000000001', title: 'อนุมัติโครงการกีฬาสมาคม', scope: 'association', status: 'open' },
   { id: 'a0000000-0000-0000-0000-000000000002', title: 'แต่งตั้งคณะทำงานตรวจสอบภายใน', scope: 'association', status: 'open' },
 ]
 
@@ -203,7 +203,7 @@ export const committeeMeetingOverviewMock: CommitteeMeetingOverview = {
 export const committeeClosedAgendaResultsMock: CommitteeClosedAgendaResultItem[] = [
   {
     id: 'a0000000-0000-0000-0000-000000000101',
-    title: 'รับรองรายงานการเงินไตรมาสที่ผ่านมา',
+    title: 'รับรองรายงานโครงการสนับสนุนโรงเรียนไตรมาสที่ผ่านมา',
     scope: 'association',
     closedAt: new Date().toISOString(),
     approve: 21,
@@ -231,7 +231,7 @@ export const committeeCramSchoolPlMock = { revenue: 198000, expense: 142000, net
 export const committeeRoleCards: Record<'chair' | 'member', MetricItem[]> = {
   chair: [
     { label: 'วาระพร้อมเซ็นอนุมัติ', value: '5', hint: 'รอประธานยืนยันก่อนประกาศใช้' },
-    { label: 'เอกสารการเงินรอตรวจ', value: '12', hint: 'รายการที่ยังไม่ปิดงาน' },
+    { label: 'เอกสารประชุมรอตรวจ', value: '12', hint: 'รายการที่ยังไม่เผยแพร่หรือรอแก้ไข' },
   ],
   member: [
     { label: 'วาระที่ต้องลงคะแนน', value: '3', hint: 'รายการที่สมาชิกกรรมการยังไม่ลงมติ' },
@@ -315,7 +315,7 @@ export const academyRoleCards: Record<'admin' | 'teacher' | 'student' | 'parent'
     { label: 'คะแนนเฉลี่ยของฉัน', value: '83.6', hint: 'คำนวณจากทุกวิชาล่าสุด' },
   ],
   parent: [
-    { label: 'บุตรหลานที่ดูแล', value: '2', hint: 'บัญชีที่เชื่อมกับผู้ปกครอง' },
+    { label: 'บุตรหลานที่ดูแล', value: '2', hint: 'โปรไฟล์ที่เชื่อมกับผู้ปกครอง' },
     { label: 'แจ้งเตือนผลการเรียนใหม่', value: '3', hint: 'อัปเดตที่ยังไม่อ่าน' },
   ],
 }

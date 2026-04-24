@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { themeAccent } from '../lib/themeTokens'
-import { formatThbShort, totalStudentsInClasses, weightedAverageFromClasses } from './academyMath'
+import { totalStudentsInClasses, weightedAverageFromClasses } from './academyMath'
 import { type AcademyPortalData, type AcademyRoleView, type PortalDataState, useAcademyPortalData } from './dataAdapter'
 import { portalAccent, portalFocusRing, portalNotFoundScopeLabel } from './portalLabels'
 import {
@@ -629,15 +629,6 @@ function AcademyResultsPage(props: { roleView: AcademyRoleView; portalState: Por
 function AcademyReportsPage(props: { roleView: AcademyRoleView; portalState: PortalDataState<AcademyPortalData> }) {
   const { roleView, portalState } = props
   const { data, loading, source } = portalState
-  const cramPl = data.cramSchoolMonthlyPl
-  const cramFinanceCards =
-    cramPl !== null
-      ? [
-          { label: 'รายรับ (cram_school)', value: formatThbShort(cramPl.revenue), hint: 'journal เดือนนี้' },
-          { label: 'รายจ่าย (cram_school)', value: formatThbShort(cramPl.expense), hint: 'journal เดือนนี้' },
-          { label: 'คงเหลือสุทธิ', value: formatThbShort(cramPl.netIncome), hint: 'รายรับ − รายจ่าย' },
-        ]
-      : []
 
   const roleHint =
     roleView === 'admin'
@@ -663,11 +654,6 @@ function AcademyReportsPage(props: { roleView: AcademyRoleView; portalState: Por
             <a href="#academy-reports-funnel" className={academyJumpLinkClass}>
               ฟันเนล
             </a>
-            {cramFinanceCards.length > 0 ? (
-              <a href="#academy-reports-finance" className={academyJumpLinkClass}>
-                การเงิน
-              </a>
-            ) : null}
             <a href="#academy-reports-shortcuts" className={academyJumpLinkClass}>
               ทางลัด
             </a>
@@ -705,18 +691,6 @@ function AcademyReportsPage(props: { roleView: AcademyRoleView; portalState: Por
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">ขั้นตอนสมัครเรียน (ฟันเนล Funnel)</p>
             <TrendBars items={data.enrollmentFunnel} color="cyan" />
           </section>
-
-          {cramFinanceCards.length > 0 ? (
-            <section
-              id="academy-reports-finance"
-              className="scroll-mt-4 rounded-lg border border-violet-900/40 bg-violet-950/15 p-4"
-            >
-              <p className="text-xs font-medium uppercase tracking-wide text-violet-200">การเงินหน่วยงาน cram_school</p>
-              <div className="mt-3">
-                <MetricCards items={cramFinanceCards} />
-              </div>
-            </section>
-          ) : null}
 
           <div
             id="academy-reports-shortcuts"
@@ -764,27 +738,6 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
           : 'ผู้ปกครองเห็นข้อมูลของบุตรหลานและความคืบหน้า'
 
   const roleCards = data.roleCards[props.roleView]
-  const cramPl = data.cramSchoolMonthlyPl
-  const cramFinanceCards =
-    cramPl !== null
-      ? [
-          {
-            label: 'รายรับ (cram_school)',
-            value: formatThbShort(cramPl.revenue),
-            hint: 'จากบัญชีแยกประเภท — สมุดรายวัน (journal) เดือนนี้',
-          },
-          {
-            label: 'รายจ่าย (cram_school)',
-            value: formatThbShort(cramPl.expense),
-            hint: 'จากบัญชีแยกประเภท — สมุดรายวัน (journal) เดือนนี้',
-          },
-          {
-            label: 'คงเหลือสุทธิ',
-            value: formatThbShort(cramPl.netIncome),
-            hint: 'รายรับ − รายจ่าย (cram_school)',
-          },
-        ]
-      : []
 
   return (
     <div className="min-w-0 space-y-4">
@@ -800,11 +753,6 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
           <a href="#academy-dash-metrics" className={academyJumpLinkClass}>
             ตัวชี้วัด
           </a>
-          {cramFinanceCards.length > 0 ? (
-            <a href="#academy-dash-finance" className={academyJumpLinkClass}>
-              การเงิน
-            </a>
-          ) : null}
           <a href="#academy-dash-scores" className={academyJumpLinkClass}>
             คะแนนห้อง
           </a>
@@ -833,20 +781,6 @@ function AcademyDashboardPage(props: { roleView: AcademyRoleView; portalState: P
         <MetricCards items={data.metricCards} />
         <MetricCards items={roleCards} />
       </section>
-
-      {cramFinanceCards.length > 0 ? (
-        <section
-          id="academy-dash-finance"
-          className="scroll-mt-4 rounded-lg border border-violet-900/40 bg-violet-950/20 p-4"
-          aria-busy={loading}
-        >
-          <h3 className="text-sm font-medium uppercase tracking-wide text-violet-200">การเงินโรงเรียนกวดวิชา (นิติบุคคล)</h3>
-          <p className="mt-1 text-xs text-violet-300/80">ยอดจากสมุดรายวัน (journal) เดือนปัจจุบัน — แยกจากสมาคมศิษย์เก่า</p>
-          <div className="mt-3">
-            <MetricCards items={cramFinanceCards} />
-          </div>
-        </section>
-      ) : null}
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section
@@ -955,7 +889,7 @@ function academyRoleBullets(role: AcademyRoleView): string[] {
   switch (role) {
     case 'admin':
       return [
-        'เห็นเมตริกภาพรวม การเงิน cram_school (ถ้ามีข้อมูลสมุดรายวัน journal) และฟันเนลสมัครเรียน (Funnel)',
+        'เห็นเมตริกภาพรวมและฟันเนลสมัครเรียน (Funnel) จากสแนปช็อตในแอป',
         'เข้าถึงห้องเรียน คอร์ส รายงาน และผลการเรียนทั้งระบบ',
         'ใช้ข้อมูลเพื่อวางแผนรับนักเรียนและติดตามคุณภาพ',
       ]

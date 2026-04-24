@@ -150,36 +150,6 @@ export function MemberArea(props: {
               />
             }
           />
-          <Route
-            path="finance-by-month"
-            element={
-              <MemberPortalPlaceholderPage
-                title="รายงานรายรับ-รายจ่ายทั้งหมด (แยกเดือน)"
-                description="งบรายรับรายจ่ายสะสมของสมาคมฯ แยกตามเดือน — สอดคล้องบัญชีแยกประเภทในระบบหลังบ้าน"
-                committeeLink="/committee/dashboard"
-              />
-            }
-          />
-          <Route
-            path="finance-current"
-            element={
-              <MemberPortalPlaceholderPage
-                title="รายงานรายรับ-รายจ่ายปัจจุบัน"
-                description="งวดบัญชีปัจจุบันที่ปิดหรือกำลังดำเนินการ — ดูรายละเอียดเชิงลึกที่พอร์ทัลคณะกรรมการ"
-                committeeLink="/committee/dashboard"
-              />
-            }
-          />
-          <Route
-            path="statements"
-            element={
-              <MemberPortalPlaceholderPage
-                title="Statement ทั้งหมด (แยกเดือน)"
-                description="รายงานทางการเงินแบบ Statement ตามเดือน — จัดทำและเผยแพร่โดยผู้ดูแล"
-                committeeLink="/committee/dashboard"
-              />
-            }
-          />
         </Route>
         <Route path="cram-school" element={<MemberCramSchoolLayout />}>
           <Route index element={<Navigate to="student-stats" replace />} />
@@ -213,36 +183,6 @@ export function MemberArea(props: {
               />
             }
           />
-          <Route
-            path="finance-by-month"
-            element={
-              <MemberPortalPlaceholderPage
-                title="รายรับ-รายจ่ายทั้งหมด (แยกเดือน) — กวดวิชา"
-                description="งบกวดวิชาแยกตามเดือน — บัญชีไม่ปนกับสมาคมศิษย์เก่า"
-                academyLink="/academy/dashboard"
-              />
-            }
-          />
-          <Route
-            path="finance-current"
-            element={
-              <MemberPortalPlaceholderPage
-                title="รายรับ-รายจ่ายปัจจุบัน — กวดวิชา"
-                description="งวดบัญชีปัจจุบันของโรงเรียนกวดวิชา"
-                academyLink="/academy/dashboard"
-              />
-            }
-          />
-          <Route
-            path="statements"
-            element={
-              <MemberPortalPlaceholderPage
-                title="Statement ทั้งหมด (แยกเดือน) — กวดวิชา"
-                description="รายงาน Statement รายเดือนของโรงเรียนกวดวิชา"
-                academyLink="/academy/dashboard"
-              />
-            }
-          />
         </Route>
         <Route path="documents" element={<MemberStaffDocumentsPage />} />
         <Route path="*" element={<PortalNotFound scopeLabel={portalNotFoundScopeLabel.member} />} />
@@ -256,7 +196,7 @@ function MemberStaffDocumentsPage() {
     {
       to: '/admin',
       title: 'แผงผู้ดูแล (Admin)',
-      description: 'นำเข้าสมาชิก การเงิน กิจกรรมโรงเรียน — จุดทำงานหลักของเจ้าหน้าที่',
+      description: 'นำเข้าสมาชิก กิจกรรมโรงเรียนและสถิติบริจาค — จุดทำงานหลักของเจ้าหน้าที่',
     },
     {
       to: '/requests',
@@ -266,7 +206,7 @@ function MemberStaffDocumentsPage() {
     {
       to: '/committee/dashboard',
       title: 'พอร์ทัลคณะกรรมการ',
-      description: 'สรุปการประชุม การเงิน ทะเบียน และวาระลงมติ',
+      description: 'สรุปการประชุม ทะเบียน และวาระลงมติ',
     },
     {
       to: '/academy/dashboard',
@@ -280,9 +220,7 @@ function MemberStaffDocumentsPage() {
       <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-5" aria-label="ลิงก์สำหรับงานเชิงกำกับดูแล">
         <h3 className="text-sm font-medium uppercase tracking-wide text-slate-300">ข้อมูลเชิงกำกับดูแล</h3>
         <p className="mt-2 text-sm text-slate-400">
-          ศูนย์ลิงก์สำหรับเจ้าหน้าที่สมาคม — รายงานปิดงบ หลักฐานการเงิน และบันทึกร่องรอย (audit trail) อยู่ในขั้นตอนงานการเงิน (workflow)
-          ของผู้ดูแล (Admin) และบัญชีแยกประเภท
-          ในระบบหลังบ้าน
+          ศูนย์ลิงก์สำหรับเจ้าหน้าที่สมาคม — แผงผู้ดูแลเน้นทะเบียนสมาชิกและกิจกรรมโรงเรียน (สถิติ/บริจาคตามกิจกรรม) ส่วนวาระและมติใช้พอร์ทัลคณะกรรมการ
         </p>
         <ul className="mt-5 space-y-3" role="list" aria-label="ลิงก์ทางลัดสำหรับเจ้าหน้าที่สมาคม">
           {links.map((item) => (
@@ -299,7 +237,7 @@ function MemberStaffDocumentsPage() {
           ))}
         </ul>
         <p className="mt-5 text-xs text-slate-600">
-          หมายเหตุ: การเข้าถึงข้อมูลส่วนบัญชีอาจต้องใช้คีย์หรือสิทธิ์ตามที่กำหนดในแผงผู้ดูแล (Admin)
+          หมายเหตุ: แผง Admin ต้องใช้ Admin API key และบทบาท RBAC ตามที่กำหนด
         </p>
       </section>
     </div>
@@ -918,7 +856,7 @@ function MemberDonationsPage(props: {
             <div className="mt-4 grid gap-3 md:grid-cols-2" role="list" aria-label="โครงการโรงเรียนยุพราช (กองแยกจากนิติบุคคลสมาคม/กวดวิชา)">
               {data.yupparajDonationActivities.length === 0 ? (
                 <p className="text-sm text-amber-200/90 md:col-span-2">
-                  ยังไม่มีรายการกิจกรรมประเภทโรงเรียนยุพราชในระบบ — ผู้ดูแลสามารถเพิ่มที่ Admin → กิจกรรมโรงเรียน และตั้งกลุ่มบัญชีเป็นโรงเรียนยุพราช
+                  ยังไม่มีรายการกิจกรรมประเภทโรงเรียนยุพราชในระบบ — ผู้ดูแลสามารถเพิ่มที่ Admin → กิจกรรมโรงเรียน และตั้ง fund_scope เป็นโรงเรียนยุพราช
                 </p>
               ) : (
                 data.yupparajDonationActivities.map((a) => {

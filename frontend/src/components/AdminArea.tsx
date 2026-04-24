@@ -17,11 +17,11 @@ export function AdminLayout() {
         <p className="text-xs font-medium uppercase tracking-wide text-slate-400">ศูนย์ผู้ดูแลระบบ</p>
         <h1 className="mt-1 text-lg font-semibold tracking-tight text-slate-100">จัดการข้อมูลและเครื่องมือผู้ดูแล</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-400">
-          แยกตามหมวดงาน — สมาชิก/ทะเบียน การเงิน โรงเรียนกวดวิชา และกิจกรรมโรงเรียน การกำหนดสิทธิ์ตามบทบาท (RBAC) สำหรับเมนูพอร์ทัลหลักตั้งได้ด้วย{' '}
+          แยกตามหมวดงาน — สมาชิก/ทะเบียน โรงเรียนกวดวิชา และกิจกรรมโรงเรียน (สถิติและยอดบริจาคตามกิจกรรม) การกำหนดสิทธิ์ตามบทบาท (RBAC) สำหรับเมนูพอร์ทัลหลักตั้งได้ด้วย{' '}
           <code className="rounded bg-slate-950/80 px-1 py-0.5 text-slate-300">VITE_ENFORCE_APP_RBAC=true</code> และบทบาทใน Supabase — แผงด้านล่างยังต้องใช้ Admin key กับ API ตามเดิม
         </p>
-        <p className="mt-2 max-w-3xl text-xs text-slate-400">
-          หมายเหตุ: การบันทึกหรือปิดงวดในระบบนี้เป็นการจัดเก็บข้อมูลบัญชีในแอป — ไม่ได้แทนการรับรองงบการเงินตามกฎหมายหรือบทบาทผู้สอบบัญชีภายนอก
+        <p className="mt-2 max-w-3xl text-xs text-slate-500">
+          ไม่มีเมนูหรือแผง &quot;บัญชีแยกประเภท / การเงินนิติบุคคล&quot; ในแอปนี้แล้ว — ถ้าเปิด URL เก่า <code className="text-slate-400">/admin/finance</code> ระบบจะพากลับมาที่ภาพรวมผู้ดูแล
         </p>
         <nav
           className="mt-5 -mx-1 flex min-w-0 max-w-full touch-pan-x gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]"
@@ -32,9 +32,6 @@ export function AdminLayout() {
           </NavLink>
           <NavLink to="/admin/import" className={adminNavClass}>
             สมาชิกและนำเข้า
-          </NavLink>
-          <NavLink to="/admin/finance" className={adminNavClass}>
-            การเงินและบัญชี
           </NavLink>
           <NavLink to="/admin/cram" className={adminNavClass}>
             โรงเรียนกวดวิชา
@@ -116,21 +113,12 @@ export function AdminHomePage() {
         />
       </AdminSection>
 
-      <AdminSection id="admin-section-finance" title="การเงินและบัญชี">
-        <AdminCard
-          to="/admin/finance/accounting"
-          badge="บัญชี"
-          title="บัญชี-การเงิน · ประชุม · คำขอจ่ายเงิน"
-          description="แยกแท็บ: สมุดรายวันและรายงานบัญชี สร้างการประชุม และสร้าง/อนุมัติคำขอจ่ายเงิน"
-        />
-      </AdminSection>
-
       <AdminSection id="admin-section-committee-link" title="พอร์ทัลคณะกรรมการ (เชื่อมกับประชุม)">
         <AdminCard
           to="/committee/meetings"
           badge="พอร์ทัล"
           title="วาระและรายงานประชุม — `/committee/meetings`"
-          description="เปิดในพอร์ทัลคณะกรรมการ (ไม่ใช่หน้าผู้ดูแล) — ต้องล็อกอิน LINE และผ่าน RBAC เส้นทาง `/committee/*` (บทบาทที่อนุญาตรวมบทบาท admin ในแอป — แยกจากการยืนยันด้วย Admin API key) หลังตั้งวาระในแผงการเงิน ใช้ที่นี่เพื่อดูวาระ ลงชื่อ และลงมติ"
+          description="เปิดในพอร์ทัลคณะกรรมการ (ไม่ใช่หน้าผู้ดูแล) — ต้องล็อกอิน LINE และผ่าน RBAC เส้นทาง `/committee/*` (บทบาทที่อนุญาตรวมบทบาท admin ในแอป — แยกจากการยืนยันด้วย Admin API key) ใช้ที่นี่เพื่อดูวาระ ลงชื่อ และลงมติ"
         />
       </AdminSection>
 
@@ -147,8 +135,8 @@ export function AdminHomePage() {
         <AdminCard
           to="/admin/school-activities"
           badge="กิจกรรม"
-          title="คอร์ส กิจกรรม และการบริจาค"
-          description="ตั้งค่ากิจกรรม ขอบเขตกองเงิน เป้าหมายยอดบริจาค และสรุปที่เกี่ยวกับโรงเรียน"
+          title="คอร์ส กิจกรรม และสถิติการบริจาค"
+          description="ตั้งค่า school_activities ขอบเขตกองเงิน เป้าหมายยอดบริจาค สรุปยอดตามกิจกรรม และส่งออก CSV สำหรับโรงเรียน — โฟกัสหลักของแผงผู้ดูแลด้านโรงเรียนในรุ่นนี้"
         />
       </AdminSection>
     </div>

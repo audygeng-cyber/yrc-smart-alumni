@@ -8,7 +8,6 @@
 
 - `frontend/src/App.tsx`
 - `frontend/src/components/AdminCramPanel.tsx`
-- `frontend/src/components/AdminFinancePanel.tsx`
 - `frontend/src/components/AdminImportPanel.tsx`
 - `frontend/src/components/AdminSchoolActivitiesPanel.tsx`
 - `frontend/src/components/MemberLinkPanel.tsx`
@@ -40,7 +39,6 @@
 - `backend/src/middleware/adminAuth.ts`
 - `backend/src/middleware/presidentAuth.ts`
 - `backend/src/routes/cramAdmin.ts`
-- `backend/src/routes/financeAdmin.ts`
 - `backend/src/routes/importMembers.ts`
 - `backend/src/routes/lineAuth.ts`
 - `backend/src/routes/memberRequestsAdmin.ts`
@@ -63,7 +61,6 @@
 ### กลุ่มไฟล์หลัก
 
 - `README.md`
-- `docs/ACCOUNTING_FLOW.md`
 - `docs/MEMBER_FLOW.md`
 - `docs/SYSTEM_V2_ROADMAP.md`
 - `docs/UI_TH_TERMINOLOGY_CHECKLIST.md` (ไฟล์ใหม่)

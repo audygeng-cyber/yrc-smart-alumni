@@ -4,7 +4,6 @@ import {
   committeePortalPayload,
   memberPortalPayload,
 } from '../data/portalSnapshot.js'
-import { tryAssociationMonthlyPlFromJournal, tryCramSchoolMonthlyPlFromJournal } from './plFromJournal.js'
 import { committeeMotionOutcome, committeeQuorumRequired, majorityRequired } from '../util/meetingRules.js'
 
 /** โครงเดียวกับ snapshot แต่ mutable (ไม่ใช่ readonly จาก `as const`) */
@@ -261,73 +260,28 @@ export async function buildMemberPortalFromDb(supabase: SupabaseClient) {
 
   base.roleCards.staff[0] = { ...base.roleCards.staff[0], value: fmtInt(requestsMonth ?? 0) }
 
-  const plFromJournal = await tryAssociationMonthlyPlFromJournal(supabase)
-  if (plFromJournal !== null) {
-    base.financeCards[0] = {
-      ...base.financeCards[0],
-      value: fmtThb(Math.round(plFromJournal.revenue)),
-      hint: 'รวมรายรับจากบัญชีแยกประเภท (นิติบุคคลสมาคม) เดือนนี้',
-    }
-    base.financeCards[1] = {
-      ...base.financeCards[1],
-      value: fmtThb(Math.round(plFromJournal.expense)),
-      hint: 'รวมรายจ่ายจากบัญชีแยกประเภท (นิติบุคคลสมาคม) เดือนนี้',
-    }
-    base.financeCards[2] = {
-      ...base.financeCards[2],
-      value: fmtThb(Math.round(plFromJournal.netIncome)),
-      hint: 'รายรับ − รายจ่าย จาก journal เดือนนี้',
-    }
-  } else {
-    const { data: donationsMonth, error: e5 } = await supabase
-      .from('donations')
-      .select('amount,fund_scope')
-      .gte('created_at', start)
-      .lt('created_at', end)
-    if (e5) throw e5
-
-    const donationTotal = (donationsMonth ?? []).reduce((s, r: { amount?: string | number | null; fund_scope?: string | null }) => {
-      if (r.fund_scope === 'yupparaj_school') return s
-      const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
-      return s + (Number.isFinite(n) ? n : 0)
-    }, 0)
-
-    const { data: paymentsMonth, error: e6 } = await supabase
-      .from('payment_requests')
-      .select('amount')
-      .in('status', ['approved', 'executed'])
-      .gte('created_at', start)
-      .lt('created_at', end)
-    if (e6) throw e6
-
-    const expenseTotal = (paymentsMonth ?? []).reduce((s, r: { amount?: string | number | null }) => {
-      const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount ?? 0)
-      return s + (Number.isFinite(n) ? n : 0)
-    }, 0)
-
-    base.financeCards[0] = {
-      ...base.financeCards[0],
-      value: fmtThb(Math.round(donationTotal)),
-      hint: 'พร็อกซี: ผลรวมการบริจาคเดือนนี้ (ยังไม่มี journal ในช่วงนี้)',
-    }
-    base.financeCards[1] = {
-      ...base.financeCards[1],
-      value: fmtThb(Math.round(expenseTotal)),
-      hint: 'พร็อกซี: คำขอจ่ายที่อนุมัติ/โอนแล้วเดือนนี้',
-    }
-    base.financeCards[2] = {
-      ...base.financeCards[2],
-      value: fmtThb(Math.round(donationTotal - expenseTotal)),
-      hint: 'พร็อกซี: บริจาค − คำขอจ่าย (เมื่อยังไม่ใช้บัญชีแยกประเภท)',
-    }
-  }
-
-  const { count: reportsCount, error: e7 } = await supabase
-    .from('meeting_sessions')
-    .select('*', { count: 'exact', head: true })
-  if (!e7 && typeof reportsCount === 'number') {
-    base.financeCards[3] = { ...base.financeCards[3], value: fmtInt(reportsCount) }
-  }
+  base.financeCards = [
+    {
+      label: 'งานบัญชีในแอป',
+      value: '—',
+      hint: 'โมดูลบัญชีแยกประเภทถูกถอดออกจาก YRC Smart Alumni — ไม่มีการคำนวณรายรับ/รายจ่ายจากสมุดรายวันในแอปนี้',
+    },
+    {
+      label: 'กิจกรรมโรงเรียน',
+      value: 'ดูหน้าหลักสมาชิก',
+      hint: 'สถิติการสนับสนุนกองยุพราชและกิจกรรมที่เปิดในระบบ (school_activities / บริจาคตามกิจกรรม)',
+    },
+    {
+      label: 'รายงานการเงิน',
+      value: '—',
+      hint: 'ไม่เผยแพร่รายงานบัญชีผ่านพอร์ทัลสมาชิกในรุ่นนี้ของผลิตภัณฑ์',
+    },
+    {
+      label: 'ประชุม/วาระ',
+      value: '—',
+      hint: 'ดูวาระและเอกสารได้ที่พอร์ทัลคณะกรรมการ (/committee/meetings) หากได้รับสิทธิ์',
+    },
+  ]
 
   const { data: sessions, error: e8 } = await supabase
     .from('meeting_sessions')
@@ -580,18 +534,9 @@ export async function buildCommitteePortalFromDb(supabase: SupabaseClient) {
     })
   }
 
-  const assocPl = await tryAssociationMonthlyPlFromJournal(supabase)
-  const cramPl = await tryCramSchoolMonthlyPlFromJournal(supabase)
-  base.associationMonthlyPl = assocPl
-  base.cramSchoolMonthlyPl = cramPl
-
-  const { count: payPending, error: ePay } = await supabase
-    .from('payment_requests')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending')
-  if (!ePay && typeof payPending === 'number') {
-    base.paymentRequestsPending = payPending
-  }
+  base.associationMonthlyPl = null
+  base.cramSchoolMonthlyPl = null
+  base.paymentRequestsPending = 0
 
   const { data: docRows, error: eDocs } = await supabase
     .from('meeting_documents')
@@ -787,8 +732,7 @@ export async function buildAcademyPortalFromDb(supabase: SupabaseClient) {
   base.roleCards.parent[0] = { ...base.roleCards.parent[0], value: fmtInt(parents ?? 0) }
   base.roleCards.admin[0] = { ...base.roleCards.admin[0], value: fmtInt(execs ?? 0) }
 
-  const cramPl = await tryCramSchoolMonthlyPlFromJournal(supabase)
-  base.cramSchoolMonthlyPl = cramPl
+  base.cramSchoolMonthlyPl = null
 
   const { data: courseRows, error: courseErr } = await supabase
     .from('school_activities')
